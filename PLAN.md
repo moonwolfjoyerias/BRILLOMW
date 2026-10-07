@@ -72,9 +72,21 @@ Meta: dejar Aronium a **finales de 2026**.
 - Métodos de pago: efectivo, tarjeta (terminal) y transferencia.
   **Tarjeta y transferencia siempre guardan su número de referencia**, y
   no se puede registrar dos veces la misma.
-- **Ticket:** logo, folio, artículos, método de pago, referencia y quién
-  cobró (faltan datos por confirmar, ver §7).
+- **Ticket:** logo, folio, artículos, método de pago, referencia, quién
+  cobró e **IVA desglosado** (faltan datos por confirmar, ver §7).
 - **Sin facturación electrónica (CFDI).**
+- **Servicios:** se cobran grabado, reparación y ajustes. Son artículos
+  sin inventario, que siempre se pueden vender; el precio puede fijarse
+  al momento de cobrar.
+
+### Ventas a crédito (fiado)
+
+- Se vende a crédito **a veces**: la clienta se lleva la pieza y paga
+  después en abonos.
+- Cada abono se registra con su método de pago (y referencia si es
+  tarjeta o transferencia) y entra al corte del día en que se cobra.
+- Reglas por confirmar en §7: a quién se le fía, quién lo autoriza,
+  límite de crédito y cómo cuenta para comisiones.
 
 ### Corte de caja
 
@@ -128,6 +140,31 @@ cálculos del Plan MW.
   libre, 3 días normal, 15 días foránea, VIP sin depósito ni vencimiento
   con aprobación de Staff.
 
+### Prototipo de la dueña ("Caja de la joyería")
+
+La dueña hizo un prototipo en HTML con las pantallas y flujos que quiere.
+BRILLO lo toma como **referencia funcional y visual** (no como código):
+
+- Se conservan sus secciones: Vender, Apartados, Créditos, Tickets,
+  Inventario, Clientes, Reportes, Ajustes y Seguridad.
+- Se suman al plan funciones que trae y no estaban: servicios sin
+  inventario, costo y ganancia por pieza (visibles solo con permiso),
+  stock mínimo, ubicación de la pieza, carga masiva de inventario y
+  clientes desde Excel/CSV, pre-ticket, bloqueo automático por
+  inactividad, historial de movimientos por pieza, bitácora de cambios y
+  sus 12 reportes (incluidos ventas por cajero y por grupo de líder).
+- Lo que **no** se toma tal cual, porque no sirve con 2 cajas y 3
+  tablets o con las reglas de MW: guardado local por equipo, folios y
+  existencias calculados en cada equipo, permisos revisados solo en
+  pantalla, apartados de 30 días con anticipo, código de barras Code 39
+  y productos sin variantes.
+
+### Diseño
+
+- BRILLO usa la identidad de la **página**: Cinzel para encabezados,
+  Poppins para el cuerpo (Zing Rust Script en usos puntuales), con los
+  mismos colores de marca.
+
 ### Historial de Aronium
 
 - Se migra **todo**, incluidas las ventas pasadas, porque de ahí salen
@@ -152,6 +189,9 @@ cálculos del Plan MW.
 | 8 | Reportes | PC | Reemplazo del reporte de Aronium: ventas, métodos de pago con referencias, comisiones pagadas, cortes |
 | 9 | Migración de Aronium | Una sola vez | Productos, existencias, clientas y ventas pasadas |
 | 10 | Cancelaciones | PC | Cancelación de ventas, solo Administrativo |
+| 11 | Créditos | PC | Ventas a crédito, abonos, saldos por cobrar y estado de cuenta |
+| 12 | Clientes | PC y tablet | Público general con número de membresía; emprendedoras y líderes se leen de la página |
+| 13 | Carga masiva | PC | Alta de inventario y clientes desde Excel/CSV |
 
 ---
 
@@ -180,10 +220,10 @@ los pendientes de §7.
 |---|---|---|---|
 | 0. Base | 1–2 | Proyecto, conexión a Firebase, inicio de sesión por persona, catálogo de solo lectura | Se puede entrar a BRILLO en PC y tablet |
 | 1. Inventario | 3–6 | Alta y edición de productos en tablet, fotos, lectura de QR, impresión de etiquetas, movimientos de inventario | Staff maneja el catálogo desde la tablet |
-| 2. Caja | 5–9 | Cobro, mayoreo automático, pagos con referencia, saldo a favor, ticket, corte diario | Se puede cobrar sin Aronium |
+| 2. Caja | 5–9 | Cobro, servicios, mayoreo automático, pagos con referencia, IVA desglosado, saldo a favor, ticket, corte diario | Se puede cobrar sin Aronium |
 | 3. Cambios y migración | 8–11 | Cambios físicos, garantías, migración de productos y existencias desde Aronium | Inventario real cargado en BRILLO |
 | 4. Arranque | 10–12 | Prueba en paralelo con Aronium, ajustes, capacitación | **Se deja Aronium** |
-| 5. Después del arranque | 2027 | Apartados en BRILLO, reportes completos, historial de ventas migrado, cancelaciones | Todo lo operativo fuera de la página |
+| 5. Después del arranque | 2027 | Apartados en BRILLO, créditos, reportes completos, historial de ventas migrado, cancelaciones | Todo lo operativo fuera de la página |
 
 **Lo indispensable para el primer día** (fases 0–4): inventario, cobro,
 ticket y corte de caja.
@@ -228,3 +268,8 @@ BRILLO no los hace por su cuenta; se piden uno por uno cuando toque.
 | 8 | Garantía: si la pieza nueva cuesta menos, ¿qué pasa con la diferencia (sobre todo para público general, que no tiene saldo a favor)? | Jefes |
 | 9 | Garantía: ¿qué se hace con la pieza defectuosa (merma o devolución a proveedor)? | Jefes |
 | 10 | Tablets: ¿Android o iPad? | Jefes |
+| 11 | ¿El prototipo "Caja de la joyería" ya se usa con datos reales (ventas, clientes, inventario, apartados o créditos de verdad)? Si sí, también se migran | Dueña |
+| 12 | Créditos: ¿a quién se le fía (público, emprendedoras o ambos), quién lo autoriza y hay límite? | Jefes |
+| 13 | Créditos: ¿la venta cuenta para comisiones cuando se entrega la pieza o conforme entran los abonos? | Jefes |
+| 14 | Servicios (grabado, reparación, ajustes): ¿cuentan para comisiones y recompensas? | Jefes |
+| 15 | ¿Créditos entran desde el primer día o pueden esperar a después del arranque? | Jefes |
