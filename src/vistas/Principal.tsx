@@ -51,7 +51,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
         </div>
       </header>
       <main className="contenido">
-        {seccion === 'catalogo' && <Catalogo />}
+        {seccion === 'catalogo' && <Catalogo perfil={perfil} />}
         {seccion === 'caja' && <Caja perfil={perfil} />}
       </main>
     </div>
