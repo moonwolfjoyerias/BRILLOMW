@@ -85,8 +85,11 @@ Meta: dejar Aronium a **finales de 2026**.
   después en abonos.
 - Cada abono se registra con su método de pago (y referencia si es
   tarjeta o transferencia) y entra al corte del día en que se cobra.
-- Reglas por confirmar en §7: a quién se le fía, quién lo autoriza,
-  límite de crédito y cómo cuenta para comisiones.
+- Se le puede fiar a **cualquier cliente** (público general, emprendedoras
+  y líderes) y **no hay límite** de crédito.
+- Lo registra quien cobra (Encargado o Administrativo).
+- **Entra después del arranque** (fase 5); no es indispensable el primer día.
+- Por confirmar en §7: en qué momento cuenta para comisiones y recompensas.
 
 ### Corte de caja
 
@@ -143,7 +146,8 @@ cálculos del Plan MW.
 ### Prototipo de la dueña ("Caja de la joyería")
 
 La dueña hizo un prototipo en HTML con las pantallas y flujos que quiere.
-BRILLO lo toma como **referencia funcional y visual** (no como código):
+BRILLO lo toma como **referencia funcional y visual** (no como código).
+No se ha usado con datos reales, así que no hay nada que migrar de él.
 
 - Se conservan sus secciones: Vender, Apartados, Créditos, Tickets,
   Inventario, Clientes, Reportes, Ajustes y Seguridad.
@@ -268,8 +272,5 @@ BRILLO no los hace por su cuenta; se piden uno por uno cuando toque.
 | 8 | Garantía: si la pieza nueva cuesta menos, ¿qué pasa con la diferencia (sobre todo para público general, que no tiene saldo a favor)? | Jefes |
 | 9 | Garantía: ¿qué se hace con la pieza defectuosa (merma o devolución a proveedor)? | Jefes |
 | 10 | Tablets: ¿Android o iPad? | Jefes |
-| 11 | ¿El prototipo "Caja de la joyería" ya se usa con datos reales (ventas, clientes, inventario, apartados o créditos de verdad)? Si sí, también se migran | Dueña |
-| 12 | Créditos: ¿a quién se le fía (público, emprendedoras o ambos), quién lo autoriza y hay límite? | Jefes |
-| 13 | Créditos: ¿la venta cuenta para comisiones cuando se entrega la pieza o conforme entran los abonos? | Jefes |
-| 14 | Servicios (grabado, reparación, ajustes): ¿cuentan para comisiones y recompensas? | Jefes |
-| 15 | ¿Créditos entran desde el primer día o pueden esperar a después del arranque? | Jefes |
+| 11 | Créditos: ¿la venta a crédito cuenta para comisiones, Reto y rifas **al entregar la pieza** (todo el monto ese día) o **conforme entran los abonos** (cada abono en su fecha, como la regla de "solo dinero nuevo")? | Jefes |
+| 12 | Servicios (grabado, reparación, ajustes): ¿cuentan para comisiones y recompensas? | Jefes |
