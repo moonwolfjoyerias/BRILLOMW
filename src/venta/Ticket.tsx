@@ -1,67 +1,101 @@
 import { TIENDA } from './tienda';
-import { NOMBRE_METODO } from './carrito';
+import { code128B } from './code128';
+import { fechaTicket, renglonCantidad, renglonPieza } from './ticketFormato';
+import type { MetodoPago } from './carrito';
 import type { VentaRegistrada } from './registrarVenta';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 
-/** Ticket de 80 mm. Se imprime con la impresora del sistema (window.print). */
-export function Ticket({ venta: v }: { venta: VentaRegistrada }) {
-  const fecha = new Date(v.fechaLocal).toLocaleString('es-MX', {
-    day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: '2-digit'
+const ETIQUETA_PAGO: Record<MetodoPago, string> = {
+  efectivo: 'EFECTIVO',
+  tarjeta: 'TARJETA',
+  transferencia: 'TRANSFERENCIA'
+};
+
+/** Renglón con texto a la izquierda e importe cargado a la derecha. */
+function Fila({ izq, der, fuerte }: { izq: string; der: string; fuerte?: boolean }) {
+  return (
+    <div className={fuerte ? 't-fila t-fuerte' : 't-fila'}>
+      <span>{izq}</span>
+      <span>{der}</span>
+    </div>
+  );
+}
+
+function CodigoBarras({ texto }: { texto: string }) {
+  const anchos = code128B(texto);
+  const quieta = 10; // margen en blanco a cada lado que exige el estándar
+  const total = anchos.reduce((a, b) => a + b, 0) + quieta * 2;
+  let x = quieta;
+  const barras = anchos.map((w, i) => {
+    const r = i % 2 === 0 ? <rect key={i} x={x} y={0} width={w} height={40} /> : null;
+    x += w;
+    return r;
   });
+  return (
+    <svg className="t-barras" viewBox={`0 0 ${total} 40`} preserveAspectRatio="none" role="img" aria-label={`Código de barras ${texto}`}>
+      {barras}
+    </svg>
+  );
+}
+
+/** Ticket de 80 mm con el formato de la tienda. */
+export function Ticket({ venta: v }: { venta: VentaRegistrada }) {
+  const ahorro = Math.round((v.totales.totalEtiqueta - v.totales.total) * 100) / 100;
   return (
     <div className="ticket">
       <div className="t-centro">
-        <img src="./isotipo.png" alt="" className="t-logo" />
+        <div className="t-lema">{TIENDA.lema}</div>
+        <img src="./imagotipo-ticket.jpg" alt="" className="t-imagotipo" />
         <div className="t-tienda">{TIENDA.nombre}</div>
         {TIENDA.lineasEncabezado.map(l => (
           <div key={l}>{l}</div>
         ))}
       </div>
+      <div className="t-espacio" />
+      <div>N° Recibo: {v.folio}</div>
+      <div>{fechaTicket(v.fechaLocal)}</div>
+      <div>Usuario: {v.cobradoPor.nombre}</div>
       <div className="t-linea" />
-      <div className="t-fila"><span>Folio</span><strong>{v.folio}</strong></div>
-      <div className="t-fila"><span>Fecha</span><span>{fecha}</span></div>
-      <div className="t-fila"><span>Cobró</span><span>{v.cobradoPor.nombre}</span></div>
-      <div className="t-fila">
-        <span>Cliente</span>
-        <span>{v.cliente.nombre}{v.cliente.membresia ? ` (${v.cliente.membresia})` : ''}</span>
-      </div>
+      <div>Cliente: {v.cliente.nombre.toUpperCase()}</div>
+      {v.cliente.membresia && <div>Número de cliente: {v.cliente.membresia}</div>}
       <div className="t-linea" />
       {v.lineas.map((l, i) => (
         <div key={i} className="t-art">
-          <div>{l.descripcion}{l.codigo ? ` [${l.codigo}]` : ''}</div>
-          <div className="t-fila">
-            <span>
-              {l.cantidad} × {MXN.format(l.precioUnitario)}
-              {l.descuentoAplicado > 0 && ` (-${l.descuentoAplicado}%)`}
-            </span>
-            <span>{MXN.format(l.importe)}</span>
-          </div>
+          <div>{renglonPieza({ categoria: l.categoria, colorOro: l.colorOro, nombre: l.nombre, variante: l.variante })}</div>
+          <Fila izq={renglonCantidad(l)} der={MXN.format(l.importe)} />
         </div>
       ))}
       <div className="t-linea" />
-      {v.totales.descuentoMayoreo > 0 && (
-        <div className="t-fila"><span>Descuento mayoreo</span><span>-{MXN.format(v.totales.descuentoMayoreo)}</span></div>
-      )}
-      <div className="t-fila"><span>Subtotal (sin IVA)</span><span>{MXN.format(v.totales.baseSinIva)}</span></div>
-      <div className="t-fila"><span>IVA 16%</span><span>{MXN.format(v.totales.iva)}</span></div>
-      <div className="t-fila t-total"><span>TOTAL</span><span>{MXN.format(v.totales.total)}</span></div>
+      <div>Cantidad de artículos: {v.totales.piezas}</div>
+      <div className="t-linea" />
+      <Fila izq="Subtotal" der={MXN.format(v.totales.baseSinIva)} />
+      <Fila izq="Impuestos 16%:" der={MXN.format(v.totales.iva)} />
+      <Fila izq="TOTAL:" der={MXN.format(v.totales.total)} fuerte />
       <div className="t-linea" />
       {v.pagos.map((p, i) => (
-        <div key={i} className="t-fila">
-          <span>{NOMBRE_METODO[p.metodo]}{p.referencia ? ` · Ref. ${p.referencia}` : ''}</span>
-          <span>{MXN.format(p.monto)}</span>
+        <div key={i}>
+          <Fila izq={`${ETIQUETA_PAGO[p.metodo]}:`} der={MXN.format(p.monto)} />
+          {p.referencia && <div className="t-sangria">Ref. {p.referencia}</div>}
         </div>
       ))}
-      {v.cambio > 0 && (
+      <Fila izq="Recibido:" der={MXN.format(v.recibido)} />
+      {v.cambio > 0 && <Fila izq="Cambio:" der={MXN.format(v.cambio)} />}
+      {ahorro > 0 && (
         <>
-          <div className="t-fila"><span>Recibido</span><span>{MXN.format(v.recibido)}</span></div>
-          <div className="t-fila"><span>Cambio</span><span>{MXN.format(v.cambio)}</span></div>
+          <div className="t-linea" />
+          <Fila izq="Ahorraste:" der={MXN.format(ahorro)} fuerte />
         </>
       )}
-      <div className="t-linea" />
-      <div className="t-centro">{v.totales.piezas} {v.totales.piezas === 1 ? 'artículo' : 'artículos'}</div>
-      <div className="t-centro t-pie">{TIENDA.mensajePie}</div>
+      <div className="t-espacio" />
+      <div className="t-centro">
+        <CodigoBarras texto={v.folio} />
+        <div>{v.folio}</div>
+      </div>
+      <div className="t-espacio" />
+      {TIENDA.avisosGarantia.map(t => (
+        <p key={t} className="t-aviso">"{t}"</p>
+      ))}
     </div>
   );
 }

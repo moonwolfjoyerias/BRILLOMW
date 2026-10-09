@@ -24,6 +24,10 @@ export interface LineaVendida {
   productoId: string | null;
   varianteId: string | null;
   descripcion: string;
+  nombre: string;
+  categoria: string;
+  colorOro: string;
+  variante: string;
   codigo: string;
   material: string;
   cantidad: number;
@@ -62,6 +66,10 @@ export function lineasVendidas(carrito: LineaCarrito[], cliente: ClienteVenta): 
       productoId: l.productoId,
       varianteId: l.varianteId,
       descripcion: l.descripcion,
+      nombre: l.nombre,
+      categoria: l.categoria,
+      colorOro: l.colorOro,
+      variante: l.variante,
       codigo: l.codigo,
       material: l.material,
       cantidad: l.cantidad,

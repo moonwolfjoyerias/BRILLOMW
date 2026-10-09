@@ -301,13 +301,18 @@ textarea {
 /* ---------- ticket 80 mm ---------- */
 .ticket { width: 72mm; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.35; color: #000; background: #fff; padding: 8px; }
 .t-centro { text-align: center; }
-.t-logo { width: 36px; filter: grayscale(1); }
-.t-tienda { font-weight: 700; font-size: 14px; }
+.t-lema { font-weight: 700; letter-spacing: 0.02em; }
+.t-imagotipo { width: 34mm; display: block; margin: 4px auto; filter: grayscale(1) contrast(1.3); }
+.t-tienda { font-weight: 700; font-size: 17px; margin-bottom: 2px; }
 .t-linea { border-top: 1px dashed #000; margin: 6px 0; }
+.t-espacio { height: 8px; }
 .t-fila { display: flex; justify-content: space-between; gap: 8px; }
+.t-fila > span:last-child { white-space: nowrap; }
+.t-fuerte { font-weight: 700; font-size: 14px; }
+.t-sangria { padding-left: 12px; }
 .t-art { margin-bottom: 4px; }
-.t-total { font-weight: 700; font-size: 14px; }
-.t-pie { margin-top: 6px; }
+.t-barras { width: 60mm; height: 12mm; display: block; margin: 0 auto 2px; }
+.t-aviso { margin: 0 0 6px; text-align: center; font-size: 11px; }
 @media print {
   @page { size: 80mm auto; margin: 0; }
   body * { visibility: hidden; }

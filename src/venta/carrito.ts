@@ -26,6 +26,11 @@ export interface LineaCarrito {
   productoId: string | null;
   varianteId: string | null;
   descripcion: string;
+  /** Partes de la descripción, para el ticket ("AN BL CORAZON VIRGEN 7"). */
+  nombre: string;
+  categoria: string;
+  colorOro: string;
+  variante: string;
   codigo: string;
   material: string;
   cantidad: number;
@@ -47,6 +52,10 @@ export function lineaDeProducto(p: Producto, varianteId: string): LineaCarrito {
     productoId: p.id,
     varianteId: v.id,
     descripcion: [p.nombre, p.colorOro, etiqueta].filter(Boolean).join(' · '),
+    nombre: p.nombre,
+    categoria: p.categoria,
+    colorOro: p.colorOro,
+    variante: etiqueta,
     codigo: p.codigo,
     material: p.material,
     cantidad: 1,
@@ -63,6 +72,10 @@ export function lineaDeServicio(id: string, descripcion: string, precio: number)
     productoId: null,
     varianteId: null,
     descripcion,
+    nombre: descripcion,
+    categoria: '',
+    colorOro: '',
+    variante: '',
     codigo: '',
     material: 'servicio',
     cantidad: 1,
