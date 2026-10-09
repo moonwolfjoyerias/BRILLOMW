@@ -2,7 +2,7 @@
 // registro en `auditoria`, que es la pestaña "Actividad" de la página,
 // en la MISMA operación: o se guardan los dos o ninguno.
 import { FirebaseError } from 'firebase/app';
-import { doc, runTransaction, writeBatch, type Firestore } from 'firebase/firestore';
+import { collection, doc, getDocs, runTransaction, writeBatch, type Firestore } from 'firebase/firestore';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { armarDocumento, describirCambios, textoEstable, type DatosProducto, type UltimaAccion } from './edicion';
 import { normalizarProducto, type Producto } from './producto';
@@ -15,7 +15,7 @@ export interface RegistroActividad {
   /** Las reglas de la página exigen que sea el rol real de quien escribe. */
   rol: string;
   modulo: 'catalogo';
-  accion: 'agregar_producto' | 'editar_producto';
+  accion: 'agregar_producto' | 'editar_producto' | 'eliminar_producto';
   descripcion: string;
   fecha: string;
   /** Extras de BRILLO (la página los ignora; el origen también va en la descripción). */
@@ -125,6 +125,66 @@ export async function editarProducto(
         throw new Error('cambio-externo');
       }
       tx.set(ref, armarDocumento(alAbrir.id, datos, ultimaAccion, actual));
+      tx.set(doc(db, 'auditoria', registro.id), registro);
+    });
+    return null;
+  } catch (e) {
+    return mensajeError(e);
+  }
+}
+
+/**
+ * Quién tiene apartada (pieza activa) alguna variante de este producto,
+ * según `ventanasApartado` de la página. Función pura para poder probarla.
+ */
+export function apartadoPor(ventanas: Record<string, unknown>[], productoId: string): string[] {
+  const nombres = new Set<string>();
+  for (const v of ventanas) {
+    if (v.estado === 'cerrada') continue;
+    const piezas = Array.isArray(v.apartados) ? (v.apartados as Record<string, unknown>[]) : [];
+    if (piezas.some(p => p.productoId === productoId && p.estado === 'activa')) {
+      nombres.add(String(v.usuarioNombre || 'una clienta'));
+    }
+  }
+  return [...nombres];
+}
+
+/**
+ * Elimina un producto del catálogo (de la página y de BRILLO) y lo deja en
+ * Actividad. No se permite si alguien lo tiene apartado, ni si el producto
+ * cambió desde que se abrió (para no borrar algo que no se vio).
+ */
+export async function eliminarProducto(
+  db: Firestore,
+  alAbrir: Producto,
+  perfil: PerfilUsuario,
+  equipo: string
+): Promise<string | null> {
+  if (sinConexion()) return 'Sin conexión a internet. Para eliminar productos se necesita conexión.';
+  try {
+    const ventanas = await getDocs(collection(db, 'ventanasApartado'));
+    const quienes = apartadoPor(ventanas.docs.map(d => d.data()), alAbrir.id);
+    if (quienes.length) {
+      return `No se puede eliminar: lo tiene apartado ${quienes.join(', ')}. Primero liquida o cancela ese apartado.`;
+    }
+  } catch (e) {
+    return mensajeError(e);
+  }
+  const registro = registroActividad(
+    perfil,
+    'eliminar_producto',
+    `Producto eliminado: ${alAbrir.nombre}${alAbrir.codigo ? ` (${alAbrir.codigo})` : ''} · desde BRILLO (${equipo})`,
+    equipo
+  );
+  const ref = doc(db, 'productos', alAbrir.id);
+  try {
+    await runTransaction(db, async tx => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) throw new Error('no-existe');
+      if (textoEstable(normalizarProducto(alAbrir.id, snap.data())) !== textoEstable(alAbrir)) {
+        throw new Error('cambio-externo');
+      }
+      tx.delete(ref);
       tx.set(doc(db, 'auditoria', registro.id), registro);
     });
     return null;

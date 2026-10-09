@@ -67,6 +67,17 @@ button, input, select { font: inherit; color: inherit; }
 .btn.primario { background: var(--mw-purple); border-color: var(--mw-purple); color: #fff; }
 .btn.primario:hover { background: var(--mw-purple-dark); }
 .btn.ancho { width: 100%; }
+.btn.peligro { color: var(--danger); border-color: var(--danger-soft); }
+.btn.peligro:hover { border-color: var(--danger); }
+.btn.peligro-lleno { background: var(--danger); border-color: var(--danger); color: #fff; }
+.confirmar-peligro {
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+.confirmar-peligro p { margin: 0 0 12px; }
 input:not([type='checkbox']), select {
   min-height: var(--toque);
   padding: 0 12px;
