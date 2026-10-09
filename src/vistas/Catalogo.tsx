@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useCatalogo } from '../pagina/useCatalogo';
+import type { PerfilUsuario } from '../sesion/perfil';
+import { ProductoForm } from './ProductoForm';
 import {
   NOMBRE_MATERIAL,
   etiquetaVariante,
@@ -17,12 +19,15 @@ const dinero = (n: number) => MXN.format(n);
 const normal = (s: string) =>
   s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
-export function Catalogo() {
+export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
   const catalogo = useCatalogo();
   const [busqueda, setBusqueda] = useState('');
   const [material, setMaterial] = useState('');
   const [soloConExistencias, setSoloConExistencias] = useState(false);
   const [abierto, setAbierto] = useState<Producto | null>(null);
+  /** undefined = formulario cerrado; null = producto nuevo; id = editar ese producto. */
+  const [editando, setEditando] = useState<string | null | undefined>(undefined);
+  const [aviso, setAviso] = useState<string | null>(null);
 
   const productos = catalogo.estado === 'listo' ? catalogo.productos : [];
   const filtrados = useMemo(() => {
@@ -40,13 +45,23 @@ export function Catalogo() {
 
   return (
     <section>
-      <div className="encabezado-seccion">
-        <h1>Catálogo</h1>
-        <p className="muted">
-          {filtrados.length} de {productos.length} modelos · solo lectura
-          {catalogo.desdeCache && ' · sin conexión, mostrando la última copia'}
-        </p>
+      <div className="encabezado-seccion con-accion">
+        <div>
+          <h1>Catálogo</h1>
+          <p className="muted">
+            {filtrados.length} de {productos.length} modelos
+            {catalogo.desdeCache && ' · sin conexión, mostrando la última copia'}
+          </p>
+        </div>
+        <button className="btn primario" onClick={() => setEditando(null)}>
+          + Agregar producto
+        </button>
       </div>
+      {aviso && (
+        <p className="aviso-ok" role="status">
+          {aviso}
+        </p>
+      )}
 
       <div className="filtros">
         <input
@@ -98,7 +113,30 @@ export function Catalogo() {
         </ul>
       )}
 
-      {abierto && <Detalle producto={abierto} onCerrar={() => setAbierto(null)} />}
+      {abierto && (
+        <Detalle
+          producto={productos.find(p => p.id === abierto.id) ?? abierto}
+          onCerrar={() => setAbierto(null)}
+          onEditar={() => {
+            setEditando(abierto.id);
+            setAbierto(null);
+          }}
+        />
+      )}
+      {editando !== undefined && (
+        <ProductoForm
+          // Siempre la versión más reciente del producto al abrir el formulario.
+          producto={editando === null ? null : (productos.find(p => p.id === editando) ?? null)}
+          perfil={perfil}
+          onCerrar={guardado => {
+            if (guardado) {
+              setAviso(editando === null ? 'Producto agregado. Ya aparece en la página y en Actividad.' : 'Cambios guardados. Ya se ven en la página y en Actividad.');
+              setTimeout(() => setAviso(null), 5000);
+            }
+            setEditando(undefined);
+          }}
+        />
+      )}
     </section>
   );
 }
@@ -118,7 +156,7 @@ function Existencias({ n }: { n: number }) {
   return <span className={n > 0 ? 'chip ok' : 'chip agotado'}>{n > 0 ? `${n} en existencia` : 'Agotado'}</span>;
 }
 
-function Detalle({ producto: p, onCerrar }: { producto: Producto; onCerrar: () => void }) {
+function Detalle({ producto: p, onCerrar, onEditar }: { producto: Producto; onCerrar: () => void; onEditar: () => void }) {
   useEffect(() => {
     const alTeclear = (e: KeyboardEvent) => e.key === 'Escape' && onCerrar();
     window.addEventListener('keydown', alTeclear);
@@ -135,9 +173,14 @@ function Detalle({ producto: p, onCerrar }: { producto: Producto; onCerrar: () =
       >
         <div className="modal-cabeza">
           <h2>{p.nombre || 'Sin nombre'}</h2>
-          <button className="btn" onClick={onCerrar} autoFocus>
-            Cerrar
-          </button>
+          <div className="acciones">
+            <button className="btn primario" onClick={onEditar}>
+              Editar
+            </button>
+            <button className="btn" onClick={onCerrar} autoFocus>
+              Cerrar
+            </button>
+          </div>
         </div>
         {p.galeria.some(f => fotoMostrable(f.src)) && (
           <div className="galeria">
