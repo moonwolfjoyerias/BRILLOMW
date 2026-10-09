@@ -52,3 +52,8 @@ export function validarPerfil(uid: string, datos: Record<string, unknown> | unde
   const nombre = typeof datos.nombre === 'string' && datos.nombre ? datos.nombre : usuario;
   return { ok: true, perfil: { uid, usuario, nombre, rol } };
 }
+
+/** Abrir y cerrar la caja del día: Encargado y Administrativo. */
+export function puedeManejarCaja(rol: Rol): boolean {
+  return rol === 'encargado' || rol === 'admin';
+}

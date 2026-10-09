@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { usuarioAEmail, validarPerfil } from './perfil';
+import { puedeManejarCaja, usuarioAEmail, validarPerfil } from './perfil';
 
 describe('usuarioAEmail (igual que la página)', () => {
   it('normaliza y agrega el sufijo', () => {
@@ -28,5 +28,13 @@ describe('validarPerfil', () => {
   it('usa el usuario como nombre si no hay nombre', () => {
     const r = validarPerfil('u6', { rol: 'staff', usuario: 'caja2' });
     expect(r.ok && r.perfil.nombre).toBe('caja2');
+  });
+});
+
+describe('puedeManejarCaja', () => {
+  it('solo Encargado y Administrativo', () => {
+    expect(puedeManejarCaja('encargado')).toBe(true);
+    expect(puedeManejarCaja('admin')).toBe(true);
+    expect(puedeManejarCaja('staff')).toBe(false);
   });
 });

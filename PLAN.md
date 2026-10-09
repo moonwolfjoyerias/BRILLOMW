@@ -39,7 +39,7 @@ Meta: dejar Aronium a **finales de 2026**.
 | Alta, edición y baja de productos (tablet) | ✔ | ✔ | ✔ |
 | Gestionar apartados (tablet) | ✔ | ✔ | ✔ |
 | Cobrar en caja | — | ✔ | ✔ |
-| Abrir y cerrar la caja del día | — | ✔ | — |
+| Abrir y cerrar la caja del día | — | ✔ | ✔ |
 | Autorizar un cambio físico | — | ✔ | ✔ |
 | Registrar una garantía | — | ✔ | ✔ |
 | Cancelar una venta cobrada | — | — | ✔ |
@@ -98,7 +98,8 @@ Meta: dejar Aronium a **finales de 2026**.
 ### Corte de caja
 
 - **Diario**, uno **por caja** y uno **general**.
-- Lo abre y lo cierra Encargado.
+- La abre y la cierra Encargado o Administrativo, con un fondo inicial
+  en efectivo que se captura al abrir.
 
 ### Cambios físicos (devoluciones)
 
