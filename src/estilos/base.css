@@ -313,12 +313,20 @@ textarea {
 .t-art { margin-bottom: 4px; }
 .t-barras { width: 60mm; height: 12mm; display: block; margin: 0 auto 2px; }
 .t-aviso { margin: 0 0 6px; text-align: center; font-size: 11px; }
+/* Papel de 58 mm (unos 48 mm imprimibles) */
+.ticket.t58 { width: 48mm; font-size: 10px; padding: 6px; overflow-wrap: anywhere; }
+.t58 .t-barras { width: 46mm; }
+.t58 .t-tienda { font-size: 14px; }
+.t58 .t-fuerte { font-size: 12px; }
+.t58 .t-imagotipo { width: 26mm; }
+.t58 .t-barras { height: 10mm; }
+.t58 .t-aviso { font-size: 9px; }
 @media print {
-  @page { size: 80mm auto; margin: 0; }
   body * { visibility: hidden; }
   .ticket-impresion, .ticket-impresion * { visibility: visible; }
   .ticket-impresion { display: block; position: absolute; left: 0; top: 0; }
   .ticket { padding: 0 4mm; }
+  .ticket.t58 { padding: 0 2mm; }
 }
 @media (max-width: 900px) {
   .vender-columnas { grid-template-columns: 1fr; }

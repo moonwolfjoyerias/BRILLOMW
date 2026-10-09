@@ -39,11 +39,13 @@ function CodigoBarras({ texto }: { texto: string }) {
   );
 }
 
-/** Ticket de 80 mm con el formato de la tienda. */
-export function Ticket({ venta: v }: { venta: VentaRegistrada }) {
+export type AnchoTicket = 58 | 80;
+
+/** Ticket con el formato de la tienda, para papel de 58 u 80 mm. */
+export function Ticket({ venta: v, ancho = 80 }: { venta: VentaRegistrada; ancho?: AnchoTicket }) {
   const ahorro = Math.round((v.totales.totalEtiqueta - v.totales.total) * 100) / 100;
   return (
-    <div className="ticket">
+    <div className={ancho === 58 ? 'ticket t58' : 'ticket'}>
       <div className="t-centro">
         <div className="t-lema">{TIENDA.lema}</div>
         <img src="./imagotipo-ticket.jpg" alt="" className="t-imagotipo" />
@@ -56,6 +58,7 @@ export function Ticket({ venta: v }: { venta: VentaRegistrada }) {
       <div>N° Recibo: {v.folio}</div>
       <div>{fechaTicket(v.fechaLocal)}</div>
       <div>Usuario: {v.cobradoPor.nombre}</div>
+      {v.orden != null && <div>Orden N°: {v.orden}</div>}
       <div className="t-linea" />
       <div>Cliente: {v.cliente.nombre.toUpperCase()}</div>
       {v.cliente.membresia && <div>Número de cliente: {v.cliente.membresia}</div>}

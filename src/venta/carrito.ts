@@ -208,8 +208,13 @@ export function validarPagos(total: number, capturados: PagoCaptura[]): Resultad
   return { ok: true, recibido, cambio, pagos: registrados };
 }
 
-/** Folio legible por caja: C1-000123. */
-export function formatoFolio(caja: string, numero: number): string {
-  const n = caja.replace(/\D/g, '') || '0';
-  return `C${n}-${String(numero).padStart(6, '0')}`;
+/** Operación 200 = salida (venta), como en Aronium. */
+export const OPERACION_VENTA = 200;
+
+/**
+ * N° de recibo con el formato de Aronium: año (2 dígitos) - operación -
+ * consecutivo de 6 dígitos. Ej. 2026, venta 3944 → "26-200-003944".
+ */
+export function formatoRecibo(fechaDia: string, numero: number): string {
+  return `${fechaDia.slice(2, 4)}-${OPERACION_VENTA}-${String(numero).padStart(6, '0')}`;
 }

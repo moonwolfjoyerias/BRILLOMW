@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { normalizarProducto } from '../pagina/producto';
 import {
-  PUBLICO_GENERAL, agregarLinea, calcularTotales, cambiarCantidad, formatoFolio, lineaDeProducto, lineaDeServicio, validarPagos,
+  PUBLICO_GENERAL, agregarLinea, calcularTotales, cambiarCantidad, formatoRecibo, lineaDeProducto, lineaDeServicio, validarPagos,
   type ClienteVenta
 } from './carrito';
 
@@ -73,8 +73,9 @@ describe('pagos', () => {
   });
 });
 
-describe('folio', () => {
-  it('por caja', () => {
-    expect(formatoFolio('caja2', 123)).toBe('C2-000123');
+describe('recibo', () => {
+  it('formato de Aronium: año-200-consecutivo', () => {
+    expect(formatoRecibo('2026-10-07', 3944)).toBe('26-200-003944');
+    expect(formatoRecibo('2027-01-02', 1)).toBe('27-200-000001');
   });
 });

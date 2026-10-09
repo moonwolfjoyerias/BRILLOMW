@@ -8,7 +8,7 @@ import type { PerfilUsuario } from '../sesion/perfil';
 import { COLECCION_TURNOS, idTurno, type IdCaja } from '../caja/turno';
 import {
   calcularTotales,
-  formatoFolio,
+  formatoRecibo,
   precioUnitario,
   type ClienteVenta,
   type LineaCarrito,
@@ -41,7 +41,10 @@ export interface LineaVendida {
 
 export interface VentaRegistrada {
   id: string;
+  /** N° de recibo, formato de Aronium: "26-200-003944". */
   folio: string;
+  /** Orden N°: consecutivo propio de órdenes, como en Aronium. */
+  orden: number;
   caja: IdCaja;
   turnoId: string;
   fechaDia: string;
@@ -144,8 +147,12 @@ export async function registrarVenta(
     const venta = await runTransaction(db, async tx => {
       // 1) Todas las lecturas primero (regla de Firestore para transacciones).
       const turno = await tx.get(doc(db, COLECCION_TURNOS, turnoId));
-      const contadorRef = doc(db, COLECCION_CONTADORES, `folios_${caja}`);
-      const contador = await tx.get(contadorRef);
+      // Consecutivos de TODA la tienda (las dos cajas comparten la cuenta,
+      // como en Aronium). La transacción evita que dos cajas tomen el mismo.
+      const recibosRef = doc(db, COLECCION_CONTADORES, 'recibos');
+      const ordenesRef = doc(db, COLECCION_CONTADORES, 'ordenes');
+      const recibos = await tx.get(recibosRef);
+      const ordenes = await tx.get(ordenesRef);
       const actuales = new Map<string, Record<string, unknown> | undefined>();
       for (const id of productoIds) {
         const s = await tx.get(doc(db, 'productos', id));
@@ -166,11 +173,13 @@ export async function registrarVenta(
       if (!r.ok) throw new ErrorVenta(r.error);
 
       // 3) Escrituras.
-      const numero = (Number(contador.exists() ? contador.data().siguiente : 1) || 1);
-      const folio = formatoFolio(caja, numero);
+      const numero = Number(recibos.exists() ? recibos.data().siguiente : 1) || 1;
+      const orden = Number(ordenes.exists() ? ordenes.data().siguiente : 1) || 1;
+      const folio = formatoRecibo(fechaDia, numero);
       const v: VentaRegistrada = {
         id: folio,
         folio,
+        orden,
         caja,
         turnoId,
         fechaDia,
@@ -189,7 +198,8 @@ export async function registrarVenta(
       r.cambios.forEach((variantes, id) =>
         tx.update(doc(db, 'productos', id), { variantes, disponible: variantes.some(x => (Number(x.stock) || 0) > 0) })
       );
-      tx.set(contadorRef, { siguiente: numero + 1, caja });
+      tx.set(recibosRef, { siguiente: numero + 1 }, { merge: true });
+      tx.set(ordenesRef, { siguiente: orden + 1 }, { merge: true });
       tx.set(doc(db, COLECCION_VENTAS, folio), { ...v, fecha: serverTimestamp() });
       for (const { p, ref } of refsPago) {
         tx.set(ref, { metodo: p.metodo, referencia: p.referencia, monto: p.monto, folio, fechaDia, fecha: serverTimestamp() });

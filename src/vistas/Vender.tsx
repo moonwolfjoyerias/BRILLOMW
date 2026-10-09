@@ -25,12 +25,33 @@ import {
   type PagoRegistrado
 } from '../venta/carrito';
 import { registrarVenta, type VentaRegistrada } from '../venta/registrarVenta';
-import { Ticket } from '../venta/Ticket';
+import { Ticket, type AnchoTicket } from '../venta/Ticket';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 const dinero = (n: number) => MXN.format(n);
 const normal = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 const CLAVE_CAJA = 'brillo.cajaDelEquipo';
+const CLAVE_ANCHO = 'brillo.anchoTicket';
+
+function anchoGuardado(): AnchoTicket {
+  try {
+    return localStorage.getItem(CLAVE_ANCHO) === '58' ? 58 : 80;
+  } catch {
+    return 80;
+  }
+}
+
+/** Ajusta el tamaño de hoja al papel elegido justo antes de imprimir. */
+function imprimirTicket(ancho: AnchoTicket) {
+  let estilo = document.getElementById('pagina-ticket');
+  if (!estilo) {
+    estilo = document.createElement('style');
+    estilo.id = 'pagina-ticket';
+    document.head.appendChild(estilo);
+  }
+  estilo.textContent = `@media print { @page { size: ${ancho}mm auto; margin: 0; } }`;
+  window.print();
+}
 
 function cajaGuardada(): IdCaja {
   try {
@@ -521,6 +542,15 @@ function Cobro({
 // ------------------------------------------------------------ ticket
 
 function VentaTerminada({ venta, onNueva }: { venta: VentaRegistrada; onNueva: () => void }) {
+  const [ancho, setAncho] = useState<AnchoTicket>(anchoGuardado);
+  function elegirAncho(a: AnchoTicket) {
+    setAncho(a);
+    try {
+      localStorage.setItem(CLAVE_ANCHO, String(a));
+    } catch {
+      /* noop */
+    }
+  }
   return (
     <div className="modal-fondo">
       <div className="modal modal-ticket" role="dialog" aria-modal="true" aria-label="Venta registrada">
@@ -529,15 +559,22 @@ function VentaTerminada({ venta, onNueva }: { venta: VentaRegistrada; onNueva: (
           {venta.cambio > 0 && <span className="chip ok grande">Cambio: {dinero(venta.cambio)}</span>}
         </div>
         <div className="ticket-vista">
-          <Ticket venta={venta} />
+          <Ticket venta={venta} ancho={ancho} />
         </div>
         <div className="acciones">
-          <button className="btn" onClick={() => window.print()}>Imprimir ticket</button>
+          <label className="campo-en-linea">
+            <span>Papel</span>
+            <select value={ancho} onChange={e => elegirAncho(Number(e.target.value) as AnchoTicket)}>
+              <option value={80}>80 mm</option>
+              <option value={58}>58 mm</option>
+            </select>
+          </label>
+          <button className="btn" onClick={() => imprimirTicket(ancho)}>Imprimir ticket</button>
           <button className="btn primario" onClick={onNueva} autoFocus>Nueva venta</button>
         </div>
       </div>
       <div className="ticket-impresion" aria-hidden="true">
-        <Ticket venta={venta} />
+        <Ticket venta={venta} ancho={ancho} />
       </div>
     </div>
   );
