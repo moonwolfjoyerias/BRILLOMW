@@ -239,6 +239,89 @@ textarea {
   .variante-fila.encabezado { display: none; }
 }
 
+/* ---------- vender ---------- */
+.campo-en-linea { display: flex; align-items: center; gap: 8px; }
+.campo-en-linea span { color: var(--mw-text-muted); white-space: nowrap; }
+.campo-en-linea select { width: auto; }
+.vacio-caja { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.vacio-caja p { margin: 0; }
+.vender-columnas { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(340px, 1fr); gap: 16px; align-items: start; }
+.panel-productos, .panel-venta {
+  background: var(--surface);
+  border: 1px solid var(--mw-border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+.panel-venta { position: sticky; top: 76px; }
+.buscador { display: flex; gap: 8px; margin-bottom: 10px; }
+.buscador .btn { white-space: nowrap; }
+.lista-venta { list-style: none; margin: 0; padding: 0; max-height: calc(100vh - 260px); overflow: auto; }
+.item-venta {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 6px;
+  border: 0;
+  border-bottom: 1px solid var(--mw-border);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  min-height: var(--toque);
+}
+.item-venta:hover { background: var(--mw-lilac-soft); }
+.item-venta img, .sin-foto { width: 52px; height: 52px; object-fit: cover; border-radius: 8px; background: var(--mw-lilac-soft); display: block; }
+.item-texto, .item-precio { display: flex; flex-direction: column; }
+.item-precio { text-align: right; font-weight: 600; color: var(--mw-purple); }
+.variantes-eleccion { display: flex; flex-wrap: wrap; gap: 8px; }
+.cliente { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px solid var(--mw-border); margin-bottom: 10px; }
+.cliente > div:first-child { display: flex; flex-direction: column; gap: 2px; }
+.cliente.buscando { flex-direction: column; align-items: stretch; }
+.resultados-cliente { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 260px; overflow: auto; }
+.btn.izq { text-align: left; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border-radius: 12px; padding: 6px 14px; }
+.lineas { list-style: none; margin: 0; padding: 0; max-height: 40vh; overflow: auto; }
+.linea { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--mw-border); }
+.linea-desc { display: flex; flex-direction: column; }
+.linea-importe { min-width: 84px; text-align: right; }
+.cantidad { display: flex; align-items: center; gap: 6px; }
+.cantidad span { min-width: 22px; text-align: center; font-weight: 600; }
+.totales { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin: 12px 0; }
+.totales dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.totales .total { font-size: 1.3rem; font-weight: 600; color: var(--mw-purple-dark); }
+.btn.cobrar { min-height: 52px; font-size: 1.05rem; padding: 0 24px; }
+.fila-pago { display: grid; grid-template-columns: 150px 140px 1fr auto; gap: 8px; align-items: center; margin-bottom: 10px; }
+.resumen-cobro { font-size: 1.15rem; font-weight: 600; color: var(--ok); margin: 14px 0 8px; }
+.resumen-cobro.falta { color: var(--danger); }
+.chip.grande { font-size: 1rem; padding: 6px 14px; }
+.modal-ticket { width: min(460px, 100%); }
+.ticket-vista { background: var(--mw-cream); border-radius: 12px; padding: 12px; margin-bottom: 14px; display: flex; justify-content: center; }
+.ticket-impresion { display: none; }
+
+/* ---------- ticket 80 mm ---------- */
+.ticket { width: 72mm; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.35; color: #000; background: #fff; padding: 8px; }
+.t-centro { text-align: center; }
+.t-logo { width: 36px; filter: grayscale(1); }
+.t-tienda { font-weight: 700; font-size: 14px; }
+.t-linea { border-top: 1px dashed #000; margin: 6px 0; }
+.t-fila { display: flex; justify-content: space-between; gap: 8px; }
+.t-art { margin-bottom: 4px; }
+.t-total { font-weight: 700; font-size: 14px; }
+.t-pie { margin-top: 6px; }
+@media print {
+  @page { size: 80mm auto; margin: 0; }
+  body * { visibility: hidden; }
+  .ticket-impresion, .ticket-impresion * { visibility: visible; }
+  .ticket-impresion { display: block; position: absolute; left: 0; top: 0; }
+  .ticket { padding: 0 4mm; }
+}
+@media (max-width: 900px) {
+  .vender-columnas { grid-template-columns: 1fr; }
+  .panel-venta { position: static; }
+  .lista-venta { max-height: 45vh; }
+  .fila-pago { grid-template-columns: 1fr 1fr; }
+}
+
 /* ---------- caja ---------- */
 .cajas { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
 .tarjeta-caja {

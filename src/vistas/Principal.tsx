@@ -3,16 +3,20 @@ import { cerrarSesion } from '../sesion/sesion';
 import { ETIQUETA_ROL, puedeManejarCaja, type PerfilUsuario } from '../sesion/perfil';
 import { Catalogo } from './Catalogo';
 import { Caja } from './Caja';
+import { Vender } from './Vender';
 
-type Seccion = 'catalogo' | 'caja';
+type Seccion = 'vender' | 'catalogo' | 'caja';
 
 export function Principal({ perfil }: { perfil: PerfilUsuario }) {
   const [saliendo, setSaliendo] = useState(false);
+  // Cobrar y manejar la caja: Encargado y Administrativo (Staff no cobra).
+  const cobra = puedeManejarCaja(perfil.rol);
   const secciones: { id: Seccion; nombre: string }[] = [
+    ...(cobra ? [{ id: 'vender' as const, nombre: 'Vender' }] : []),
     { id: 'catalogo', nombre: 'Catálogo' },
-    ...(puedeManejarCaja(perfil.rol) ? [{ id: 'caja' as const, nombre: 'Caja' }] : [])
+    ...(cobra ? [{ id: 'caja' as const, nombre: 'Caja' }] : [])
   ];
-  const [seccion, setSeccion] = useState<Seccion>('catalogo');
+  const [seccion, setSeccion] = useState<Seccion>(cobra ? 'vender' : 'catalogo');
 
   return (
     <div className="app">
@@ -51,6 +55,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
         </div>
       </header>
       <main className="contenido">
+        {seccion === 'vender' && <Vender perfil={perfil} irACaja={() => setSeccion('caja')} />}
         {seccion === 'catalogo' && <Catalogo perfil={perfil} />}
         {seccion === 'caja' && <Caja perfil={perfil} />}
       </main>

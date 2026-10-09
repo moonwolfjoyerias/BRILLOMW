@@ -3,6 +3,7 @@ import type { PerfilUsuario } from '../sesion/perfil';
 import { ETIQUETA_ROL } from '../sesion/perfil';
 import { CAJAS, fechaLocal, leerMonto, type IdCaja, type TurnoCaja } from '../caja/turno';
 import { abrirCaja, useTurnosDelDia } from '../caja/turnos';
+import { db } from '../firebase';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 const hora = (iso: string) =>
@@ -107,7 +108,7 @@ function TarjetaCaja({
   async function confirmar() {
     if (confirmando === null) return;
     setEnviando(true);
-    const err = await abrirCaja(caja, hoy, confirmando, perfil);
+    const err = await abrirCaja(db, caja, hoy, confirmando, perfil);
     setEnviando(false);
     if (err) {
       setError(err);

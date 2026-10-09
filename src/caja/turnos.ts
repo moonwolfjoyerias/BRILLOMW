@@ -7,7 +7,8 @@ import {
   query,
   runTransaction,
   serverTimestamp,
-  where
+  where,
+  type Firestore
 } from 'firebase/firestore';
 import { FirebaseError } from 'firebase/app';
 import { db } from '../firebase';
@@ -57,6 +58,7 @@ export function useTurnosDelDia(fecha: string): EstadoTurnos {
  * que dos equipos sin conexión no abran la misma caja a la vez.
  */
 export async function abrirCaja(
+  db: Firestore,
   caja: IdCaja,
   fecha: string,
   fondoInicial: number,
