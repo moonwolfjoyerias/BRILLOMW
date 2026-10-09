@@ -50,9 +50,13 @@ Meta: dejar Aronium a **finales de 2026**.
 
 ### Sesión
 
-- Cada persona tiene **su propia cuenta**.
-- Inicia sesión con **Nombre + PIN al principio del turno** y la cierra al
-  terminar. No se confirma cada acción.
+- Cada persona usa **su cuenta real de la página** (las que ya existen en
+  Configuración → Usuarios y permisos). Las cuentas de prueba (`staff01`,
+  etc.) no se usan en BRILLO.
+- Inicia sesión **al principio del turno con el mismo usuario y contraseña
+  de la página**, y la cierra al terminar. No se confirma cada acción.
+- Entrar con PIN queda como mejora para después; se puede agregar sin
+  rehacer nada.
 - Cada movimiento queda registrado a nombre de quien tenía la sesión abierta.
 
 ### Cobro y ticket
