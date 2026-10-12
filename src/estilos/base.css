@@ -67,7 +67,18 @@ button, input, select { font: inherit; color: inherit; }
 .btn.primario { background: var(--mw-purple); border-color: var(--mw-purple); color: #fff; }
 .btn.primario:hover { background: var(--mw-purple-dark); }
 .btn.ancho { width: 100%; }
-input:not([type='checkbox']), select {
+.btn.peligro { color: var(--danger); border-color: var(--danger-soft); }
+.btn.peligro:hover { border-color: var(--danger); }
+.btn.peligro-lleno { background: var(--danger); border-color: var(--danger); color: #fff; }
+.confirmar-peligro {
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+.confirmar-peligro p { margin: 0 0 12px; }
+input:not([type='checkbox']):not([type='radio']), select {
   min-height: var(--toque);
   padding: 0 12px;
   border: 1px solid var(--mw-border);
@@ -228,6 +239,102 @@ textarea {
   .variante-fila.encabezado { display: none; }
 }
 
+/* ---------- vender ---------- */
+.campo-en-linea { display: flex; align-items: center; gap: 8px; }
+.campo-en-linea span { color: var(--mw-text-muted); white-space: nowrap; }
+.campo-en-linea select { width: auto; }
+.vacio-caja { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.vacio-caja p { margin: 0; }
+.vender-columnas { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(340px, 1fr); gap: 16px; align-items: start; }
+.panel-productos, .panel-venta {
+  background: var(--surface);
+  border: 1px solid var(--mw-border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+.panel-venta { position: sticky; top: 76px; }
+.buscador { display: flex; gap: 8px; margin-bottom: 10px; }
+.buscador .btn { white-space: nowrap; }
+.lista-venta { list-style: none; margin: 0; padding: 0; max-height: calc(100vh - 260px); overflow: auto; }
+.item-venta {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 6px;
+  border: 0;
+  border-bottom: 1px solid var(--mw-border);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  min-height: var(--toque);
+}
+.item-venta:hover { background: var(--mw-lilac-soft); }
+.item-venta img, .sin-foto { width: 52px; height: 52px; object-fit: cover; border-radius: 8px; background: var(--mw-lilac-soft); display: block; }
+.item-texto, .item-precio { display: flex; flex-direction: column; }
+.item-precio { text-align: right; font-weight: 600; color: var(--mw-purple); }
+.variantes-eleccion { display: flex; flex-wrap: wrap; gap: 8px; }
+.cliente { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px solid var(--mw-border); margin-bottom: 10px; }
+.cliente > div:first-child { display: flex; flex-direction: column; gap: 2px; }
+.cliente.buscando { flex-direction: column; align-items: stretch; }
+.resultados-cliente { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 260px; overflow: auto; }
+.btn.izq { text-align: left; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border-radius: 12px; padding: 6px 14px; }
+.lineas { list-style: none; margin: 0; padding: 0; max-height: 40vh; overflow: auto; }
+.linea { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--mw-border); }
+.linea-desc { display: flex; flex-direction: column; }
+.linea-importe { min-width: 84px; text-align: right; }
+.cantidad { display: flex; align-items: center; gap: 6px; }
+.cantidad span { min-width: 22px; text-align: center; font-weight: 600; }
+.totales { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin: 12px 0; }
+.totales dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.totales .total { font-size: 1.3rem; font-weight: 600; color: var(--mw-purple-dark); }
+.btn.cobrar { min-height: 52px; font-size: 1.05rem; padding: 0 24px; }
+.fila-pago { display: grid; grid-template-columns: 150px 140px 1fr auto; gap: 8px; align-items: center; margin-bottom: 10px; }
+.resumen-cobro { font-size: 1.15rem; font-weight: 600; color: var(--ok); margin: 14px 0 8px; }
+.resumen-cobro.falta { color: var(--danger); }
+.chip.grande { font-size: 1rem; padding: 6px 14px; }
+.modal-ticket { width: min(460px, 100%); }
+.ticket-vista { background: var(--mw-cream); border-radius: 12px; padding: 12px; margin-bottom: 14px; display: flex; justify-content: center; }
+.ticket-impresion { display: none; }
+
+/* ---------- ticket 80 mm ---------- */
+.ticket { width: 72mm; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.35; color: #000; background: #fff; padding: 8px; }
+.t-centro { text-align: center; }
+.t-lema { font-weight: 700; letter-spacing: 0.02em; }
+.t-imagotipo { width: 34mm; display: block; margin: 4px auto; filter: grayscale(1) contrast(1.3); }
+.t-tienda { font-weight: 700; font-size: 17px; margin-bottom: 2px; }
+.t-linea { border-top: 1px dashed #000; margin: 6px 0; }
+.t-espacio { height: 8px; }
+.t-fila { display: flex; justify-content: space-between; gap: 8px; }
+.t-fila > span:last-child { white-space: nowrap; }
+.t-fuerte { font-weight: 700; font-size: 14px; }
+.t-sangria { padding-left: 12px; }
+.t-art { margin-bottom: 4px; }
+.t-barras { width: 60mm; height: 12mm; display: block; margin: 0 auto 2px; }
+.t-aviso { margin: 0 0 6px; text-align: center; font-size: 11px; }
+/* Papel de 58 mm (unos 48 mm imprimibles) */
+.ticket.t58 { width: 48mm; font-size: 10px; padding: 6px; overflow-wrap: anywhere; }
+.t58 .t-barras { width: 46mm; }
+.t58 .t-tienda { font-size: 14px; }
+.t58 .t-fuerte { font-size: 12px; }
+.t58 .t-imagotipo { width: 26mm; }
+.t58 .t-barras { height: 10mm; }
+.t58 .t-aviso { font-size: 9px; }
+@media print {
+  body * { visibility: hidden; }
+  .ticket-impresion, .ticket-impresion * { visibility: visible; }
+  .ticket-impresion { display: block; position: absolute; left: 0; top: 0; }
+  .ticket { padding: 0 4mm; }
+  .ticket.t58 { padding: 0 2mm; }
+}
+@media (max-width: 900px) {
+  .vender-columnas { grid-template-columns: 1fr; }
+  .panel-venta { position: static; }
+  .lista-venta { max-height: 45vh; }
+  .fila-pago { grid-template-columns: 1fr 1fr; }
+}
+
 /* ---------- caja ---------- */
 .cajas { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
 .tarjeta-caja {
@@ -284,4 +391,48 @@ textarea {
   .barra-nav { order: 3; flex-basis: 100%; }
   .contenido { padding: 16px; }
   .rejilla { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+}
+
+/* ------------------------------------------------------------ apartados */
+.apartados .filtros { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); margin-bottom: 4px; }
+.resumen-apartados { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0 0 18px; }
+.resumen-apartados .dato { background: var(--surface); border: 1px solid var(--mw-border); border-radius: var(--radius); padding: 12px 14px; }
+.resumen-apartados .dato span { display: block; font-size: 0.8rem; color: var(--mw-text-muted); }
+.resumen-apartados .dato strong { font-family: 'Cinzel', Georgia, serif; font-size: 1.5rem; color: var(--mw-purple-dark); }
+.chip.pendiente { background: var(--mw-gold-soft); color: #7a5a00; }
+.chip.neutro { background: var(--mw-lilac-soft); color: var(--mw-purple-dark); }
+.bloque { display: block; }
+.enlace { color: var(--mw-purple); font-weight: 600; }
+.alerta-texto { color: #9a6a00; font-weight: 600; }
+.ok-texto { color: var(--ok); font-weight: 600; }
+.peligro-texto { color: var(--danger); }
+.marca-revisar { color: #7a5a00; background: var(--mw-gold-soft); border-radius: 6px; padding: 2px 6px; font-weight: 600; }
+.ventanas { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
+.ventana { background: var(--surface); border: 1px solid var(--mw-border); border-radius: var(--radius); }
+.ventana-cabeza { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) minmax(0, 1fr); gap: 12px; padding: 12px 14px; align-items: start; }
+.ventana-quien { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; min-height: var(--toque); }
+.ventana-datos { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) auto; gap: 10px; align-items: start; }
+.ventana-datos .chip { justify-self: start; }
+.ventana-acciones { display: flex; flex-direction: column; gap: 6px; }
+.ventana-acciones .btn { width: 100%; }
+.ventana-detalle { border-top: 1px solid var(--mw-border); background: #faf8fc; padding: 4px 14px 14px; border-radius: 0 0 var(--radius) var(--radius); }
+.pieza { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; }
+.pieza img, .pieza .sin-foto { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; flex: 0 0 56px; background: var(--mw-lilac-soft); }
+.pieza-texto { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.pieza-acciones { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 4px; }
+.pieza-acciones .chip { align-self: center; }
+.historial { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.historial li { background: var(--surface); border: 1px solid var(--mw-border); border-radius: 8px; padding: 6px 10px; }
+.nota-apartado { background: var(--mw-lilac-soft); border: 1px solid var(--mw-border); border-radius: 8px; padding: 8px 12px; margin: 0 0 12px; }
+.piezas-liquidar { border: 1px solid var(--mw-border); border-radius: 8px; padding: 6px 12px; margin: 0 0 12px; display: grid; }
+.piezas-liquidar .check, fieldset.nota-apartado .check { white-space: normal; }
+.piezas-liquidar .check span { flex: 1; }
+textarea { width: 100%; font: inherit; border: 1px solid var(--mw-border); border-radius: 8px; padding: 8px 10px; }
+.modal select { width: 100%; }
+@media (max-width: 900px) {
+  .resumen-apartados { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ventana-cabeza { grid-template-columns: 1fr; }
+  .ventana-datos { grid-template-columns: auto minmax(0, 1fr); }
+  .ventana-acciones { flex-direction: row; flex-wrap: wrap; }
+  .ventana-acciones .btn { width: auto; }
 }

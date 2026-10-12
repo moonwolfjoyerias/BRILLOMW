@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useCatalogo } from '../pagina/useCatalogo';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { ProductoForm } from './ProductoForm';
+import { db } from '../firebase';
+import { equipoActual } from '../plataforma';
+import { eliminarProducto } from '../pagina/guardarProducto';
 import {
   NOMBRE_MATERIAL,
   etiquetaVariante,
@@ -116,10 +119,16 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
       {abierto && (
         <Detalle
           producto={productos.find(p => p.id === abierto.id) ?? abierto}
+          perfil={perfil}
           onCerrar={() => setAbierto(null)}
           onEditar={() => {
             setEditando(abierto.id);
             setAbierto(null);
+          }}
+          onEliminado={nombre => {
+            setAbierto(null);
+            setAviso(`"${nombre}" se eliminó del catálogo. Ya no aparece en la página y quedó en Actividad.`);
+            setTimeout(() => setAviso(null), 6000);
           }}
         />
       )}
@@ -127,6 +136,7 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
         <ProductoForm
           // Siempre la versión más reciente del producto al abrir el formulario.
           producto={editando === null ? null : (productos.find(p => p.id === editando) ?? null)}
+          catalogo={productos}
           perfil={perfil}
           onCerrar={guardado => {
             if (guardado) {
@@ -156,7 +166,34 @@ function Existencias({ n }: { n: number }) {
   return <span className={n > 0 ? 'chip ok' : 'chip agotado'}>{n > 0 ? `${n} en existencia` : 'Agotado'}</span>;
 }
 
-function Detalle({ producto: p, onCerrar, onEditar }: { producto: Producto; onCerrar: () => void; onEditar: () => void }) {
+function Detalle({
+  producto: p,
+  perfil,
+  onCerrar,
+  onEditar,
+  onEliminado
+}: {
+  producto: Producto;
+  perfil: PerfilUsuario;
+  onCerrar: () => void;
+  onEditar: () => void;
+  onEliminado: (nombre: string) => void;
+}) {
+  const [confirmarEliminar, setConfirmarEliminar] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function eliminar() {
+    setEliminando(true);
+    setError(null);
+    const err = await eliminarProducto(db, p, perfil, equipoActual());
+    setEliminando(false);
+    if (err) {
+      setError(err);
+      setConfirmarEliminar(false);
+    } else onEliminado(p.nombre);
+  }
+
   useEffect(() => {
     const alTeclear = (e: KeyboardEvent) => e.key === 'Escape' && onCerrar();
     window.addEventListener('keydown', alTeclear);
@@ -174,6 +211,9 @@ function Detalle({ producto: p, onCerrar, onEditar }: { producto: Producto; onCe
         <div className="modal-cabeza">
           <h2>{p.nombre || 'Sin nombre'}</h2>
           <div className="acciones">
+            <button className="btn peligro" onClick={() => setConfirmarEliminar(true)} disabled={eliminando}>
+              Eliminar
+            </button>
             <button className="btn primario" onClick={onEditar}>
               Editar
             </button>
@@ -182,6 +222,27 @@ function Detalle({ producto: p, onCerrar, onEditar }: { producto: Producto; onCe
             </button>
           </div>
         </div>
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
+        {confirmarEliminar && (
+          <div className="confirmar-peligro" role="alertdialog" aria-label="Confirmar eliminación">
+            <p>
+              ¿Eliminar <strong>{p.nombre}</strong>? Se quitará del catálogo de la página y de BRILLO, con todas sus
+              variantes y fotos. <strong>No se puede deshacer.</strong>
+            </p>
+            <div className="acciones">
+              <button className="btn" onClick={() => setConfirmarEliminar(false)} disabled={eliminando}>
+                No, conservar
+              </button>
+              <button className="btn peligro-lleno" onClick={eliminar} disabled={eliminando}>
+                {eliminando ? 'Eliminando…' : 'Sí, eliminar'}
+              </button>
+            </div>
+          </div>
+        )}
         {p.galeria.some(f => fotoMostrable(f.src)) && (
           <div className="galeria">
             {p.galeria

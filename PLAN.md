@@ -147,6 +147,16 @@ cálculos del Plan MW.
 - Se mantienen las reglas actuales: depósito de $50 por ventana, monto
   libre, 3 días normal, 15 días foránea, VIP sin depósito ni vencimiento
   con aprobación de Staff.
+- **Hecho:** pestaña Apartados en BRILLO para Staff, Encargado y Admin,
+  igual que el panel de la página (nueva ventana, depósito, comprobante
+  por WhatsApp, no depositó, VIP, liquidar, excedente, cancelar, quitar
+  pieza, bolsita, quitar de la vista, desapartar, avisos de vencimiento
+  en Admin). Cada acción es una transacción: ventana, existencias,
+  crédito, Actividad y avisos se guardan juntos o nada. Las referencias
+  de transferencia se comparten con las ventas de BRILLO.
+- Pendiente: los días y el depósito se leen de Configuración de la
+  página, que hoy vive solo en el navegador; BRILLO usa los valores de
+  siempre ($50, 3 y 15 días).
 
 ### Prototipo de la dueña ("Caja de la joyería")
 
@@ -255,7 +265,8 @@ BRILLO no los hace por su cuenta; se piden uno por uno cuando toque.
 3. **Apartados (fase 5).** La página reescribe también toda la colección
    de apartados. Para que Staff los gestione en BRILLO mientras las
    emprendedoras los solicitan en la página, la página debe guardar solo
-   el apartado que cambió.
+   el apartado que cambió. **Hecho** en la página (apartados y avisos
+   guardan solo lo que cambió).
 4. **Reglas de seguridad de Firestore (fase 0).** BRILLO necesita reglas
    para sus propias colecciones. El archivo de reglas es uno solo y está
    en el repositorio de la página, o se usa una base de datos aparte para
