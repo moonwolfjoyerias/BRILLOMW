@@ -6,42 +6,17 @@ import { collection, doc, getDocs, runTransaction, writeBatch, type Firestore } 
 import type { PerfilUsuario } from '../sesion/perfil';
 import { armarDocumento, describirCambios, textoEstable, type DatosProducto, type UltimaAccion } from './edicion';
 import { normalizarProducto, type Producto } from './producto';
+import { nuevoRegistroActividad, type RegistroActividad } from './actividad';
 
-/** Registro de la pestaña Actividad, misma forma que registrarAuditoria() de la página. */
-export interface RegistroActividad {
-  id: string;
-  usuarioId: string;
-  usuarioNombre: string;
-  /** Las reglas de la página exigen que sea el rol real de quien escribe. */
-  rol: string;
-  modulo: 'catalogo';
-  accion: 'agregar_producto' | 'editar_producto' | 'eliminar_producto';
-  descripcion: string;
-  fecha: string;
-  /** Extras de BRILLO (la página los ignora; el origen también va en la descripción). */
-  origen: 'brillo';
-  equipo: string;
-}
-
+/** Registro de la pestaña Actividad del módulo Catálogo. */
 export function registroActividad(
   perfil: PerfilUsuario,
-  accion: RegistroActividad['accion'],
+  accion: 'agregar_producto' | 'editar_producto' | 'eliminar_producto',
   descripcion: string,
   equipo: string,
   ahora = new Date()
 ): RegistroActividad {
-  return {
-    id: `AUD-${ahora.getTime()}-${Math.round(Math.random() * 1e6)}`,
-    usuarioId: perfil.usuario,
-    usuarioNombre: perfil.nombre,
-    rol: perfil.rol,
-    modulo: 'catalogo',
-    accion,
-    descripcion,
-    fecha: ahora.toISOString(),
-    origen: 'brillo',
-    equipo
-  };
+  return nuevoRegistroActividad(perfil, 'catalogo', accion, descripcion, equipo, ahora);
 }
 
 function mensajeError(e: unknown): string {

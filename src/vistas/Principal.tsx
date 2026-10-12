@@ -4,8 +4,9 @@ import { ETIQUETA_ROL, puedeManejarCaja, type PerfilUsuario } from '../sesion/pe
 import { Catalogo } from './Catalogo';
 import { Caja } from './Caja';
 import { Vender } from './Vender';
+import { Apartados } from './Apartados';
 
-type Seccion = 'vender' | 'catalogo' | 'caja';
+type Seccion = 'vender' | 'catalogo' | 'apartados' | 'caja';
 
 export function Principal({ perfil }: { perfil: PerfilUsuario }) {
   const [saliendo, setSaliendo] = useState(false);
@@ -14,6 +15,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
   const secciones: { id: Seccion; nombre: string }[] = [
     ...(cobra ? [{ id: 'vender' as const, nombre: 'Vender' }] : []),
     { id: 'catalogo', nombre: 'Catálogo' },
+    { id: 'apartados', nombre: 'Apartados' },
     ...(cobra ? [{ id: 'caja' as const, nombre: 'Caja' }] : [])
   ];
   const [seccion, setSeccion] = useState<Seccion>(cobra ? 'vender' : 'catalogo');
@@ -57,6 +59,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
       <main className="contenido">
         {seccion === 'vender' && <Vender perfil={perfil} irACaja={() => setSeccion('caja')} />}
         {seccion === 'catalogo' && <Catalogo perfil={perfil} />}
+        {seccion === 'apartados' && <Apartados perfil={perfil} />}
         {seccion === 'caja' && <Caja perfil={perfil} />}
       </main>
     </div>
