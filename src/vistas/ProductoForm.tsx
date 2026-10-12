@@ -26,11 +26,14 @@ const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' 
 
 export function ProductoForm({
   producto,
+  catalogo,
   perfil,
   onCerrar
 }: {
   /** null = producto nuevo. */
   producto: Producto | null;
+  /** Catálogo actual, para exigir que el código no se repita. */
+  catalogo: Producto[];
   perfil: PerfilUsuario;
   onCerrar: (guardado: boolean) => void;
 }) {
@@ -85,7 +88,7 @@ export function ProductoForm({
 
   async function guardar(e: FormEvent) {
     e.preventDefault();
-    const r = validarBorrador(b);
+    const r = validarBorrador(b, catalogo, producto?.id);
     if (!r.ok) {
       setError(r.error);
       return;
@@ -148,7 +151,7 @@ export function ProductoForm({
             <input value={b.nombre} onChange={e => set('nombre', e.target.value)} />
           </label>
           <label className="campo">
-            <span>Código</span>
+            <span>Código *</span>
             <input value={b.codigo} onChange={e => set('codigo', e.target.value)} placeholder="Ej. AN-045" autoCapitalize="characters" />
           </label>
           <label className="campo ancho-3">

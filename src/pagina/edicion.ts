@@ -83,11 +83,28 @@ const esNumeroNoNegativo = (s: string) => /^\d+(\.\d+)?$/.test(s.trim());
 
 export type ResultadoValidacion = { ok: true; datos: DatosProducto } | { ok: false, error: string };
 
-/** Mismas reglas que la página, con mensajes en el mismo tono. */
-export function validarBorrador(b: BorradorProducto): ResultadoValidacion {
+/** Producto con el mismo código (sin distinguir mayúsculas ni espacios), como productoConCodigo() de la página. */
+export function productoConCodigo<T extends { id: string; codigo: string }>(catalogo: T[], codigo: string, idExcluir?: string): T | null {
+  const normal = codigo.trim().toLowerCase();
+  if (!normal) return null;
+  return catalogo.find(p => p.id !== idExcluir && p.codigo.trim().toLowerCase() === normal) ?? null;
+}
+
+/**
+ * Mismas reglas que la página, con mensajes en el mismo tono. `catalogo`
+ * e `idEditando` sirven para exigir que el código sea único.
+ */
+export function validarBorrador(
+  b: BorradorProducto,
+  catalogo: { id: string; codigo: string; nombre: string }[] = [],
+  idEditando?: string
+): ResultadoValidacion {
   const nombre = b.nombre.trim();
   const descripcion = b.descripcion.trim();
   if (!nombre) return { ok: false, error: 'Escribe el nombre del producto.' };
+  if (!b.codigo.trim()) return { ok: false, error: 'Escribe el código del producto.' };
+  const mismo = productoConCodigo(catalogo, b.codigo, idEditando);
+  if (mismo) return { ok: false, error: `El código "${b.codigo.trim()}" ya lo tiene "${mismo.nombre}". Usa un código distinto.` };
   if (!descripcion) return { ok: false, error: 'Agrega una descripción.' };
   if (!b.material) return { ok: false, error: 'Elige el material.' };
   if (!b.variantes.length) return { ok: false, error: 'Agrega al menos una variante.' };

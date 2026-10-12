@@ -38,6 +38,13 @@ describe('validarBorrador (mismas reglas que la página)', () => {
     ]);
   });
 
+  it('código obligatorio y único (sin distinguir mayúsculas ni espacios)', () => {
+    const cat = [{ id: 'p9', codigo: 'an-045', nombre: 'Otro anillo' }];
+    expect(validarBorrador({ ...valido(), codigo: ' ' })).toEqual({ ok: false, error: 'Escribe el código del producto.' });
+    expect(validarBorrador(valido(), cat)).toEqual({ ok: false, error: 'El código "AN-045" ya lo tiene "Otro anillo". Usa un código distinto.' });
+    expect(validarBorrador(valido(), cat, 'p9').ok).toBe(true); // al editar no choca consigo mismo
+  });
+
   it('exige nombre, descripción y material', () => {
     expect(validarBorrador({ ...valido(), nombre: ' ' })).toEqual({ ok: false, error: 'Escribe el nombre del producto.' });
     expect(validarBorrador({ ...valido(), descripcion: '' })).toEqual({ ok: false, error: 'Agrega una descripción.' });
@@ -77,7 +84,7 @@ describe('armarDocumento', () => {
 
 describe('describirCambios', () => {
   const original = normalizarProducto('p', {
-    nombre: 'Anillo', descripcion: 'd', material: 'oro-laminado', precioEtiqueta: 200, descuento: 60,
+    nombre: 'Anillo', codigo: 'AN-1', descripcion: 'd', material: 'oro-laminado', precioEtiqueta: 200, descuento: 60,
     variantes: [{ id: 'v1', color: '', talla: '6', stock: 5 }]
   });
   it('lista lo que cambió, con existencias antes → después', () => {

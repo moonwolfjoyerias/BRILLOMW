@@ -136,6 +136,7 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
         <ProductoForm
           // Siempre la versión más reciente del producto al abrir el formulario.
           producto={editando === null ? null : (productos.find(p => p.id === editando) ?? null)}
+          catalogo={productos}
           perfil={perfil}
           onCerrar={guardado => {
             if (guardado) {
