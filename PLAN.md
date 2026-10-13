@@ -139,6 +139,19 @@ cálculos del Plan MW.
   imprimirá**.
 - Las tablets leen el QR con la cámara y toman las fotos de los productos.
 
+### Lista de deseos y resurtido
+
+- **Hecho:** pestaña Lista de deseos en BRILLO para Staff, Encargado y
+  Admin, igual que la página: crear solicitudes (para una Emprendedora o
+  público en general), cambiar estado (al marcar "Disponible" se elige el
+  producto y se le avisa a la Emprendedora) y filtros. Resurtido: Staff y
+  Encargado lo solicitan (avisa a la bandeja de Staff); Administración lo
+  revisa, agrega observaciones y lo atiende (avisa a quien lo pidió).
+- Al dar de alta un producto en BRILLO aparece el mismo paso que en la
+  página: "¿Alguien pedía algo como esto?" para marcar solicitudes.
+- Diferencia: en la página, Encargado solo ve las solicitudes que creó
+  Encargado; en BRILLO todos ven todas, como Staff y Admin en la página.
+
 ### Apartados
 
 - Las emprendedoras y líderes los **solicitan desde la página**.

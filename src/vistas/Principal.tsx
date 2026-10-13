@@ -5,8 +5,9 @@ import { Catalogo } from './Catalogo';
 import { Caja } from './Caja';
 import { Vender } from './Vender';
 import { Apartados } from './Apartados';
+import { ListaDeseos } from './ListaDeseos';
 
-type Seccion = 'vender' | 'catalogo' | 'apartados' | 'caja';
+type Seccion = 'vender' | 'catalogo' | 'apartados' | 'deseos' | 'caja';
 
 export function Principal({ perfil }: { perfil: PerfilUsuario }) {
   const [saliendo, setSaliendo] = useState(false);
@@ -16,6 +17,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
     ...(cobra ? [{ id: 'vender' as const, nombre: 'Vender' }] : []),
     { id: 'catalogo', nombre: 'Catálogo' },
     { id: 'apartados', nombre: 'Apartados' },
+    { id: 'deseos', nombre: 'Lista de deseos' },
     ...(cobra ? [{ id: 'caja' as const, nombre: 'Caja' }] : [])
   ];
   const [seccion, setSeccion] = useState<Seccion>(cobra ? 'vender' : 'catalogo');
@@ -60,6 +62,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
         {seccion === 'vender' && <Vender perfil={perfil} irACaja={() => setSeccion('caja')} />}
         {seccion === 'catalogo' && <Catalogo perfil={perfil} />}
         {seccion === 'apartados' && <Apartados perfil={perfil} />}
+        {seccion === 'deseos' && <ListaDeseos perfil={perfil} />}
         {seccion === 'caja' && <Caja perfil={perfil} />}
       </main>
     </div>

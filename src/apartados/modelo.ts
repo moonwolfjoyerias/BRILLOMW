@@ -5,6 +5,9 @@
 // guardar junto con ella (crédito, existencias, avisos, Actividad). Así se
 // pueden probar sin Firebase y se aplican en UNA transacción.
 
+import type { Aviso } from '../pagina/avisos';
+export type { Aviso };
+
 export const DEPOSITO_BASE = 50;
 
 export type Categoria = 'normal' | 'foranea' | 'vip';
@@ -88,15 +91,6 @@ export interface Ventana {
   avisoVencimiento2HorasEnviado?: boolean;
   /** Campos que la página agregue en el futuro se conservan tal cual. */
   [extra: string]: unknown;
-}
-
-/** Aviso para la campana de la página (misma forma que construirNotificacion()). */
-export interface Aviso {
-  texto: string;
-  link: string;
-  paraId: string | null;
-  rolDestino: 'emprendedora_lider' | 'staff' | 'encargado' | 'admin';
-  origen?: string;
 }
 
 /** Lo que una acción deja para guardar junto con la ventana. */

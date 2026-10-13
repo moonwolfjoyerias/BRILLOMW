@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useCatalogo } from '../pagina/useCatalogo';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { ProductoForm } from './ProductoForm';
+import { RevisionDeseos } from './RevisionDeseos';
 import { db } from '../firebase';
 import { equipoActual } from '../plataforma';
 import { eliminarProducto } from '../pagina/guardarProducto';
@@ -31,6 +32,8 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
   /** undefined = formulario cerrado; null = producto nuevo; id = editar ese producto. */
   const [editando, setEditando] = useState<string | null | undefined>(undefined);
   const [aviso, setAviso] = useState<string | null>(null);
+  /** Producto recién creado: se revisa si alguien lo pedía en la Lista de deseos. */
+  const [revisar, setRevisar] = useState<{ id: string; nombre: string } | null>(null);
 
   const productos = catalogo.estado === 'listo' ? catalogo.productos : [];
   const filtrados = useMemo(() => {
@@ -138,12 +141,26 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
           producto={editando === null ? null : (productos.find(p => p.id === editando) ?? null)}
           catalogo={productos}
           perfil={perfil}
-          onCerrar={guardado => {
+          onCerrar={(guardado, nuevo) => {
+            if (nuevo) setRevisar(nuevo);
             if (guardado) {
               setAviso(editando === null ? 'Producto agregado. Ya aparece en la página y en Actividad.' : 'Cambios guardados. Ya se ven en la página y en Actividad.');
               setTimeout(() => setAviso(null), 5000);
             }
             setEditando(undefined);
+          }}
+        />
+      )}
+      {revisar && (
+        <RevisionDeseos
+          producto={revisar}
+          perfil={perfil}
+          onCerrar={marcadas => {
+            setRevisar(null);
+            if (marcadas) {
+              setAviso(`${marcadas} solicitud${marcadas === 1 ? '' : 'es'} de la Lista de deseos marcada${marcadas === 1 ? '' : 's'} como disponible${marcadas === 1 ? '' : 's'}; se les avisó.`);
+              setTimeout(() => setAviso(null), 6000);
+            }
           }}
         />
       )}
