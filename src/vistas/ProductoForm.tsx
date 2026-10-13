@@ -35,7 +35,8 @@ export function ProductoForm({
   /** Catálogo actual, para exigir que el código no se repita. */
   catalogo: Producto[];
   perfil: PerfilUsuario;
-  onCerrar: (guardado: boolean) => void;
+  /** `nuevo`: el producto recién creado (para revisar la Lista de deseos). */
+  onCerrar: (guardado: boolean, nuevo?: { id: string; nombre: string }) => void;
 }) {
   const [b, setB] = useState<BorradorProducto>(() => (producto ? borradorDesde(producto) : borradorVacio()));
   const [descuentoTocado, setDescuentoTocado] = useState(Boolean(producto));
@@ -96,12 +97,17 @@ export function ProductoForm({
     setError(null);
     setGuardando(true);
     const equipo = equipoActual();
-    const err = producto
-      ? await editarProducto(db, producto, r.datos, perfil, equipo)
-      : await crearProducto(db, r.datos, perfil, equipo).then(x => (x.ok ? null : x.error));
+    if (producto) {
+      const err = await editarProducto(db, producto, r.datos, perfil, equipo);
+      setGuardando(false);
+      if (err) setError(err);
+      else onCerrar(true);
+      return;
+    }
+    const x = await crearProducto(db, r.datos, perfil, equipo);
     setGuardando(false);
-    if (err) setError(err);
-    else onCerrar(true);
+    if (!x.ok) setError(x.error);
+    else onCerrar(true, { id: x.id, nombre: r.datos.nombre });
   }
 
   const precio = Number(b.precioEtiqueta) || 0;

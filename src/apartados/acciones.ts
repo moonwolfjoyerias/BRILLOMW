@@ -18,6 +18,7 @@ import { useEffect, useState } from 'react';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';
 import { normalizarReferencia } from '../venta/carrito';
+import { nuevoAviso } from '../pagina/avisos';
 import { normalizarVentana, piezasActivas, type Aviso, type Resultado, type Ventana } from './modelo';
 
 export const COL_VENTANAS = 'ventanasApartado';
@@ -73,22 +74,6 @@ class ErrorAccion extends Error {}
 
 function cambiarExistencia(variantes: Record<string, unknown>[], varianteId: string, delta: number) {
   return variantes.map(v => (v.id === varianteId ? { ...v, stock: Math.max(0, (Number(v.stock) || 0) + delta) } : v));
-}
-
-function nuevoAviso(a: Aviso, ahora: Date, i: number) {
-  // Misma forma que construirNotificacion()/normalizarNotificacion() de la página.
-  return {
-    id: `NOTIF-${ahora.getTime()}${i ? `-${i}` : ''}`,
-    texto: a.texto,
-    link: a.link,
-    leida: false,
-    paraId: a.paraId,
-    tipo: null,
-    origen: a.origen ?? 'emprendedora_lider',
-    productoId: null,
-    rolDestino: a.rolDestino,
-    creadaEn: ahora.toISOString()
-  };
 }
 
 export async function ejecutarAccion(
