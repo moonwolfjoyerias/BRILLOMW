@@ -139,6 +139,22 @@ cálculos del Plan MW.
   imprimirá**.
 - Las tablets leen el QR con la cámara y toman las fotos de los productos.
 
+### Actividad y Actividades del Staff
+
+- **Hecho:** pestaña Actividad: la misma bitácora que la página (últimas
+  300 acciones), en vivo, con las mismas reglas (solo Admin ve acciones de
+  Admin; Staff solo catálogo, apartados, calendario y lista de deseos) y
+  filtros por sección, rol, origen (página o BRILLO) y texto.
+- **Hecho:** Actividades del Staff. Staff ve "Mis actividades" de la
+  semana y confirma con "Enterado" (su empleado se toma de Nómina, ligado
+  a su cuenta o por nombre, como la página). Encargado y Admin organizan
+  la semana: actividades base precargadas, crear, editar, sortear zonas,
+  anunciar (avisa a cada responsable), firmar, eliminar y reportes
+  (semanal y de organización) para imprimir o guardar en PDF. Admin
+  además ve "Todas las actividades".
+- Diferencia: los reportes se imprimen o se guardan en PDF desde el
+  navegador, en vez de descargarse directamente como en la página.
+
 ### Lista de deseos y resurtido
 
 - **Hecho:** pestaña Lista de deseos en BRILLO para Staff, Encargado y

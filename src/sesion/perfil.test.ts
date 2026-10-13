@@ -11,8 +11,13 @@ describe('validarPerfil', () => {
   it('deja entrar a Staff, Encargado y Administrativo', () => {
     for (const rol of ['staff', 'encargado', 'admin']) {
       const r = validarPerfil('u1', { rol, usuario: 'ana', nombre: 'Ana López' });
-      expect(r).toEqual({ ok: true, perfil: { uid: 'u1', usuario: 'ana', nombre: 'Ana López', rol } });
+      expect(r).toEqual({ ok: true, perfil: { uid: 'u1', usuario: 'ana', nombre: 'Ana López', rol, empleadoNominaId: null } });
     }
+  });
+
+  it('lee la cuenta y el empleado de Nómina ligados (Actividades del Staff)', () => {
+    const r = validarPerfil('u1', { rol: 'staff', usuario: 'ana', nombre: 'Ana', cuentaId: 'cta-1', empleadoNominaId: 'emp-7' });
+    expect(r.ok && r.perfil).toMatchObject({ cuentaId: 'cta-1', empleadoNominaId: 'emp-7' });
   });
 
   it('rechaza emprendedoras y líderes', () => {
