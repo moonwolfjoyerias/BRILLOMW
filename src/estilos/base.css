@@ -458,3 +458,11 @@ textarea { width: 100%; font: inherit; border: 1px solid var(--mw-border); borde
   .filtros-deseos input[type='search'] { grid-column: 1 / -1; }
   .fila-deseo { grid-template-columns: minmax(0, 1fr) auto; }
 }
+
+/* ------------------------------------------------------------ actividad */
+.fila-actividad { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 3fr) auto; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--mw-border); border-radius: var(--radius); padding: 10px 14px; }
+.fila-cuando { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; }
+@media (max-width: 900px) {
+  .fila-actividad { grid-template-columns: 1fr; }
+  .fila-cuando { flex-direction: row; justify-content: space-between; align-items: center; }
+}
