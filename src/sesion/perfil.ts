@@ -9,6 +9,10 @@ export interface PerfilUsuario {
   usuario: string;
   nombre: string;
   rol: Rol;
+  /** Id de la cuenta en la página (`cuentaId`), si lo tiene. */
+  cuentaId?: string;
+  /** Empleado de Nómina ligado a esta cuenta (Actividades del Staff). */
+  empleadoNominaId?: string | null;
 }
 
 /** Roles que trabajan en BRILLO (caja y tablets). Emprendedoras y líderes siguen en la página. */
@@ -50,7 +54,9 @@ export function validarPerfil(uid: string, datos: Record<string, unknown> | unde
   }
   const usuario = typeof datos.usuario === 'string' ? datos.usuario : '';
   const nombre = typeof datos.nombre === 'string' && datos.nombre ? datos.nombre : usuario;
-  return { ok: true, perfil: { uid, usuario, nombre, rol } };
+  const cuentaId = typeof datos.cuentaId === 'string' && datos.cuentaId ? datos.cuentaId : undefined;
+  const empleadoNominaId = typeof datos.empleadoNominaId === 'string' && datos.empleadoNominaId ? datos.empleadoNominaId : null;
+  return { ok: true, perfil: { uid, usuario, nombre, rol, ...(cuentaId ? { cuentaId } : {}), empleadoNominaId } };
 }
 
 /** Abrir y cerrar la caja del día: Encargado y Administrativo. */
