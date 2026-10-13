@@ -7,6 +7,7 @@ import { etiquetaVariante, fotoMostrable, stockTotal, type Producto } from '../p
 import { buscarPersonas, nombreCompleto, usePersonas } from '../pagina/persona';
 import { CAJAS, fechaLocal, leerMonto, nombreCaja, type IdCaja } from '../caja/turno';
 import { useTurnosDelDia } from '../caja/turnos';
+import { TarjetaCaja } from './Caja';
 import {
   NOMBRE_METODO,
   PUBLICO_GENERAL,
@@ -63,7 +64,7 @@ function cajaGuardada(): IdCaja {
   return 'caja1';
 }
 
-export function Vender({ perfil, irACaja }: { perfil: PerfilUsuario; irACaja: () => void }) {
+export function Vender({ perfil }: { perfil: PerfilUsuario }) {
   const hoy = fechaLocal();
   const [caja, setCaja] = useState<IdCaja>(cajaGuardada);
   const turnos = useTurnosDelDia(hoy);
@@ -105,13 +106,13 @@ export function Vender({ perfil, irACaja }: { perfil: PerfilUsuario; irACaja: ()
     <section className="vender">
       <div className="encabezado-seccion con-accion">
         <div>
-          <h1>Vender</h1>
+          <h1>Caja</h1>
           <p className="muted">
             {nombreCaja(caja)} ·{' '}
             {turnos.estado !== 'listo'
               ? 'consultando…'
               : cajaAbierta
-                ? `abierta por ${turno!.abiertaPor.nombre}`
+                ? `abierta por ${turno!.abiertaPor.nombre} · fondo ${dinero(turno!.fondoInicial)}`
                 : 'sin abrir hoy'}
           </p>
         </div>
@@ -126,13 +127,10 @@ export function Vender({ perfil, irACaja }: { perfil: PerfilUsuario; irACaja: ()
       </div>
 
       {turnos.estado === 'listo' && !cajaAbierta ? (
-        <div className="tarjeta-caja vacio-caja">
-          <p>
-            Para cobrar, primero abre la <strong>{nombreCaja(caja)}</strong> del día.
-          </p>
-          <button className="btn primario" onClick={irACaja}>
-            Ir a Caja
-          </button>
+        // Caja y venta en una sola pestaña: si la caja de este equipo no se
+        // ha abierto hoy, aquí mismo se abre con su fondo inicial.
+        <div className="cajas">
+          <TarjetaCaja caja={caja} nombre={nombreCaja(caja)} turno={turno} hoy={hoy} perfil={perfil} />
         </div>
       ) : (
         <div className="vender-columnas">

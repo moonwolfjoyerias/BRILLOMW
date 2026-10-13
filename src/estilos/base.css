@@ -504,3 +504,4 @@ textarea { width: 100%; font: inherit; border: 1px solid var(--mw-border); borde
   .fila-actividad-staff, .fila-actividad-staff.organizar { grid-template-columns: minmax(0, 1fr) auto; }
   .acciones-fila { grid-column: 1 / -1; justify-content: flex-start; }
 }
+.vender > .cajas { max-width: 520px; }

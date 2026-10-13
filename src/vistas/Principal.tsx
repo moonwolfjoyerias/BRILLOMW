@@ -2,25 +2,24 @@ import { useState } from 'react';
 import { cerrarSesion } from '../sesion/sesion';
 import { ETIQUETA_ROL, puedeManejarCaja, type PerfilUsuario } from '../sesion/perfil';
 import { Catalogo } from './Catalogo';
-import { Caja } from './Caja';
 import { Vender } from './Vender';
 import { Apartados } from './Apartados';
 import { ListaDeseos } from './ListaDeseos';
 import { Actividad } from './Actividad';
 import { ActividadesStaff } from './ActividadesStaff';
 
-type Seccion = 'vender' | 'catalogo' | 'apartados' | 'deseos' | 'caja' | 'actividad' | 'actividadesStaff';
+type Seccion = 'vender' | 'catalogo' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff';
 
 export function Principal({ perfil }: { perfil: PerfilUsuario }) {
   const [saliendo, setSaliendo] = useState(false);
   // Cobrar y manejar la caja: Encargado y Administrativo (Staff no cobra).
   const cobra = puedeManejarCaja(perfil.rol);
   const secciones: { id: Seccion; nombre: string }[] = [
-    ...(cobra ? [{ id: 'vender' as const, nombre: 'Vender' }] : []),
+    // Caja y venta van juntas: abrir la caja del día y cobrar en la misma pestaña.
+    ...(cobra ? [{ id: 'vender' as const, nombre: 'Caja' }] : []),
     { id: 'catalogo', nombre: 'Catálogo' },
     { id: 'apartados', nombre: 'Apartados' },
     { id: 'deseos', nombre: 'Lista de deseos' },
-    ...(cobra ? [{ id: 'caja' as const, nombre: 'Caja' }] : []),
     { id: 'actividad', nombre: 'Actividad' },
     { id: 'actividadesStaff', nombre: perfil.rol === 'staff' ? 'Mis actividades' : 'Actividades del Staff' }
   ];
@@ -63,13 +62,12 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
         </div>
       </header>
       <main className="contenido">
-        {seccion === 'vender' && <Vender perfil={perfil} irACaja={() => setSeccion('caja')} />}
+        {seccion === 'vender' && <Vender perfil={perfil} />}
         {seccion === 'catalogo' && <Catalogo perfil={perfil} />}
         {seccion === 'apartados' && <Apartados perfil={perfil} />}
         {seccion === 'deseos' && <ListaDeseos perfil={perfil} />}
         {seccion === 'actividadesStaff' && <ActividadesStaff perfil={perfil} />}
         {seccion === 'actividad' && <Actividad perfil={perfil} />}
-        {seccion === 'caja' && <Caja perfil={perfil} />}
       </main>
     </div>
   );
