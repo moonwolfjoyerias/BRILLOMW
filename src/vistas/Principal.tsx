@@ -7,8 +7,9 @@ import { Apartados } from './Apartados';
 import { ListaDeseos } from './ListaDeseos';
 import { Actividad } from './Actividad';
 import { ActividadesStaff } from './ActividadesStaff';
+import { Calendario } from './Calendario';
 
-type Seccion = 'vender' | 'catalogo' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff';
+type Seccion = 'vender' | 'catalogo' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario';
 
 export function Principal({ perfil }: { perfil: PerfilUsuario }) {
   const [saliendo, setSaliendo] = useState(false);
@@ -20,6 +21,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
     { id: 'catalogo', nombre: 'Catálogo' },
     { id: 'apartados', nombre: 'Apartados' },
     { id: 'deseos', nombre: 'Lista de deseos' },
+    { id: 'calendario', nombre: 'Calendario' },
     { id: 'actividad', nombre: 'Actividad' },
     { id: 'actividadesStaff', nombre: perfil.rol === 'staff' ? 'Mis actividades' : 'Actividades del Staff' }
   ];
@@ -67,6 +69,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
         {seccion === 'apartados' && <Apartados perfil={perfil} />}
         {seccion === 'deseos' && <ListaDeseos perfil={perfil} />}
         {seccion === 'actividadesStaff' && <ActividadesStaff perfil={perfil} />}
+        {seccion === 'calendario' && <Calendario perfil={perfil} />}
         {seccion === 'actividad' && <Actividad perfil={perfil} />}
       </main>
     </div>

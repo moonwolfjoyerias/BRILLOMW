@@ -152,6 +152,22 @@ cálculos del Plan MW.
   imprimirá**.
 - Las tablets leen el QR con la cámara y toman las fotos de los productos.
 
+### Calendario
+
+- **Hecho:** pestaña Calendario para Staff, Encargado y Admin, igual que
+  la página: resumen, búsqueda, filtro presencial/virtual, agregar,
+  editar (con foto) y eliminar eventos, y lista de asistencia con
+  descarga en CSV. Cada cambio queda en el evento ("Agregado/Editado por")
+  y en Actividad.
+- Diferencias: en la página, Staff no deja registro en Actividad al
+  mover el calendario; en BRILLO todos lo dejan. El correo a
+  emprendedoras por evento nuevo no se manda porque en la página está
+  sin configurar (EmailJS vacío).
+- Encontrado en la página: cuando una emprendedora confirma asistencia,
+  el guardado se rechaza (las reglas solo dejan escribir eventos al
+  personal interno) y el error se ignora, así que la confirmación no
+  llega al servidor.
+
 ### Actividad y Actividades del Staff
 
 - **Hecho:** pestaña Actividad: la misma bitácora que la página (últimas

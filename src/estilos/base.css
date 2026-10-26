@@ -517,3 +517,16 @@ textarea { width: 100%; font: inherit; border: 1px solid var(--mw-border); borde
   .cortes { grid-template-columns: 1fr; }
 }
 .totales dd.peligro-texto { color: var(--danger); }
+
+/* ------------------------------------------------------------ calendario */
+.apartados-filtros { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.fila-evento { display: grid; grid-template-columns: 64px minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1fr) auto; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--mw-border); border-radius: var(--radius); padding: 10px 14px; }
+.fila-evento img, .fila-evento .sin-foto { width: 64px; height: 64px; border-radius: 10px; object-fit: cover; background: var(--mw-lilac-soft); display: block; }
+.etiquetas { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.foto-evento { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.foto-evento img { width: 120px; height: 80px; object-fit: cover; border-radius: 10px; }
+.foto-evento .acciones { margin: 0; }
+@media (max-width: 900px) {
+  .fila-evento { grid-template-columns: 64px minmax(0, 1fr); }
+  .fila-evento > :nth-child(n + 3) { grid-column: 2; }
+}

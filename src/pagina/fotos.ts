@@ -5,7 +5,7 @@ import { FOTO_CALIDAD, FOTO_LADO_MAX } from './opciones';
  * y calidad que usa la página: las fotos van incrustadas en el documento
  * del producto, que tiene un límite de ~1 MB.
  */
-export function comprimirFoto(archivo: File): Promise<string> {
+export function comprimirFoto(archivo: File, ladoMax = FOTO_LADO_MAX, calidad = FOTO_CALIDAD): Promise<string> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(archivo);
     const img = new Image();
@@ -15,19 +15,19 @@ export function comprimirFoto(archivo: File): Promise<string> {
     };
     img.onload = () => {
       let { width, height } = img;
-      if (width >= height && width > FOTO_LADO_MAX) {
-        height = Math.round(height * (FOTO_LADO_MAX / width));
-        width = FOTO_LADO_MAX;
-      } else if (height > width && height > FOTO_LADO_MAX) {
-        width = Math.round(width * (FOTO_LADO_MAX / height));
-        height = FOTO_LADO_MAX;
+      if (width >= height && width > ladoMax) {
+        height = Math.round(height * (ladoMax / width));
+        width = ladoMax;
+      } else if (height > width && height > ladoMax) {
+        width = Math.round(width * (ladoMax / height));
+        height = ladoMax;
       }
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
       canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
       URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL('image/jpeg', FOTO_CALIDAD));
+      resolve(canvas.toDataURL('image/jpeg', calidad));
     };
     img.src = url;
   });
