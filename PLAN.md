@@ -100,6 +100,19 @@ Meta: dejar Aronium a **finales de 2026**.
 - **Diario**, uno **por caja** y uno **general**.
 - La abre y la cierra Encargado o Administrativo, con un fondo inicial
   en efectivo que se captura al abrir.
+- **Hecho:** pestaña Caja → "Corte del día". Por caja: corte parcial en
+  vivo (ventas, artículos, folios, descuento de mayoreo, IVA, total por
+  método de pago con sus referencias, e/l contra público general) y
+  efectivo esperado = fondo + efectivo de ventas + entradas − salidas.
+  Entradas y salidas de efectivo con motivo. Cierre: se captura el
+  efectivo contado y queda el sobrante o faltante (con nota obligatoria
+  si no cuadra); ya cerrada, no se puede cobrar en esa caja ese día.
+  Corte general del día con las dos cajas. Ticket del corte en 58/80 mm.
+- Cada venta suma al turno: si se cobra mientras alguien cierra la caja,
+  el cierre se detiene y pide revisar de nuevo, para que no quede fuera
+  ninguna venta.
+- Pendiente: los pagos de comisión del reporte de Aronium (todavía no se
+  pagan comisiones desde BRILLO) y el desglose por denominaciones.
 
 ### Cambios físicos (devoluciones)
 
