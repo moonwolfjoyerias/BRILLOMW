@@ -166,7 +166,7 @@ export async function registrarVenta(
 
       // 2) Validaciones con datos del servidor.
       if (!turno.exists() || turno.data().estado !== 'abierta') {
-        throw new ErrorVenta('Esta caja no está abierta hoy. Ábrela en la pestaña Caja.');
+        throw new ErrorVenta('Esta caja no está abierta. Si ya se hizo el corte de hoy, ya no se puede cobrar en ella.');
       }
       if (usadas.length) throw new ErrorVenta(`Esa referencia ya se registró antes: ${usadas.join(', ')}. Revisa el comprobante.`);
       const r = descontarExistencias(actuales, lineas);
@@ -198,6 +198,9 @@ export async function registrarVenta(
       r.cambios.forEach((variantes, id) =>
         tx.update(doc(db, 'productos', id), { variantes, disponible: variantes.some(x => (Number(x.stock) || 0) > 0) })
       );
+      // Cuenta de ventas del turno: al cerrar la caja sirve para saber que el
+      // corte incluye todas.
+      tx.update(doc(db, COLECCION_TURNOS, turnoId), { numVentas: (Number(turno.data().numVentas) || 0) + 1 });
       tx.set(recibosRef, { siguiente: numero + 1 }, { merge: true });
       tx.set(ordenesRef, { siguiente: orden + 1 }, { merge: true });
       tx.set(doc(db, COLECCION_VENTAS, folio), { ...v, fecha: serverTimestamp() });

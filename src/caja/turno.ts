@@ -32,6 +32,34 @@ export interface TurnoCaja {
   abiertaPor: PersonaTurno;
   /** Hora de apertura según el servidor (ISO); null mientras se confirma. */
   abiertaEn: string | null;
+  /** Ventas cobradas en este turno (lo suma cada venta; sirve para cerrar sin perder ninguna). */
+  numVentas: number;
+  /** Entradas y salidas de efectivo durante el día. */
+  movimientos: MovimientoEfectivo[];
+  /** Datos del cierre (corte final); null mientras la caja sigue abierta. */
+  cierre: CierreCaja | null;
+}
+
+export interface MovimientoEfectivo {
+  id: string;
+  /** retiro = sale efectivo de la caja; ingreso = entra (por ejemplo, más cambio). */
+  tipo: 'retiro' | 'ingreso';
+  monto: number;
+  motivo: string;
+  por: PersonaTurno;
+  /** Hora del equipo (ISO). */
+  fecha: string;
+}
+
+export interface CierreCaja {
+  cerradaPor: PersonaTurno;
+  /** Hora del equipo al cerrar (ISO). */
+  cerradaEnLocal: string;
+  efectivoContado: number;
+  efectivoEsperado: number;
+  /** contado − esperado: positivo = sobrante, negativo = faltante. */
+  diferencia: number;
+  nota: string;
 }
 
 /** 'YYYY-MM-DD' en la hora local del equipo (la tienda), no en UTC. */

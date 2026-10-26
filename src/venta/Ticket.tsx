@@ -13,7 +13,7 @@ const ETIQUETA_PAGO: Record<MetodoPago, string> = {
 };
 
 /** Renglón con texto a la izquierda e importe cargado a la derecha. */
-function Fila({ izq, der, fuerte }: { izq: string; der: string; fuerte?: boolean }) {
+export function Fila({ izq, der, fuerte }: { izq: string; der: string; fuerte?: boolean }) {
   return (
     <div className={fuerte ? 't-fila t-fuerte' : 't-fila'}>
       <span>{izq}</span>

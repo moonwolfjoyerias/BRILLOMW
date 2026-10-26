@@ -505,3 +505,15 @@ textarea { width: 100%; font: inherit; border: 1px solid var(--mw-border); borde
   .acciones-fila { grid-column: 1 / -1; justify-content: flex-start; }
 }
 .vender > .cajas { max-width: 520px; }
+
+/* ------------------------------------------------------------ corte de caja */
+.cortes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+.cortes .totales, .corte-general .totales { margin: 8px 0; }
+.corte-general { max-width: 100%; }
+.movimientos { margin: 8px 0; }
+.referencias summary { cursor: pointer; color: var(--mw-purple); font-weight: 600; margin: 8px 0; }
+.cierre { border-top: 1px dashed var(--mw-border); padding-top: 8px; }
+@media (max-width: 900px) {
+  .cortes { grid-template-columns: 1fr; }
+}
+.totales dd.peligro-texto { color: var(--danger); }

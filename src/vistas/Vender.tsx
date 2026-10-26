@@ -8,6 +8,7 @@ import { buscarPersonas, nombreCompleto, usePersonas } from '../pagina/persona';
 import { CAJAS, fechaLocal, leerMonto, nombreCaja, type IdCaja } from '../caja/turno';
 import { useTurnosDelDia } from '../caja/turnos';
 import { TarjetaCaja } from './Caja';
+import { Corte } from './Corte';
 import {
   NOMBRE_METODO,
   PUBLICO_GENERAL,
@@ -27,32 +28,12 @@ import {
 } from '../venta/carrito';
 import { registrarVenta, type VentaRegistrada } from '../venta/registrarVenta';
 import { Ticket, type AnchoTicket } from '../venta/Ticket';
+import { anchoGuardado, guardarAncho, imprimirTicket } from '../venta/imprimir';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 const dinero = (n: number) => MXN.format(n);
 const normal = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 const CLAVE_CAJA = 'brillo.cajaDelEquipo';
-const CLAVE_ANCHO = 'brillo.anchoTicket';
-
-function anchoGuardado(): AnchoTicket {
-  try {
-    return localStorage.getItem(CLAVE_ANCHO) === '58' ? 58 : 80;
-  } catch {
-    return 80;
-  }
-}
-
-/** Ajusta el tamaño de hoja al papel elegido justo antes de imprimir. */
-function imprimirTicket(ancho: AnchoTicket) {
-  let estilo = document.getElementById('pagina-ticket');
-  if (!estilo) {
-    estilo = document.createElement('style');
-    estilo.id = 'pagina-ticket';
-    document.head.appendChild(estilo);
-  }
-  estilo.textContent = `@media print { @page { size: ${ancho}mm auto; margin: 0; } }`;
-  window.print();
-}
 
 function cajaGuardada(): IdCaja {
   try {
@@ -95,6 +76,8 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
     setAviso(r.error ?? null);
   }
 
+  const [modo, setModo] = useState<'cobrar' | 'corte'>('cobrar');
+
   function nuevaVenta() {
     setTicket(null);
     setCarrito([]);
@@ -113,9 +96,15 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
               ? 'consultando…'
               : cajaAbierta
                 ? `abierta por ${turno!.abiertaPor.nombre} · fondo ${dinero(turno!.fondoInicial)}`
-                : 'sin abrir hoy'}
+                : turno?.estado === 'cerrada'
+                  ? 'cerrada hoy (ve el corte en «Corte del día»)'
+                  : 'sin abrir hoy'}
           </p>
         </div>
+        <nav className="pestanas" aria-label="Caja">
+          <button className={modo === 'cobrar' ? 'nav-boton activo' : 'nav-boton'} onClick={() => setModo('cobrar')}>Cobrar</button>
+          <button className={modo === 'corte' ? 'nav-boton activo' : 'nav-boton'} onClick={() => setModo('corte')}>Corte del día</button>
+        </nav>
         <label className="campo-en-linea">
           <span>Este equipo es</span>
           <select value={caja} onChange={e => elegirCaja(e.target.value as IdCaja)}>
@@ -126,7 +115,9 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
         </label>
       </div>
 
-      {turnos.estado === 'listo' && !cajaAbierta ? (
+      {modo === 'corte' ? (
+        <Corte perfil={perfil} />
+      ) : turnos.estado === 'listo' && !cajaAbierta ? (
         // Caja y venta en una sola pestaña: si la caja de este equipo no se
         // ha abierto hoy, aquí mismo se abre con su fondo inicial.
         <div className="cajas">
@@ -543,11 +534,7 @@ function VentaTerminada({ venta, onNueva }: { venta: VentaRegistrada; onNueva: (
   const [ancho, setAncho] = useState<AnchoTicket>(anchoGuardado);
   function elegirAncho(a: AnchoTicket) {
     setAncho(a);
-    try {
-      localStorage.setItem(CLAVE_ANCHO, String(a));
-    } catch {
-      /* noop */
-    }
+    guardarAncho(a);
   }
   return (
     <div className="modal-fondo">
