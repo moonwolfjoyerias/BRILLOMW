@@ -11,7 +11,7 @@ describe('validarPerfil', () => {
   it('deja entrar a Staff, Encargado y Administrativo', () => {
     for (const rol of ['staff', 'encargado', 'admin']) {
       const r = validarPerfil('u1', { rol, usuario: 'ana', nombre: 'Ana López' });
-      expect(r).toEqual({ ok: true, perfil: { uid: 'u1', usuario: 'ana', nombre: 'Ana López', rol, empleadoNominaId: null } });
+      expect(r).toEqual({ ok: true, perfil: { uid: 'u1', usuario: 'ana', nombre: 'Ana López', rol, empleadoNominaId: null, permisoNomina: false } });
     }
   });
 

@@ -552,3 +552,42 @@ textarea { width: 100%; font: inherit; border: 1px solid var(--mw-border); borde
 @media (max-width: 900px) {
   .cuenta-columnas { grid-template-columns: 1fr; }
 }
+
+/* ------------------------------------------------------------ nómina */
+.nomina .pestanas { margin-bottom: 14px; }
+.aviso-pendiente { background: var(--mw-gold-soft); color: #7a5a00; border-radius: 8px; padding: 8px 12px; margin: 0 0 14px; }
+.acciones.izq { justify-content: flex-start; align-items: center; margin: 8px 0; }
+.acciones.izq select { width: auto; }
+.fila-titulo { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fila-titulo h2 { margin: 0; font-size: 1.15rem; }
+.lista-nomina { display: grid; gap: 8px; margin-top: 10px; }
+.fila-nomina { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; text-align: left; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--mw-border); border-radius: var(--radius); padding: 10px 14px; min-height: var(--toque); }
+button.fila-nomina { cursor: pointer; }
+button.fila-nomina:hover { border-color: var(--mw-lilac); }
+.fila-nomina .chip { align-self: center; }
+.fila-nomina .monto { min-width: 110px; text-align: right; }
+.detalle-nomina { display: grid; gap: 16px; }
+.detalle-nomina .tarjeta-caja { margin: 0; }
+.conceptos-nomina td { vertical-align: middle; }
+.celda-numero { width: 110px; min-height: 38px; }
+.solicitud-nomina { display: grid; gap: 2px; }
+.foto-empleado { width: 96px; height: 96px; object-fit: cover; border-radius: 50%; margin-bottom: 10px; }
+.hoja-recibo { background: #fff; }
+.corte-recibo { border: 0; border-top: 1px solid #000; margin: 10mm 0; }
+.recibo-nomina { font-family: Calibri, Arial, sans-serif; color: #000; background: #fff; padding: 10px 14px; font-size: 9.5px; }
+.recibo-nomina table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.recibo-nomina td { border: 1px solid #000; padding: 3px 4px; }
+.recibo-nomina td.sin { border: none; padding: 1px 4px; }
+.recibo-nomina td.chico { font-size: 8.5px; }
+.recibo-nomina td.c { text-align: center; vertical-align: middle; font-weight: 700; }
+.recibo-nomina td.lila { background: #dac2ec; }
+.recibo-nomina td.titulo { text-align: center; font-weight: 700; font-size: 11px; }
+.recibo-nomina td.total { font-size: 11px; font-weight: 400; }
+.recibo-nomina td.logo { text-align: right; vertical-align: middle; }
+.recibo-nomina td.logo img { width: 100%; max-width: 62px; }
+.recibo-nomina .leyenda { font-size: 8px; line-height: 1.3; margin: 6px 0 0; }
+.recibo-nomina .firma { margin: 40px 40px 0; border-top: 1px solid #000; text-align: center; padding-top: 3px; }
+@media (max-width: 900px) {
+  .fila-nomina { grid-template-columns: minmax(0, 1fr) auto; }
+  .fila-nomina .monto, .fila-nomina .acciones-fila { grid-column: 1 / -1; text-align: left; justify-content: flex-start; }
+}

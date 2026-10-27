@@ -172,6 +172,35 @@ cálculos del Plan MW.
   ejemplo. Falta en Inicio de Admin: comisiones pendientes (llega con
   Comisiones) y cambios de Configuración (vive solo en el navegador).
 
+### Nómina
+
+- **Hecho:** pestaña Nómina para Encargado y Administrativo, sobre las
+  mismas colecciones que la página. Nómina de la semana (todos los
+  empleados con estado y total, búsqueda y filtros), captura por empleado
+  (cantidad × importe, agregar o quitar conceptos, desfase de horas normal
+  o extra al doble, desfase de inicio, fecha y método de pago), historial
+  de ajustes y de estados, y comprobante de pago con el mismo machote
+  (dos copias en hoja carta, para imprimir o guardar en PDF).
+- Flujo igual que la página: Encargado envía a validación; Administración
+  valida o pide corrección con comentario y registra el pago (solo ya
+  validada). Cada paso queda en el historial, en Actividad y avisa a
+  quien sigue.
+- Datos: empleados (Admin agrega, edita, da de baja o reactiva; Encargado
+  edita y pide la baja) y catálogo de conceptos (un concepto ya usado se
+  desactiva en vez de borrarse). Solicitudes de alta y baja: Encargado
+  las pide y Administración las rechaza aquí.
+- Permisos como las reglas: Admin, o Encargado con permiso de Nómina; sin
+  ese permiso se puede consultar pero no guardar.
+- Diferencias: la captura se guarda con "Guardar cambios" (en la página
+  se autoguarda). Si alguien más cambió la semana mientras se capturaba,
+  BRILLO no la pisa y pide volver a hacer los cambios. Una semana pagada
+  ya no se edita. Aprobar altas y bajas se hace en la página, porque ahí
+  se crea o desactiva la cuenta de acceso; dar de baja desde BRILLO no
+  toca la cuenta.
+- En la página (PR aceptado por separado): Nómina ya guarda solo lo que
+  cambió y se actualiza en vivo. Eso también arregla la firma del recibo
+  de Staff, que antes no se guardaba.
+
 ### Calendario
 
 - **Hecho:** pestaña Calendario para Staff, Encargado y Admin, igual que
