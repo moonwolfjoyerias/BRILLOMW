@@ -18,12 +18,7 @@ export const CATEGORIAS = [
   'Relicarios', 'Rosarios', 'Simuladores', 'Semanarios', 'Tobilleras', 'Tiaras'
 ];
 
-export const CALIDADES = [
-  { key: 'estandar', label: 'Estándar' },
-  { key: 'premium', label: 'Premium' }
-];
-
-export const COLORES_ORO = ['Amarillo', 'Blanco', 'Dorado', 'Negro', 'Rosa'];
+export const COLORES_ORO = ['Amarillo', 'Blanco', 'Dorado', 'Florentino', 'Negro', 'Rosa'];
 
 /** Descuento de mayoreo sugerido por material (DESCUENTOS_POR_MATERIAL). Siempre editable. */
 export const DESCUENTO_SUGERIDO: Record<Material, number> = {

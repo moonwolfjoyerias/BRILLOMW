@@ -57,7 +57,7 @@ export async function crearProducto(
   );
   try {
     const lote = writeBatch(db);
-    lote.set(doc(db, 'productos', id), armarDocumento(id, datos, ultimaAccion));
+    lote.set(doc(db, 'productos', id), { ...armarDocumento(id, datos, ultimaAccion), fechaAlta: ahora.toISOString() });
     lote.set(doc(db, 'auditoria', registro.id), registro);
     await lote.commit();
     return { ok: true, id };

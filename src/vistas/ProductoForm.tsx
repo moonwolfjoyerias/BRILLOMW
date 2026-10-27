@@ -13,7 +13,6 @@ import {
 import { comprimirFoto } from '../pagina/fotos';
 import { crearProducto, editarProducto } from '../pagina/guardarProducto';
 import {
-  CALIDADES,
   CATEGORIAS,
   COLORES_ORO,
   DESCUENTO_SUGERIDO,
@@ -179,15 +178,6 @@ export function ProductoForm({
               <option value="">Sin categoría</option>
               {[...CATEGORIAS, ...(b.categoria && !CATEGORIAS.includes(b.categoria) ? [b.categoria] : [])].map(c => (
                 <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </label>
-          <label className="campo">
-            <span>Calidad</span>
-            <select value={b.calidad} onChange={e => set('calidad', e.target.value)}>
-              {b.calidad === '' && <option value="">Sin especificar</option>}
-              {CALIDADES.map(c => (
-                <option key={c.key} value={c.key}>{c.label}</option>
               ))}
             </select>
           </label>

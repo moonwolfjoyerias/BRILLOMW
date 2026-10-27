@@ -43,6 +43,8 @@ export interface Producto {
   material: Material | string;
   categoria: string;
   calidad: string;
+  /** Fecha de alta (ISO); la página la llena para los productos viejos. */
+  fechaAlta?: string;
   codigo: string;
   /** Color de oro del modelo (vive en el producto, no en la variante). */
   colorOro: string;
@@ -67,6 +69,17 @@ const numero = (v: unknown): number => {
  * `variantes` se vuelven una sola variante; `colorOro` sube de la primera
  * variante al producto; `galeria` sale de la antigua foto única `imagen`.
  */
+/**
+ * Cuándo se dio de alta (para ordenar lo más nuevo arriba, como la página):
+ * `fechaAlta`, o la hora que va en el id ('prod-' + milisegundos).
+ */
+export function marcaAlta(p: { id: string; fechaAlta?: string }): number {
+  const f = Date.parse(p.fechaAlta ?? '');
+  if (!Number.isNaN(f)) return f;
+  const m = /^prod-(\d{12,14})/.exec(p.id);
+  return m ? Number(m[1]) : 0;
+}
+
 export function normalizarProducto(id: string, crudo: Record<string, unknown>): Producto {
   const variantesCrudas: Record<string, unknown>[] = Array.isArray(crudo.variantes)
     ? (crudo.variantes as Record<string, unknown>[])
@@ -101,6 +114,7 @@ export function normalizarProducto(id: string, crudo: Record<string, unknown>): 
     material: texto(crudo.material),
     categoria: texto(crudo.categoria),
     calidad: texto(crudo.calidad),
+    ...(crudo.fechaAlta ? { fechaAlta: texto(crudo.fechaAlta) } : {}),
     codigo: texto(crudo.codigo),
     colorOro,
     variantes,
