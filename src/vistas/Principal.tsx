@@ -8,14 +8,17 @@ import { ListaDeseos } from './ListaDeseos';
 import { Actividad } from './Actividad';
 import { ActividadesStaff } from './ActividadesStaff';
 import { Calendario } from './Calendario';
+import { Inicio } from './Inicio';
+import { MiCuenta } from './MiCuenta';
 
-type Seccion = 'vender' | 'catalogo' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario';
+export type Seccion = 'inicio' | 'vender' | 'catalogo' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'cuenta';
 
 export function Principal({ perfil }: { perfil: PerfilUsuario }) {
   const [saliendo, setSaliendo] = useState(false);
   // Cobrar y manejar la caja: Encargado y Administrativo (Staff no cobra).
   const cobra = puedeManejarCaja(perfil.rol);
   const secciones: { id: Seccion; nombre: string }[] = [
+    { id: 'inicio', nombre: 'Inicio' },
     // Caja y venta van juntas: abrir la caja del día y cobrar en la misma pestaña.
     ...(cobra ? [{ id: 'vender' as const, nombre: 'Caja' }] : []),
     { id: 'catalogo', nombre: 'Catálogo' },
@@ -23,9 +26,10 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
     { id: 'deseos', nombre: 'Lista de deseos' },
     { id: 'calendario', nombre: 'Calendario' },
     { id: 'actividad', nombre: 'Actividad' },
-    { id: 'actividadesStaff', nombre: perfil.rol === 'staff' ? 'Mis actividades' : 'Actividades del Staff' }
+    { id: 'actividadesStaff', nombre: perfil.rol === 'staff' ? 'Mis actividades' : 'Actividades del Staff' },
+    { id: 'cuenta', nombre: 'Mi cuenta' }
   ];
-  const [seccion, setSeccion] = useState<Seccion>(cobra ? 'vender' : 'catalogo');
+  const [seccion, setSeccion] = useState<Seccion>('inicio');
 
   return (
     <div className="app">
@@ -64,7 +68,9 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
         </div>
       </header>
       <main className="contenido">
+        {seccion === 'inicio' && <Inicio perfil={perfil} onIr={setSeccion} />}
         {seccion === 'vender' && <Vender perfil={perfil} />}
+        {seccion === 'cuenta' && <MiCuenta perfil={perfil} />}
         {seccion === 'catalogo' && <Catalogo perfil={perfil} />}
         {seccion === 'apartados' && <Apartados perfil={perfil} />}
         {seccion === 'deseos' && <ListaDeseos perfil={perfil} />}

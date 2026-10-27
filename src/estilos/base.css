@@ -135,7 +135,7 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 .barra-marca { display: flex; align-items: center; gap: 10px; }
 .barra-marca img { width: 32px; }
 .barra-marca .marca { font-size: 1.15rem; letter-spacing: 0.05em; }
-.barra-nav { flex: 1; display: flex; gap: 6px; }
+.barra-nav { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; }
 .nav-boton {
   min-height: 40px;
   padding: 0 16px;
@@ -529,4 +529,26 @@ textarea { width: 100%; font: inherit; border: 1px solid var(--mw-border); borde
 @media (max-width: 900px) {
   .fila-evento { grid-template-columns: 64px minmax(0, 1fr); }
   .fila-evento > :nth-child(n + 3) { grid-column: 2; }
+}
+
+/* ------------------------------------------------------------ inicio y mi cuenta */
+.inicio h3, .mi-cuenta h3 { margin-top: 20px; }
+.dato-boton { text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.dato-boton:hover { border-color: var(--mw-lilac); }
+.resumen-apartados .dato .small { color: var(--mw-text-muted); }
+.eventos-semana { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.evento-semana { display: flex; gap: 12px; align-items: center; text-align: left; font: inherit; color: inherit; cursor: pointer; background: var(--surface); border: 1px solid var(--mw-border); border-radius: var(--radius); padding: 10px 14px; }
+.evento-dia { display: flex; flex-direction: column; align-items: center; min-width: 52px; background: var(--mw-lilac-soft); border-radius: 10px; padding: 4px 8px; color: var(--mw-purple-dark); text-transform: capitalize; }
+.evento-dia strong { font-family: 'Cinzel', Georgia, serif; font-size: 1.4rem; line-height: 1.1; }
+.recordatorios p { margin: 0 0 8px; }
+.recordatorios ul { margin: 0; padding-left: 18px; }
+.cuenta-columnas { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr); gap: 16px; align-items: start; }
+.cuenta-derecha { display: grid; gap: 16px; }
+.perfil { text-align: center; }
+.perfil .datos { text-align: left; margin: 12px 0; }
+.perfil-foto { width: 112px; height: 112px; border-radius: 50%; overflow: hidden; margin: 0 auto 10px; background: var(--mw-lilac-soft); display: grid; place-items: center; font-family: 'Cinzel', Georgia, serif; font-size: 2.6rem; color: var(--mw-purple-dark); }
+.perfil-foto img { width: 100%; height: 100%; object-fit: cover; }
+.tarjeta-caja header select { width: auto; }
+@media (max-width: 900px) {
+  .cuenta-columnas { grid-template-columns: 1fr; }
 }

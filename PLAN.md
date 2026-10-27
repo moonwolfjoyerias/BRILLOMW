@@ -152,6 +152,26 @@ cálculos del Plan MW.
   imprimirá**.
 - Las tablets leen el QR con la cámara y toman las fotos de los productos.
 
+### Inicio y Mi cuenta
+
+- **Hecho:** Inicio (pestaña con la que abre BRILLO). Para todos: resumen
+  operativo (pendientes de depósito, apartados vencidos, lista de deseos)
+  y eventos de la semana. Encargado y Admin: caja de hoy (vendido y cajas
+  abiertas) y próximo periodo de pago; Encargado, recordatorios de
+  nómina; Staff, sus actividades por confirmar; Admin, productos
+  disponibles, emprendedoras/líderes activas, Plan MW pendiente,
+  solicitudes de inscripción y actividad reciente. Cada tarjeta lleva a
+  su pestaña.
+- **Hecho:** Mi cuenta para los 3 roles: perfil (foto, usuario, teléfono,
+  correo; Admin los edita, como en la página), recibo de nómina de la
+  semana (y semanas anteriores) con firma de recibido, e información
+  laboral. "Olvidé mi contraseña" le manda un aviso real a Administración.
+- Diferencias: en la página, Staff ve un directorio de todo el personal
+  y elige a quién consultar la nómina (cuenta compartida); en BRILLO cada
+  quien ve la suya. Encargado ve datos reales de Nómina en vez de los de
+  ejemplo. Falta en Inicio de Admin: comisiones pendientes (llega con
+  Comisiones) y cambios de Configuración (vive solo en el navegador).
+
 ### Calendario
 
 - **Hecho:** pestaña Calendario para Staff, Encargado y Admin, igual que

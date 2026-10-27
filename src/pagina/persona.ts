@@ -16,6 +16,9 @@ export interface Persona {
   telefono: string;
   /** Usuario de la página (número de membresía, ej. MW0001). */
   usuario: string;
+  /** Plan MW: la página marca a quien ya sube de rango o tiene recompensa por entregar. */
+  ascensoPendiente: boolean;
+  recompensaPendiente: boolean;
 }
 
 const texto = (v: unknown) => (typeof v === 'string' ? v : v == null ? '' : String(v));
@@ -29,7 +32,9 @@ export function normalizarPersona(id: string, d: Record<string, unknown>): Perso
     categoria: texto(d.categoria) || 'normal',
     estado: texto(d.estado) || 'activa',
     telefono: texto(d.telefono),
-    usuario: texto(d.usuario)
+    usuario: texto(d.usuario),
+    ascensoPendiente: !!d.ascensoPendiente,
+    recompensaPendiente: !!d.recompensaPendiente
   };
 }
 
