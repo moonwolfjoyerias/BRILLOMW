@@ -623,3 +623,62 @@ export function normalizarVentana(id: string, d: Record<string, unknown>): Venta
   v.auditoria = Array.isArray(v.auditoria) ? v.auditoria : [];
   return v;
 }
+
+// ------------------------------------------------------------ etiqueta de la persona
+
+const ESTADOS_VENTANA: Record<string, string> = {
+  pendiente_deposito: 'Pendiente de depósito',
+  pendiente_aprobacion: 'Pendiente de aprobación VIP',
+  activa: 'Ventana activa',
+  vencida: 'Vencida — depósito perdido',
+  cerrada: 'Cerrada'
+};
+
+/**
+ * Cuando cambia la etiqueta (normal/foránea/VIP) de una persona, sus
+ * apartados abiertos toman las reglas nuevas — igual que
+ * sincronizarCategoriaVentanasPersona() de la página. Regresa la ventana
+ * cambiada o null si no le aplica.
+ */
+export function cambiarCategoriaVentana(ventana: Ventana, categoriaNueva: string, usuario: string, ahora = new Date()): Ventana | null {
+  const nueva = CATEGORIAS[categoriaNueva as Categoria];
+  if (!nueva || ventana.categoria === categoriaNueva) return null;
+  if (!['activa', 'pendiente_deposito', 'pendiente_aprobacion'].includes(ventana.estado)) return null;
+  const v: Ventana = { ...ventana, auditoria: [...ventana.auditoria] };
+  const categoriaAnterior = v.categoria || 'normal';
+  const estadoAnterior = v.estado;
+  const vencimientoAnterior = v.fechaVencimiento;
+  v.categoria = categoriaNueva;
+  const tieneDeposito = Number(v.depositoApartadoDisponible) > 0 || Number(v.depositoPiso) > 0;
+  const ajuste = v.vencimientoAjustado as { modo?: string } | undefined;
+  if (nueva.requiereAprobacion) {
+    if (v.estado === 'pendiente_deposito') v.estado = 'pendiente_aprobacion';
+    v.fechaVencimiento = null;
+  } else if (v.estado === 'pendiente_aprobacion') {
+    v.estado = 'pendiente_deposito';
+    v.fechaVencimiento = null;
+  } else if (v.estado === 'activa') {
+    if (nueva.requiereDeposito && !tieneDeposito) {
+      v.estado = 'pendiente_deposito';
+      v.fechaVencimiento = null;
+    } else if (!(ajuste && ajuste.modo === 'personalizada')) {
+      const inicio = v.fechaInicio ? new Date(v.fechaInicio) : ahora;
+      v.fechaVencimiento = nueva.dias ? new Date(inicio.getTime() + nueva.dias * 86400000).toISOString() : null;
+    }
+  }
+  if (v.fechaVencimiento && (!vencimientoAnterior || new Date(v.fechaVencimiento) > new Date(vencimientoAnterior))) {
+    delete v.avisoVencimiento1DiaEnviado;
+    delete v.avisoVencimiento2HorasEnviado;
+  }
+  const etiqueta = (c: string) => regla(c).etiqueta;
+  const detalle =
+    v.estado !== estadoAnterior
+      ? ` — ahora ${ESTADOS_VENTANA[v.estado].toLowerCase()}`
+      : v.fechaVencimiento !== vencimientoAnterior
+        ? v.fechaVencimiento
+          ? ` — ahora vence el ${new Date(v.fechaVencimiento).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}`
+          : ' — ya no vence'
+        : '';
+  v.auditoria.push(historial(`Categoría cambiada de ${etiqueta(categoriaAnterior)} a ${etiqueta(categoriaNueva)} (cambio en la cuenta de la persona)${detalle}`, usuario, ahora));
+  return v;
+}

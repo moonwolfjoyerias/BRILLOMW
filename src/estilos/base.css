@@ -591,3 +591,43 @@ button.fila-nomina:hover { border-color: var(--mw-lilac); }
   .fila-nomina { grid-template-columns: minmax(0, 1fr) auto; }
   .fila-nomina .monto, .fila-nomina .acciones-fila { grid-column: 1 / -1; text-align: left; justify-content: flex-start; }
 }
+
+/* ------------------------------------------------------------ emprendedoras/líderes y solicitudes */
+.filtros-personas { display: grid; grid-template-columns: minmax(0, 2fr) repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 4px; }
+.personas-columnas { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
+.personas-columnas.con-detalle { grid-template-columns: minmax(280px, 1fr) minmax(0, 1.6fr); }
+.lista-personas { display: grid; gap: 8px; }
+.tarjeta-persona { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--mw-border); border-radius: var(--radius); padding: 8px 12px; }
+.tarjeta-persona.activa { border-color: var(--mw-purple); box-shadow: 0 0 0 1px var(--mw-purple); }
+.tarjeta-persona-cuerpo { flex: 1; display: flex; gap: 12px; align-items: center; text-align: left; font: inherit; color: inherit; background: none; border: 0; padding: 4px 0; cursor: pointer; min-width: 0; }
+.tarjeta-persona .inicial { width: 40px; height: 40px; flex: none; border-radius: 50%; background: var(--mw-lilac-soft); color: var(--mw-purple-dark); display: grid; place-items: center; font-family: 'Cinzel', Georgia, serif; font-size: 1.1rem; }
+.tarjeta-persona .etiquetas .chip { align-self: center; }
+.perfil-persona { position: sticky; top: 12px; margin: 0; }
+.perfil-persona .pestanas { margin: 12px 0; }
+.perfil-persona h3 { margin-top: 18px; }
+.perfil-persona .resumen-apartados { margin: 8px 0; }
+.texto-normal { font-family: inherit !important; font-size: 0.95rem !important; }
+.barra-progreso { height: 8px; border-radius: 999px; background: var(--mw-lilac-soft); overflow: hidden; margin: 4px 0 12px; }
+.barra-progreso > div { height: 100%; background: var(--mw-purple); }
+.niveles .dato-boton.activo { border-color: var(--mw-purple); }
+.arbol-equipo { overflow-x: auto; background: var(--surface); border: 1px solid var(--mw-border); border-radius: var(--radius); padding: 10px 14px; }
+.arbol-equipo ul { list-style: none; margin: 0; padding-left: 18px; border-left: 1px dashed var(--mw-border); }
+.arbol-equipo > ul { padding-left: 0; border-left: 0; }
+.arbol-equipo li { margin: 6px 0; }
+.arbol-equipo .nodo { display: inline-block; padding: 4px 10px; border-radius: 8px; background: var(--mw-lilac-soft); }
+.arbol-equipo .nodo.raiz { background: var(--mw-purple); color: #fff; }
+.arbol-equipo .nodo.raiz .muted { color: #f1ebfa; }
+.chip.con-boton { display: inline-flex; align-items: center; gap: 6px; }
+.chip.con-boton button { border: 0; background: none; color: inherit; font-size: 1rem; cursor: pointer; padding: 0 2px; min-height: 0; }
+.lista-simple { margin: 6px 0 12px; padding-left: 18px; max-height: 160px; overflow-y: auto; }
+.fotos-ine { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.foto-ine { margin: 0; }
+.foto-ine img { width: 100%; border-radius: 8px; border: 1px solid var(--mw-border); }
+.solicitudes h1 .chip { vertical-align: middle; font-family: inherit; }
+@media (max-width: 1100px) {
+  .filtros-personas { grid-template-columns: 1fr 1fr 1fr; }
+  .filtros-personas input[type='search'] { grid-column: 1 / -1; }
+  .personas-columnas.con-detalle { grid-template-columns: 1fr; }
+  .personas-columnas.con-detalle .lista-personas { display: none; }
+  .perfil-persona { position: static; }
+}

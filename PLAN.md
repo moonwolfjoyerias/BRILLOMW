@@ -172,6 +172,39 @@ cálculos del Plan MW.
   ejemplo. Falta en Inicio de Admin: comisiones pendientes (llega con
   Comisiones) y cambios de Configuración (vive solo en el navegador).
 
+### Emprendedoras/Líderes y Solicitudes
+
+- **Hecho:** pestaña Emprendedoras/Líderes (solo Administración, como en
+  la página).
+  - Búsqueda y filtros: tipo, estado, categoría, líder y rango.
+  - Perfil con Información (y datos bancarios de Líder), Compras,
+    Apartados, Plan MW (constancia y rifa) y, si es Líder, Equipo y rango
+    (niveles y árbol).
+  - Acciones: editar, cambiar de líder al momento, reactivar, convertir
+    Emprendedora ↔ Líder, confirmar o rechazar cambios de rama, agregar o
+    quitar integrantes y limpiar el historial de compras.
+  - Dar de baja a una líder con equipo, o convertirla en Emprendedora,
+    pide reasignar su equipo (sugiere su líder superior).
+  - Si cambia su etiqueta (normal/foránea/VIP), sus apartados abiertos
+    toman las condiciones nuevas y se le avisa.
+  - Su acceso (`users/{uid}`) queda al día en el mismo guardado.
+- **Hecho:** pestaña Solicitudes (solo Administración): inscripciones y
+  eventos propuestos, con búsqueda, filtros, aviso de "riesgo de equipo
+  inflado" y foto de la INE.
+  - Aprobar una inscripción crea la cuenta real (usuario MW#### y
+    contraseña temporal, que se muestran para entregarlas), la persona y
+    su constancia/rifa, y le avisa a quien la invitó.
+  - Aprobar un evento lo publica en el calendario.
+  - Rechazar pide motivo y avisa.
+- Diferencias:
+  - Confirmar ascensos de rango y recompensas de constancia queda para
+    Plan MW (hoy en la página).
+  - La carátula de la CLABE se ve en la página.
+  - Si un usuario MW ya estaba ocupado en el acceso real, BRILLO usa el
+    siguiente (la página pedía volver a intentar).
+- En la página (mismo PR que Nómina): Emprendedoras/Líderes y Solicitudes
+  se actualizan en vivo con lo que cambie BRILLO.
+
 ### Nómina
 
 - **Hecho:** pestaña Nómina para Encargado y Administrativo, sobre las
