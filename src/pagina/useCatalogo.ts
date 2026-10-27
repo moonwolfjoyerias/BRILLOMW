@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
-import { normalizarProducto, type Producto } from './producto';
+import { marcaAlta, normalizarProducto, type Producto } from './producto';
 
 export type EstadoCatalogo =
   | { estado: 'cargando' }
@@ -22,7 +22,7 @@ export function useCatalogo(): EstadoCatalogo {
         snap => {
           const productos = snap.docs
             .map(d => normalizarProducto(d.id, d.data()))
-            .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+            .sort((a, b) => marcaAlta(b) - marcaAlta(a) || a.nombre.localeCompare(b.nombre, 'es')); // lo más nuevo arriba, como la página
           setEstado({ estado: 'listo', productos, desdeCache: snap.metadata.fromCache });
         },
         () => setEstado({ estado: 'error', mensaje: 'No se pudo cargar el catálogo. Revisa la conexión.' })
