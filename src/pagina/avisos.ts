@@ -11,6 +11,8 @@ export interface Aviso {
   origen?: string;
   /** Producto al que lleva el aviso (ej. "ya está disponible, apártalo"). */
   productoId?: string | null;
+  /** Tipo de aviso de la página (ej. 'nomina'); null si no tiene. */
+  tipo?: string | null;
 }
 
 export function nuevoAviso(a: Aviso, ahora: Date, i = 0) {
@@ -20,7 +22,7 @@ export function nuevoAviso(a: Aviso, ahora: Date, i = 0) {
     link: a.link,
     leida: false,
     paraId: a.paraId,
-    tipo: null,
+    tipo: a.tipo ?? null,
     origen: a.origen ?? 'emprendedora_lider',
     productoId: a.productoId ?? null,
     rolDestino: a.rolDestino,

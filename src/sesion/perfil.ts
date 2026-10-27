@@ -13,6 +13,8 @@ export interface PerfilUsuario {
   cuentaId?: string;
   /** Empleado de Nómina ligado a esta cuenta (Actividades del Staff). */
   empleadoNominaId?: string | null;
+  /** Encargado con permiso de Nómina (`permisos.nomina`, lo asigna Admin en la página). */
+  permisoNomina?: boolean;
 }
 
 /** Roles que trabajan en BRILLO (caja y tablets). Emprendedoras y líderes siguen en la página. */
@@ -56,10 +58,17 @@ export function validarPerfil(uid: string, datos: Record<string, unknown> | unde
   const nombre = typeof datos.nombre === 'string' && datos.nombre ? datos.nombre : usuario;
   const cuentaId = typeof datos.cuentaId === 'string' && datos.cuentaId ? datos.cuentaId : undefined;
   const empleadoNominaId = typeof datos.empleadoNominaId === 'string' && datos.empleadoNominaId ? datos.empleadoNominaId : null;
-  return { ok: true, perfil: { uid, usuario, nombre, rol, ...(cuentaId ? { cuentaId } : {}), empleadoNominaId } };
+  const permisos = datos.permisos as Record<string, unknown> | undefined;
+  const permisoNomina = permisos?.nomina === true;
+  return { ok: true, perfil: { uid, usuario, nombre, rol, ...(cuentaId ? { cuentaId } : {}), empleadoNominaId, permisoNomina } };
 }
 
 /** Abrir y cerrar la caja del día: Encargado y Administrativo. */
 export function puedeManejarCaja(rol: Rol): boolean {
   return rol === 'encargado' || rol === 'admin';
+}
+
+/** Capturar y mover Nómina: Administrativo, o Encargado con permiso de Nómina (igual que las reglas). */
+export function puedeEditarNomina(p: Pick<PerfilUsuario, 'rol' | 'permisoNomina'>): boolean {
+  return p.rol === 'admin' || (p.rol === 'encargado' && p.permisoNomina === true);
 }

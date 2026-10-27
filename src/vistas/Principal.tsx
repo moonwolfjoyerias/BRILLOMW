@@ -10,8 +10,9 @@ import { ActividadesStaff } from './ActividadesStaff';
 import { Calendario } from './Calendario';
 import { Inicio } from './Inicio';
 import { MiCuenta } from './MiCuenta';
+import { Nomina } from './Nomina';
 
-export type Seccion = 'inicio' | 'vender' | 'catalogo' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'cuenta';
+export type Seccion = 'inicio' | 'vender' | 'catalogo' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'cuenta';
 
 export function Principal({ perfil }: { perfil: PerfilUsuario }) {
   const [saliendo, setSaliendo] = useState(false);
@@ -27,6 +28,8 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
     { id: 'calendario', nombre: 'Calendario' },
     { id: 'actividad', nombre: 'Actividad' },
     { id: 'actividadesStaff', nombre: perfil.rol === 'staff' ? 'Mis actividades' : 'Actividades del Staff' },
+    // Nómina: Encargado y Administrativo, como en la página (Staff ve su recibo en Mi cuenta).
+    ...(perfil.rol !== 'staff' ? [{ id: 'nomina' as const, nombre: 'Nómina' }] : []),
     { id: 'cuenta', nombre: 'Mi cuenta' }
   ];
   const [seccion, setSeccion] = useState<Seccion>('inicio');
@@ -77,6 +80,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
         {seccion === 'actividadesStaff' && <ActividadesStaff perfil={perfil} />}
         {seccion === 'calendario' && <Calendario perfil={perfil} />}
         {seccion === 'actividad' && <Actividad perfil={perfil} />}
+        {seccion === 'nomina' && <Nomina perfil={perfil} />}
       </main>
     </div>
   );
