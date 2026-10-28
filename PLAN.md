@@ -76,8 +76,17 @@ Meta: dejar Aronium a **finales de 2026**.
 - Métodos de pago: efectivo, tarjeta (terminal) y transferencia.
   **Tarjeta y transferencia siempre guardan su número de referencia**, y
   no se puede registrar dos veces la misma.
-- **Ticket:** logo, folio, artículos, método de pago, referencia, quién
-  cobró e **IVA desglosado** (faltan datos por confirmar, ver §7).
+- **Ticket:** igual al ticket actual de la tienda (foto recibida, oct-2026):
+  lema "MOONWOLF JOYERIA TE AYUDA A CRECER", logo, datos de la tienda,
+  N° de recibo `AA-200-######`, fecha, usuario que cobró, orden, cliente
+  (nombre y membresía MW), artículos ("1 PZ x $289.00 (-60%)"), cantidad
+  de artículos, subtotal, **IVA 16% desglosado**, total, cada forma de
+  pago, recibido, ahorraste, saldo a favor, código de barras del recibo y
+  avisos de garantía. La tarjeta sale como **TERMINAL**, como en Aronium.
+- Formas de pago que usa Aronium (del reporte de ejemplo): Efectivo,
+  Terminal, Transferencia, Cambio físico, Crédito, Gala, Regalo y
+  Souvenir. Para comisiones y recompensas solo cuentan Efectivo, Terminal
+  y Transferencia (decisión ya tomada en la página).
 - **Sin facturación electrónica (CFDI).**
 - **Servicios:** se cobran grabado, reparación y ajustes. Son artículos
   sin inventario, que siempre se pueden vender; el precio puede fijarse
@@ -129,6 +138,9 @@ Meta: dejar Aronium a **finales de 2026**.
   certificado** la primera vez que se hace válida.
 - Se cambia la pieza: lo que se pagó por la original se toma a cuenta y
   pueden elegir cualquier otra pieza nueva.
+- **Si la pieza nueva cuesta menos, no pasa nada:** siempre se toma en
+  cuenta el valor de la pieza original (la primera que se llevó). No se
+  devuelve ni se deja saldo por la diferencia.
 - La pieza defectuosa **no** regresa al inventario a la venta.
 - Los certificados se siguen imprimiendo fuera de BRILLO (llevan cuidados
   y un folio).
@@ -148,6 +160,11 @@ cálculos del Plan MW.
 
 - BRILLO pasa a ser la **fuente de verdad del inventario**.
 - Las etiquetas llevan un **código QR con el código del producto**.
+- Formato actual (foto recibida): etiqueta de joyería de dos partes en
+  rollo. Parte que se queda en la pieza: nombre del tipo ("ARETE"),
+  precio, logo "JOYERIA MW" y QR; talón: QR, código ("AREX001129116XP"),
+  descripción de la variante ("CUADRADO REDONDEADO", "7MM") y logo MW. A
+  la izquierda de cada etiqueta va un número grande ("31").
 - Hoy se diseñan e imprimen en otro programa; **BRILLO las generará e
   imprimirá**.
 - Las tablets leen el QR con la cámara y toman las fotos de los productos.
@@ -370,6 +387,13 @@ No se ha usado con datos reales, así que no hay nada que migrar de él.
 - Lo que hoy se saca de Aronium es un **reporte**: ventas totales, cuánto
   entró por tarjeta, transferencia y efectivo, y pagos de comisiones.
   BRILLO lo reemplaza.
+- Ejemplo recibido (compras del 16 al 30 de septiembre de 2026): una hoja
+  con un renglón por cliente ("NOMBRE MW25168 (000005)", su RFC trae la
+  membresía MW) y el monto por forma de pago, repartido en bloques de
+  columnas por página: (Cambio físico, Crédito, Efectivo, Gala), (Regalo,
+  Souvenir, Terminal), (Transferencia, Total). Es el mismo formato que ya
+  importa Compras (Aronium) de la página. BRILLO debe poder sacar este
+  mismo reporte por quincena para que la página lo siga leyendo.
 
 ---
 
@@ -399,7 +423,7 @@ No se ha usado con datos reales, así que no hay nada que migrar de él.
 |---|---|---|
 | Interfaz | Una sola base de código web (TypeScript) para caja y tablet | Se escribe una vez y se adapta a cada pantalla |
 | Caja (PC) | **Tauri** → instalador de Windows | Acceso directo a las impresoras de tickets y etiquetas |
-| Tablet | **Capacitor** → app de Android (o iPad) | Cámara para leer QR y tomar fotos |
+| Tablet | **Capacitor** → app de **Android** (confirmado) | Cámara para leer QR y tomar fotos |
 | Datos | **Firebase** (Auth + Firestore + Storage para fotos), mismo proyecto que la página | Datos compartidos con la página |
 | Sin internet | Persistencia local de Firestore en la caja | Poder cobrar aunque se caiga la red; se sincroniza al volver |
 
@@ -455,17 +479,21 @@ BRILLO no los hace por su cuenta; se piden uno por uno cuando toque.
 
 ## 7. Pendientes de información
 
+Resueltos (oct-2026): foto del ticket actual (ver "Cobro y ticket"), foto
+de las etiquetas (ver "Inventario y etiquetas"), reporte de compras de
+Aronium de ejemplo (ver "Historial de Aronium"), garantía cuando la pieza
+nueva cuesta menos (cuenta el valor de la original) y tablets Android.
+
 | # | Pendiente | De quién |
 |---|---|---|
-| 1 | Un ejemplo real del código que lleva el QR de una etiqueta | Tienda |
-| 2 | Datos que faltan en el ticket; idealmente foto de un ticket actual | Tienda |
-| 3 | Fondo de caja: ¿cada caja abre con un monto fijo? | Jefes |
-| 4 | Marcas y modelos de la impresora de tickets y la de etiquetas | Tienda |
-| 5 | ¿Qué lector usarán en las cajas para el QR? | Tienda |
-| 6 | Exportaciones de Aronium de ejemplo (productos, clientas, ventas) y si la de ventas trae detalle por artículo | Tienda |
-| 7 | Desde qué fecha migrar las ventas | Jefes |
-| 8 | Garantía: si la pieza nueva cuesta menos, ¿qué pasa con la diferencia (sobre todo para público general, que no tiene saldo a favor)? | Jefes |
+| 1 | Etiqueta: ¿qué es el número grande de la izquierda ("31")? ¿El código "AREX001129116XP" es por producto o por cada variante (talla/forma)? ¿Qué significan sus partes (AR, EX, el número, XP)? | Tienda |
+| 2 | Ticket: ¿qué es el "Código: 000188" del cliente (número de cliente de Aronium)? ¿Y el "(.)" al final de cada artículo? Lista oficial de abreviaturas (AN, CA, PU, BL, AM, MZ…) | Tienda |
+| 3 | Formas de pago Gala, Regalo y Souvenir: ¿cuándo se usan en caja? | Jefes |
+| 4 | Fondo de caja: ¿cada caja abre con un monto fijo? | Jefes |
+| 5 | Marcas y modelos de la impresora de tickets y la de etiquetas | Tienda |
+| 6 | ¿Qué lector usarán en las cajas para el QR? | Tienda |
+| 7 | Exportaciones de Aronium de productos y clientas, y si la de ventas trae detalle por artículo | Tienda |
+| 8 | Desde qué fecha migrar las ventas | Jefes |
 | 9 | Garantía: ¿qué se hace con la pieza defectuosa (merma o devolución a proveedor)? | Jefes |
-| 10 | Tablets: ¿Android o iPad? | Jefes |
-| 11 | Créditos: ¿la venta a crédito cuenta para comisiones, Reto y rifas **al entregar la pieza** (todo el monto ese día) o **conforme entran los abonos** (cada abono en su fecha, como la regla de "solo dinero nuevo")? | Jefes |
-| 12 | Servicios (grabado, reparación, ajustes): ¿cuentan para comisiones y recompensas? | Jefes |
+| 10 | Créditos: ¿la venta a crédito cuenta para comisiones, Reto y rifas **al entregar la pieza** (todo el monto ese día) o **conforme entran los abonos** (cada abono en su fecha, como la regla de "solo dinero nuevo")? | Jefes |
+| 11 | Servicios (grabado, reparación, ajustes): ¿cuentan para comisiones y recompensas? | Jefes |

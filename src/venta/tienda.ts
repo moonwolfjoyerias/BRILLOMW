@@ -1,10 +1,10 @@
-// Datos fijos del ticket (formato entregado por la tienda, oct-2026).
-// Pendiente de confirmar que estos datos de encabezado son los reales.
+// Datos fijos del ticket, tal como salen en el ticket real de la tienda
+// (foto de un ticket de Aronium, oct-2026).
 export const TIENDA = {
-  lema: 'MOONWOLF TE AYUDA A CRECER',
-  nombre: 'MOONWOLF JOYERÍA',
+  lema: 'MOONWOLF JOYERIA TE AYUDA A CRECER',
+  nombre: 'MOONWOLF JOYERIA',
   lineasEncabezado: [
-    '78000 SAN LUIS POTOSÍ',
+    '78000 SAN LUIS POTOSI',
     'CIF/NIF: CAJC000413712',
     '4444487767 / 4448100805',
     'PROYECTOSADMIN@ZAVECDIGITAL.COM'
