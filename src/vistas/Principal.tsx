@@ -15,6 +15,7 @@ import { Emprendedoras } from './Emprendedoras';
 import { Solicitudes } from './Solicitudes';
 import { Comisiones } from './Comisiones';
 import { PlanMW } from './PlanMW';
+import { useTema } from '../tema';
 
 export type Seccion = 'inicio' | 'vender' | 'catalogo' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'cuenta';
 
@@ -61,8 +62,21 @@ function menuPara(perfil: PerfilUsuario): { titulo: string | null; items: Item[]
   return grupos;
 }
 
+const IconoLuna = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+  </svg>
+);
+const IconoSol = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <circle cx="12" cy="12" r="4.5" />
+    <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+  </svg>
+);
+
 export function Principal({ perfil }: { perfil: PerfilUsuario }) {
   const [saliendo, setSaliendo] = useState(false);
+  const [tema, alternarTema] = useTema();
   const [seccion, setSeccion] = useState<Seccion>('inicio');
   // En pantallas angostas el menú se abre y cierra con el botón ☰.
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -106,6 +120,14 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
             <strong>{perfil.nombre}</strong>
             <span>{ETIQUETA_ROL[perfil.rol]}</span>
           </div>
+          <button
+            className="btn boton-tema"
+            onClick={alternarTema}
+            aria-label={tema === 'oscuro' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+            title={tema === 'oscuro' ? 'Modo claro' : 'Modo oscuro'}
+          >
+            {tema === 'oscuro' ? <IconoSol /> : <IconoLuna />}
+          </button>
           <button
             className="btn"
             disabled={saliendo}
