@@ -123,11 +123,10 @@ function ResumenAdmin({ onIr }: { onIr: Ir }) {
       <h3>Toda la tienda</h3>
       <div className="resumen-apartados">
         <Dato titulo="Productos disponibles" valor={catalogo.estado === 'listo' ? catalogo.productos.filter(p => p.variantes.some(v => v.stock > 0)).length : '…'} onClick={() => onIr('catalogo')} />
-        <Dato titulo="Emprendedoras y líderes activas" valor={personas.estado === 'listo' ? ps.filter(p => p.estado === 'activa').length : '…'} />
-        <Dato titulo="Plan MW pendiente" valor={personas.estado === 'listo' ? ps.filter(p => p.ascensoPendiente || p.recompensaPendiente).length : '…'} detalle="Ascensos o recompensas por confirmar" />
-        <Dato titulo="Solicitudes de inscripción" valor={solicitudes ?? '…'} detalle="Pendientes de revisar" />
+        <Dato titulo="Emprendedoras y líderes activas" valor={personas.estado === 'listo' ? ps.filter(p => p.estado === 'activa').length : '…'} onClick={() => onIr('emprendedoras')} />
+        <Dato titulo="Plan MW pendiente" valor={personas.estado === 'listo' ? ps.filter(p => p.ascensoPendiente || p.recompensaPendiente).length : '…'} detalle="Ascensos o recompensas por confirmar" onClick={() => onIr('planmw')} />
+        <Dato titulo="Solicitudes de inscripción" valor={solicitudes ?? '…'} detalle="Pendientes de revisar" onClick={() => onIr('solicitudes')} />
       </div>
-      <p className="muted small">Comisiones pendientes aparecerá aquí cuando Comisiones esté en BRILLO.</p>
     </>
   );
 }

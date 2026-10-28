@@ -131,13 +131,23 @@ function semanasDisponibles(d: DatosNomina, empleadoId?: string): string[] {
   return [...set].sort((a, b) => b.localeCompare(a));
 }
 
+const MES_CORTO = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+/** "26 oct – 1 nov 2026": cabe en el selector también en tablet. */
+function semanaCorta(periodoKey: string): string {
+  const lunes = new Date(`${periodoKey}T00:00:00`);
+  const domingo = new Date(lunes);
+  domingo.setDate(lunes.getDate() + 6);
+  const fin = `${domingo.getDate()} ${MES_CORTO[domingo.getMonth()]} ${domingo.getFullYear()}`;
+  return lunes.getMonth() === domingo.getMonth() ? `${lunes.getDate()} – ${fin}` : `${lunes.getDate()} ${MES_CORTO[lunes.getMonth()]} – ${fin}`;
+}
+
 function SelectorSemana({ d, semana, setSemana, empleadoId }: { d: DatosNomina; semana: string; setSemana: (s: string) => void; empleadoId?: string }) {
   const semanas = semanasDisponibles(d, empleadoId);
   if (!semanas.includes(semana)) semanas.unshift(semana);
   return (
     <select value={semana} onChange={e => setSemana(e.target.value)} aria-label="Semana">
       {semanas.map(s => (
-        <option key={s} value={s}>{rangoSemanaNomina(s)}{s === periodoKeyDe() ? ' (actual)' : ''}</option>
+        <option key={s} value={s}>{semanaCorta(s)}{s === periodoKeyDe() ? ' (actual)' : ''}</option>
       ))}
     </select>
   );
@@ -161,8 +171,8 @@ function ListaSemana({ d, semana, setSemana, onAbrir }: { d: DatosNomina; semana
   const porValidar = filas.filter(f => f.p.estadoNomina === 'necesita_validacion_admin').length;
   return (
     <>
-      <div className="filtros-deseos">
-        <input type="search" placeholder="Buscar por nombre, número o cargo…" value={texto} onChange={e => setTexto(e.target.value)} aria-label="Buscar" />
+      <div className="filtros-deseos filtros-nomina">
+        <input type="search" placeholder="Nombre, número o cargo…" value={texto} onChange={e => setTexto(e.target.value)} aria-label="Buscar" />
         <SelectorSemana d={d} semana={semana} setSemana={setSemana} />
         <select value={estado} onChange={e => setEstado(e.target.value)} aria-label="Estado">
           <option value="todos">Todos los estados</option>
@@ -174,7 +184,7 @@ function ListaSemana({ d, semana, setSemana, onAbrir }: { d: DatosNomina; semana
         </select>
       </div>
       <div className="resumen-apartados">
-        <div className="dato"><span>Semana</span><strong>{rangoSemanaNomina(semana)}</strong></div>
+        <div className="dato"><span>Semana</span><strong className="dato-texto">{rangoSemanaNomina(semana)}</strong></div>
         <div className="dato"><span>Total de la semana</span><strong>{$(total)}</strong><span className="small">{filas.length} empleado{filas.length === 1 ? '' : 's'}</span></div>
         <div className="dato"><span>Esperando validación</span><strong>{porValidar}</strong></div>
       </div>

@@ -6,6 +6,14 @@
     <meta name="theme-color" content="#5E1A8A" />
     <link rel="icon" type="image/png" href="./favicon.png" />
     <title>BRILLO MW</title>
+    <script>
+      // Tema antes de pintar (misma regla que src/tema.ts) para que no parpadee.
+      try {
+        var t = localStorage.getItem('brillo.tema');
+        if (t !== 'claro' && t !== 'oscuro') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro';
+        document.documentElement.dataset.tema = t;
+      } catch (e) {}
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />

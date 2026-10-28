@@ -3,8 +3,9 @@
 // Valores copiados de js/firebase-config.js de la página. La configuración web
 // de Firebase no es secreta; la seguridad la dan las reglas de Firestore.
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { connectAuthEmulator, getAuth } from 'firebase/auth';
 import {
+  connectFirestoreEmulator,
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager
@@ -27,3 +28,10 @@ export const auth = getAuth(app);
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
+
+// Solo en desarrollo y si se pide (VITE_EMULADOR=puerto): datos de prueba en
+// el emulador local de Firebase, nunca los reales. No entra en la app final.
+if (import.meta.env.DEV && import.meta.env.VITE_EMULADOR) {
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+  connectFirestoreEmulator(db, '127.0.0.1', Number(import.meta.env.VITE_EMULADOR));
+}

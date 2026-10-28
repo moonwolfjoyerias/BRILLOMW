@@ -699,7 +699,7 @@ function NuevaVentana({
       {persona && <p className="muted small">Cuenta real encontrada: categoría y teléfono se llenaron de su perfil.</p>}
       {existente && <p className="nota-apartado">{nombre.trim()} ya tiene una ventana abierta: la pieza se sumará ahí.</p>}
       {!existente && credito > 0 && <p className="nota-apartado">Tiene {dinero(credito)} de crédito guardado: la ventana se abre sin pedir depósito.</p>}
-      <div className="rejilla-form">
+      <div className="rejilla-form dos">
         <label className="campo">
           <span>Teléfono</span>
           <input value={telefono} onChange={e => setTelefono(e.target.value)} inputMode="tel" placeholder="Ej. 444 123 4567" />
@@ -724,7 +724,7 @@ function NuevaVentana({
           <option key={p.id} value={p.id}>{p.nombre}{p.codigo ? ` (${p.codigo})` : ''} — {dinero(precioMayoreo(p))}</option>
         ))}
       </select>
-      <div className="rejilla-form">
+      <div className="rejilla-form dos">
         <label className="campo">
           <span>Variante (color / talla) *</span>
           <select value={varianteId} onChange={e => setVarianteId(e.target.value)} disabled={!producto || !variantes.length}>
@@ -758,7 +758,7 @@ function CamposPago({ metodo, setMetodo, referencia, setReferencia }: {
   setReferencia: (r: string) => void;
 }) {
   return (
-    <div className="rejilla-form">
+    <div className="rejilla-form dos">
       <label className="campo">
         <span>Método</span>
         <select value={metodo} onChange={e => setMetodo(e.target.value as MetodoApartado)}>

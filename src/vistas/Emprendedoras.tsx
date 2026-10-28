@@ -78,7 +78,7 @@ export function Emprendedoras({ perfil }: { perfil: PerfilUsuario }) {
         <p className="muted">Busca, consulta su perfil completo y edita. Lo mismo que en la página: lo que se cambie aquí o allá se ve en los dos.</p>
       </div>
       <div className="filtros-personas">
-        <input type="search" placeholder="Buscar por nombre, usuario o teléfono…" value={f.texto} onChange={e => set('texto', e.target.value)} aria-label="Buscar" />
+        <input type="search" placeholder="Nombre, usuario o teléfono…" value={f.texto} onChange={e => set('texto', e.target.value)} aria-label="Buscar" />
         <select value={f.tipo} onChange={e => set('tipo', e.target.value)} aria-label="Tipo">
           <option value="">Emprendedoras y líderes</option>
           <option value="emprendedora">Emprendedoras</option>
