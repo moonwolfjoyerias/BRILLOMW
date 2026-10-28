@@ -30,6 +30,19 @@ export const DESCUENTO_SUGERIDO: Record<Material, number> = {
   otros: 0
 };
 
+/**
+ * Categorías con descuento de mayoreo de 30% aunque su material lleve otro
+ * (lista de la tienda: "30/CHAM", "30/exhibidor", "30/PRENDEDOR").
+ */
+export const CATEGORIAS_DESCUENTO_30 = ['CHAM', 'CHAMS', 'EXHIBIDOR', 'EXHIBIDORES', 'EXIBIDOR', 'PRENDEDOR', 'PRENDEDORES'];
+
+/** Descuento sugerido: el de la categoría si tiene uno propio; si no, el del material. Siempre editable. */
+export function descuentoSugerido(material: Material | '', categoria: string): number | null {
+  const cat = categoria.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toUpperCase();
+  if (CATEGORIAS_DESCUENTO_30.includes(cat)) return 30;
+  return material ? DESCUENTO_SUGERIDO[material] : null;
+}
+
 export const GALERIA_MAX_FOTOS = 5;
 /** Suma de caracteres base64 de la galería (un producto = un documento, límite ~1 MB). */
 export const GALERIA_TAMANO_MAX = 700000;

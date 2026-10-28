@@ -15,7 +15,7 @@ import { crearProducto, editarProducto } from '../pagina/guardarProducto';
 import {
   CATEGORIAS,
   COLORES_ORO,
-  DESCUENTO_SUGERIDO,
+  descuentoSugerido,
   GALERIA_MAX_FOTOS,
   MATERIALES
 } from '../pagina/opciones';
@@ -56,10 +56,20 @@ export function ProductoForm({
     setB(prev => ({
       ...prev,
       material,
-      // Igual que la página: el descuento sugerido sale del material, pero
-      // si ya lo cambiaron a mano no se pisa.
-      descuento: !descuentoTocado && material ? String(DESCUENTO_SUGERIDO[material]) : prev.descuento
+      // El descuento sugerido sale de la categoría (Cham, Exhibidor y
+      // Prendedor: 30%) o del material; si ya lo cambiaron a mano no se pisa.
+      descuento: sugerido(material, prev.categoria, prev.descuento)
     }));
+  }
+
+  function cambiarCategoria(categoria: string) {
+    setB(prev => ({ ...prev, categoria, descuento: sugerido(prev.material, categoria, prev.descuento) }));
+  }
+
+  function sugerido(material: Material | '', categoria: string, actual: string): string {
+    if (descuentoTocado) return actual;
+    const d = descuentoSugerido(material, categoria);
+    return d === null ? actual : String(d);
   }
 
   function cambiarVariante(id: string, campo: 'color' | 'talla' | 'stock' | 'fotoId', valor: string | null) {
@@ -174,7 +184,7 @@ export function ProductoForm({
           </label>
           <label className="campo">
             <span>Categoría</span>
-            <select value={b.categoria} onChange={e => set('categoria', e.target.value)}>
+            <select value={b.categoria} onChange={e => cambiarCategoria(e.target.value)}>
               <option value="">Sin categoría</option>
               {[...CATEGORIAS, ...(b.categoria && !CATEGORIAS.includes(b.categoria) ? [b.categoria] : [])].map(c => (
                 <option key={c} value={c}>{c}</option>
