@@ -52,13 +52,29 @@ function oficial(texto: string): readonly [string, string] | null {
   return ABREVIATURAS[t] ?? ABREVIATURAS[t.replace(/ES$/, '')] ?? ABREVIATURAS[t.replace(/S$/, '')] ?? null;
 }
 
+/** Colores de oro (confirmados por la tienda). */
+export const ABREVIATURAS_COLOR: Record<string, string> = {
+  BLANCO: 'BL',
+  AMARILLO: 'AM',
+  DORADO: 'DO',
+  FLORENTINO: 'FL',
+  NEGRO: 'NE',
+  ROSA: 'RO'
+};
+
 /**
- * Abreviatura de 2 letras: la oficial si el tipo está en la lista; si no
- * (colores de oro y categorías que no vienen en la lista), sus primeras
- * dos letras ("Blanco" → BL, "Amarillo" → AM).
+ * Abreviatura de 2 letras de un tipo de pieza: la oficial si viene en la
+ * lista. Las categorías que no tienen (Fin de semana, Misterios,
+ * Relicarios, Semanarios, Tiaras) no llevan abreviatura: cadena vacía.
  */
 export function abreviatura(texto: string): string {
-  return oficial(texto)?.[0] ?? limpiar(texto).slice(0, 2);
+  return oficial(texto)?.[0] ?? '';
+}
+
+/** Abreviatura del color de oro: la confirmada, o sus primeras dos letras si es un color nuevo. */
+export function abreviaturaColor(texto: string): string {
+  const t = limpiar(texto);
+  return ABREVIATURAS_COLOR[t] ?? t.slice(0, 2);
 }
 
 /** Abreviatura de 3 letras del tipo de pieza (la de la lista oficial), o null si no viene en la lista. */
@@ -76,7 +92,7 @@ export interface DatosPieza {
 
 /** Primer renglón de la pieza: TIPO COLOR NOMBRE MEDIDA, en mayúsculas. */
 export function renglonPieza(d: DatosPieza): string {
-  return [abreviatura(d.categoria), abreviatura(d.colorOro), d.nombre, d.variante]
+  return [abreviatura(d.categoria), abreviaturaColor(d.colorOro), d.nombre, d.variante]
     .map(s => s.trim())
     .filter(Boolean)
     .join(' ')

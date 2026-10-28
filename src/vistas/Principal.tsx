@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { cerrarSesion } from '../sesion/sesion';
 import { ETIQUETA_ROL, puedeManejarCaja, type PerfilUsuario } from '../sesion/perfil';
 import { Catalogo } from './Catalogo';
@@ -18,54 +18,89 @@ import { PlanMW } from './PlanMW';
 
 export type Seccion = 'inicio' | 'vender' | 'catalogo' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'cuenta';
 
+interface Item { id: Seccion; nombre: string }
+
+/** El menú agrupado por área; cada rol ve solo lo que puede usar (igual que en la página). */
+function menuPara(perfil: PerfilUsuario): { titulo: string | null; items: Item[] }[] {
+  const cobra = puedeManejarCaja(perfil.rol);
+  const grupos: { titulo: string | null; items: Item[] }[] = [
+    { titulo: null, items: [{ id: 'inicio', nombre: 'Inicio' }] },
+    {
+      titulo: 'Tienda',
+      items: [
+        // Caja y venta van juntas: abrir la caja del día y cobrar en la misma pestaña (Staff no cobra).
+        ...(cobra ? [{ id: 'vender' as const, nombre: 'Caja' }] : []),
+        { id: 'catalogo', nombre: 'Catálogo' },
+        { id: 'apartados', nombre: 'Apartados' },
+        { id: 'deseos', nombre: 'Lista de deseos' }
+      ]
+    },
+    {
+      titulo: 'Equipo',
+      items: [
+        { id: 'calendario', nombre: 'Calendario' },
+        { id: 'actividadesStaff', nombre: perfil.rol === 'staff' ? 'Mis actividades' : 'Actividades del Staff' },
+        { id: 'actividad', nombre: 'Actividad' },
+        // Nómina: Encargado y Administrativo, como en la página (Staff ve su recibo en Mi cuenta).
+        ...(perfil.rol !== 'staff' ? [{ id: 'nomina' as const, nombre: 'Nómina' }] : [])
+      ]
+    }
+  ];
+  // Emprendedoras/Líderes, Solicitudes, Comisiones y Plan MW: solo Administración, como en la página.
+  if (perfil.rol === 'admin') {
+    grupos.push({
+      titulo: 'Emprendedoras',
+      items: [
+        { id: 'emprendedoras', nombre: 'Emprendedoras y Líderes' },
+        { id: 'solicitudes', nombre: 'Solicitudes' },
+        { id: 'comisiones', nombre: 'Comisiones' },
+        { id: 'planmw', nombre: 'Plan MW' }
+      ]
+    });
+  }
+  return grupos;
+}
+
 export function Principal({ perfil }: { perfil: PerfilUsuario }) {
   const [saliendo, setSaliendo] = useState(false);
-  // Cobrar y manejar la caja: Encargado y Administrativo (Staff no cobra).
-  const cobra = puedeManejarCaja(perfil.rol);
-  const secciones: { id: Seccion; nombre: string }[] = [
-    { id: 'inicio', nombre: 'Inicio' },
-    // Caja y venta van juntas: abrir la caja del día y cobrar en la misma pestaña.
-    ...(cobra ? [{ id: 'vender' as const, nombre: 'Caja' }] : []),
-    { id: 'catalogo', nombre: 'Catálogo' },
-    { id: 'apartados', nombre: 'Apartados' },
-    { id: 'deseos', nombre: 'Lista de deseos' },
-    { id: 'calendario', nombre: 'Calendario' },
-    { id: 'actividad', nombre: 'Actividad' },
-    { id: 'actividadesStaff', nombre: perfil.rol === 'staff' ? 'Mis actividades' : 'Actividades del Staff' },
-    // Nómina: Encargado y Administrativo, como en la página (Staff ve su recibo en Mi cuenta).
-    ...(perfil.rol !== 'staff' ? [{ id: 'nomina' as const, nombre: 'Nómina' }] : []),
-    // Emprendedoras/Líderes, Solicitudes, Comisiones y Plan MW: solo Administración, como en la página.
-    ...(perfil.rol === 'admin'
-      ? [
-          { id: 'emprendedoras' as const, nombre: 'Emprendedoras/Líderes' },
-          { id: 'solicitudes' as const, nombre: 'Solicitudes' },
-          { id: 'comisiones' as const, nombre: 'Comisiones' },
-          { id: 'planmw' as const, nombre: 'Plan MW' }
-        ]
-      : []),
-    { id: 'cuenta', nombre: 'Mi cuenta' }
-  ];
   const [seccion, setSeccion] = useState<Seccion>('inicio');
+  // En pantallas angostas el menú se abre y cierra con el botón ☰.
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  useEffect(() => {
+    if (!menuAbierto) return;
+    const alTeclear = (e: KeyboardEvent) => e.key === 'Escape' && setMenuAbierto(false);
+    window.addEventListener('keydown', alTeclear);
+    return () => window.removeEventListener('keydown', alTeclear);
+  }, [menuAbierto]);
+  const grupos = menuPara(perfil);
+  const actual = [...grupos.flatMap(g => g.items), { id: 'cuenta', nombre: 'Mi cuenta' }].find(i => i.id === seccion);
+  const ir = (s: Seccion) => {
+    setSeccion(s);
+    setMenuAbierto(false);
+    window.scrollTo({ top: 0 });
+  };
+  const boton = (i: Item) => (
+    <button
+      key={i.id}
+      className={i.id === seccion ? 'menu-item activo' : 'menu-item'}
+      aria-current={i.id === seccion ? 'page' : undefined}
+      onClick={() => ir(i.id)}
+    >
+      {i.nombre}
+    </button>
+  );
 
   return (
     <div className="app">
       <header className="barra">
+        <button className="btn boton-menu" aria-label="Abrir el menú" aria-expanded={menuAbierto} onClick={() => setMenuAbierto(!menuAbierto)}>
+          ☰
+        </button>
         <div className="barra-marca">
           <img src="./isotipo.png" alt="" />
           <span className="marca">BRILLO MW</span>
         </div>
-        <nav className="barra-nav" aria-label="Secciones">
-          {secciones.map(s => (
-            <button
-              key={s.id}
-              className={s.id === seccion ? 'nav-boton activo' : 'nav-boton'}
-              aria-current={s.id === seccion ? 'page' : undefined}
-              onClick={() => setSeccion(s.id)}
-            >
-              {s.nombre}
-            </button>
-          ))}
-        </nav>
+        <span className="barra-seccion">{actual?.nombre}</span>
         <div className="barra-usuario">
           <div className="quien">
             <strong>{perfil.nombre}</strong>
@@ -83,22 +118,34 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
           </button>
         </div>
       </header>
-      <main className="contenido">
-        {seccion === 'inicio' && <Inicio perfil={perfil} onIr={setSeccion} />}
-        {seccion === 'vender' && <Vender perfil={perfil} />}
-        {seccion === 'cuenta' && <MiCuenta perfil={perfil} />}
-        {seccion === 'catalogo' && <Catalogo perfil={perfil} />}
-        {seccion === 'apartados' && <Apartados perfil={perfil} />}
-        {seccion === 'deseos' && <ListaDeseos perfil={perfil} />}
-        {seccion === 'actividadesStaff' && <ActividadesStaff perfil={perfil} />}
-        {seccion === 'calendario' && <Calendario perfil={perfil} />}
-        {seccion === 'actividad' && <Actividad perfil={perfil} />}
-        {seccion === 'nomina' && <Nomina perfil={perfil} />}
-        {seccion === 'emprendedoras' && <Emprendedoras perfil={perfil} />}
-        {seccion === 'solicitudes' && <Solicitudes perfil={perfil} />}
-        {seccion === 'comisiones' && <Comisiones perfil={perfil} />}
-        {seccion === 'planmw' && <PlanMW perfil={perfil} />}
-      </main>
+      <div className="cuerpo">
+        {menuAbierto && <div className="menu-fondo" onClick={() => setMenuAbierto(false)} aria-hidden="true" />}
+        <nav className={menuAbierto ? 'menu-lateral abierto' : 'menu-lateral'} aria-label="Secciones">
+          {grupos.map(g => (
+            <div key={g.titulo ?? 'principal'} className="menu-grupo">
+              {g.titulo && <span className="menu-titulo">{g.titulo}</span>}
+              {g.items.map(boton)}
+            </div>
+          ))}
+          <div className="menu-grupo menu-pie">{boton({ id: 'cuenta', nombre: 'Mi cuenta' })}</div>
+        </nav>
+        <main className="contenido">
+          {seccion === 'inicio' && <Inicio perfil={perfil} onIr={ir} />}
+          {seccion === 'vender' && <Vender perfil={perfil} />}
+          {seccion === 'cuenta' && <MiCuenta perfil={perfil} />}
+          {seccion === 'catalogo' && <Catalogo perfil={perfil} />}
+          {seccion === 'apartados' && <Apartados perfil={perfil} />}
+          {seccion === 'deseos' && <ListaDeseos perfil={perfil} />}
+          {seccion === 'actividadesStaff' && <ActividadesStaff perfil={perfil} />}
+          {seccion === 'calendario' && <Calendario perfil={perfil} />}
+          {seccion === 'actividad' && <Actividad perfil={perfil} />}
+          {seccion === 'nomina' && <Nomina perfil={perfil} />}
+          {seccion === 'emprendedoras' && <Emprendedoras perfil={perfil} />}
+          {seccion === 'solicitudes' && <Solicitudes perfil={perfil} />}
+          {seccion === 'comisiones' && <Comisiones perfil={perfil} />}
+          {seccion === 'planmw' && <PlanMW perfil={perfil} />}
+        </main>
+      </div>
     </div>
   );
 }

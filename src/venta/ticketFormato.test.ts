@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { abreviatura, abreviatura3, fechaTicket, renglonCantidad, renglonPieza } from './ticketFormato';
+import { abreviatura, abreviatura3, abreviaturaColor, fechaTicket, renglonCantidad, renglonPieza } from './ticketFormato';
 
 describe('formato del ticket', () => {
   it('fecha con segundos y a.m./p.m.', () => {
@@ -10,7 +10,7 @@ describe('formato del ticket', () => {
   it('renglón de la pieza como el ejemplo', () => {
     expect(renglonPieza({ categoria: 'Anillos', colorOro: 'Blanco', nombre: 'Corazón Virgen', variante: '' })).toBe('AN BL CORAZÓN VIRGEN');
     expect(renglonPieza({ categoria: '', colorOro: '', nombre: 'Grabado', variante: '' })).toBe('GRABADO');
-    expect(abreviatura('Árbol')).toBe('AR');
+    expect(abreviatura('Árbol')).toBe('');
   });
   it('abreviaturas oficiales de la tienda, en singular o plural', () => {
     const esperadas: Record<string, string> = {
@@ -21,9 +21,10 @@ describe('formato del ticket', () => {
     Object.entries(esperadas).forEach(([cat, abr]) => expect(abreviatura(cat)).toBe(abr));
     expect(abreviatura3('Aretes')).toBe('ARE');
     expect(abreviatura3('Tiaras')).toBeNull();
-    // Colores de oro y categorías fuera de la lista: primeras dos letras.
-    expect(abreviatura('Amarillo')).toBe('AM');
-    expect(abreviatura('Tiaras')).toBe('TI');
+    // Categorías sin abreviatura oficial no llevan; colores confirmados.
+    ['Fin de semana', 'Misterios', 'Relicarios', 'Semanarios', 'Tiaras'].forEach(c => expect(abreviatura(c)).toBe(''));
+    expect(renglonPieza({ categoria: 'Tiaras', colorOro: 'Dorado', nombre: 'Princesa', variante: '' })).toBe('DO PRINCESA');
+    expect(['Blanco', 'Amarillo', 'Dorado', 'Florentino', 'Negro', 'Rosa'].map(abreviaturaColor)).toEqual(['BL', 'AM', 'DO', 'FL', 'NE', 'RO']);
     expect(renglonPieza({ categoria: 'Aretes', colorOro: 'Amarillo', nombre: 'Cubos', variante: '42CM' })).toBe('AE AM CUBOS 42CM');
   });
   it('cantidad × precio etiqueta (descuento)', () => {
