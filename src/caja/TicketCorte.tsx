@@ -3,7 +3,7 @@ import { Fila, type AnchoTicket } from '../venta/Ticket';
 import { TIENDA } from '../venta/tienda';
 import { fechaTicket } from '../venta/ticketFormato';
 import { NOMBRE_METODO } from '../venta/carrito';
-import { METODOS, textoDiferencia, type ResumenCorte } from './corte';
+import { metodosDelCorte, textoDiferencia, type ResumenCorte } from './corte';
 import type { CierreCaja, MovimientoEfectivo } from './turno';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
@@ -59,7 +59,7 @@ export function TicketCorte({
       <Fila izq="Público general:" der={$(c.totalPublico)} />
       {c.souvenirs > 0 && <Fila izq="Souvenirs:" der={$(c.souvenirs)} />}
       <div className="t-linea" />
-      {METODOS.map(m => (
+      {metodosDelCorte(c).map(m => (
         <Fila key={m} izq={`${NOMBRE_METODO[m].toUpperCase()} (${c.porMetodo[m].pagos}):`} der={$(c.porMetodo[m].monto)} />
       ))}
       {c.referencias.length > 0 && (

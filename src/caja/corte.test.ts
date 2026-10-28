@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calcularCorte, diferenciaCierre, sumarCortes, textoDiferencia, validarMovimiento } from './corte';
+import { calcularCorte, metodosDelCorte, diferenciaCierre, sumarCortes, textoDiferencia, validarMovimiento } from './corte';
 import type { MovimientoEfectivo } from './turno';
 
 const tot = (total: number, extra: Partial<Record<string, number>> = {}) => ({
@@ -18,7 +18,10 @@ describe('corte de caja', () => {
   it('suma ventas, métodos de pago, referencias y folios', () => {
     const c = calcularCorte({ fondoInicial: 500, movimientos: [] }, ventas);
     expect(c).toMatchObject({ ventas: 3, piezas: 5, total: 950, totalEtiqueta: 1500, descuentoMayoreo: 550, totalMayoreo: 450, totalPublico: 500, cambioEntregado: 50, primerFolio: '26-200-000001', ultimoFolio: '26-200-000003' });
-    expect(c.porMetodo).toEqual({ efectivo: { monto: 550, pagos: 2 }, tarjeta: { monto: 300, pagos: 1 }, transferencia: { monto: 100, pagos: 1 } });
+    expect(c.porMetodo).toMatchObject({ efectivo: { monto: 550, pagos: 2 }, tarjeta: { monto: 300, pagos: 1 }, transferencia: { monto: 100, pagos: 1 }, gala: { monto: 0, pagos: 0 } });
+    expect(metodosDelCorte(c)).toEqual(['efectivo', 'tarjeta', 'transferencia']);
+    // Un corte guardado antes de Gala/Regalo/Souvenir sigue mostrándose.
+    expect(metodosDelCorte({ porMetodo: { efectivo: c.porMetodo.efectivo, tarjeta: c.porMetodo.tarjeta, transferencia: c.porMetodo.transferencia } as typeof c.porMetodo })).toEqual(['efectivo', 'tarjeta', 'transferencia']);
     expect(c.referencias.map(r => r.referencia)).toEqual(['A1', 'T9']);
     expect(c.efectivoEsperado).toBe(1050);
   });

@@ -8,7 +8,7 @@ import { db } from '../firebase';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { CAJAS, fechaLocal, leerMonto, nombreCaja, type IdCaja, type TurnoCaja } from '../caja/turno';
 import { cerrarCaja, registrarMovimiento, useTurnosDelDia, useVentasDelDia } from '../caja/turnos';
-import { METODOS, calcularCorte, diferenciaCierre, sumarCortes, textoDiferencia, type ResumenCorte } from '../caja/corte';
+import { metodosDelCorte, calcularCorte, diferenciaCierre, sumarCortes, textoDiferencia, type ResumenCorte } from '../caja/corte';
 import { TicketCorte } from '../caja/TicketCorte';
 import { NOMBRE_METODO } from '../venta/carrito';
 import type { VentaRegistrada } from '../venta/registrarVenta';
@@ -175,7 +175,7 @@ function Resumen({ r }: { r: ResumenCorte }) {
       <dd className="muted small">{$(r.iva)}</dd>
       <dt className="total">Total vendido</dt>
       <dd className="total">{$(r.total)}</dd>
-      {METODOS.map(m => (
+      {metodosDelCorte(r).map(m => (
         <div key={m} className="contenido-par">
           <dt>{NOMBRE_METODO[m]} ({r.porMetodo[m].pagos})</dt>
           <dd>{$(r.porMetodo[m].monto)}</dd>

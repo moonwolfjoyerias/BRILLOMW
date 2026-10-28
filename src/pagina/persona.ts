@@ -19,6 +19,8 @@ export interface Persona {
   /** Plan MW: la página marca a quien ya sube de rango o tiene recompensa por entregar. */
   ascensoPendiente: boolean;
   recompensaPendiente: boolean;
+  /** Código de su tarjeta de cliente: su número de cliente de Aronium (ej. 000188), si ya se ligó. */
+  codigoTarjeta: string | null;
 }
 
 const texto = (v: unknown) => (typeof v === 'string' ? v : v == null ? '' : String(v));
@@ -34,7 +36,8 @@ export function normalizarPersona(id: string, d: Record<string, unknown>): Perso
     telefono: texto(d.telefono),
     usuario: texto(d.usuario),
     ascensoPendiente: !!d.ascensoPendiente,
-    recompensaPendiente: !!d.recompensaPendiente
+    recompensaPendiente: !!d.recompensaPendiente,
+    codigoTarjeta: Array.isArray(d.aroniumClienteIds) && d.aroniumClienteIds.length ? texto(d.aroniumClienteIds[0]) : null
   };
 }
 
