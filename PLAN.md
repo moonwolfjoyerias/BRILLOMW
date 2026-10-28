@@ -172,6 +172,45 @@ cálculos del Plan MW.
   ejemplo. Falta en Inicio de Admin: comisiones pendientes (llega con
   Comisiones) y cambios de Configuración (vive solo en el navegador).
 
+### Comisiones y Plan MW
+
+- **Hecho:** pestaña Comisiones (solo Administración), con los mismos
+  cálculos que la página.
+  - Por mes, cada líder con su rango aplicado (el del último mes cerrado
+    o el manual de ese mes) y su origen.
+  - La comisión de cada quincena: compra normal sin IVA × % del nivel.
+    Las compras salen de los apartados liquidados, o de Aronium en las
+    quincenas que ya tienen archivo.
+  - Equipo por niveles con ajuste manual por persona (con historial),
+    restaurar el cálculo y aviso si no alcanza el mínimo de su rango.
+  - Bono por rango, rango manual del mes y registro del pago de cada
+    quincena (avisa a la líder).
+  - Comprobante para imprimir o guardar en PDF (por quincena o mes
+    completo) y exportar a Excel.
+- **Hecho:** pestaña Plan MW (solo Administración).
+  - Próximos a lograr (rango y Reto de Constancia, con el requisito que
+    falta) y "Confirmar ahora" para ascensos y recompensas, con aviso a
+    la persona.
+  - Logros del mes e historial de rangos de los últimos 6 meses
+    (exportable).
+  - En Emprendedoras/Líderes, los avisos de ascenso y recompensa ya
+    apuntan aquí.
+- Diferencias:
+  - BRILLO calcula quién ya cumple en vivo. Los cierres de cada mes
+    (contar compras de constancia, boletos de rifa, rango efectivo y
+    marcar inactivas) los sigue haciendo la página al abrir Admin. Si
+    Admin deja de usar la página, hay que pasar esos cierres a BRILLO.
+  - Porcentajes, IVA y bonos son los de siempre. Configuración de la
+    página guarda cambios solo en el navegador donde se hicieron.
+  - Importar árbol, carga masiva de puntos y comprobante de todas las
+    líderes en un solo PDF siguen en la página.
+- Pendiente: Rifa del mes (modo, opciones, votos, ganadora y boletos).
+  Los folios de los boletos viven solo en el navegador de la página;
+  moverlos a Firebase necesita autorización.
+- En la página (PR aparte): Comisiones guarda solo lo que cambió y se
+  actualiza en vivo; Plan MW se vuelve a pintar con lo que confirme
+  BRILLO.
+
 ### Emprendedoras/Líderes y Solicitudes
 
 - **Hecho:** pestaña Emprendedoras/Líderes (solo Administración, como en
