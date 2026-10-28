@@ -123,19 +123,81 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 .barra {
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: 10;
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 8px 20px;
+  min-height: 57px;
+  padding: 6px 20px;
   background: var(--surface);
   border-bottom: 1px solid var(--mw-border);
-  flex-wrap: wrap;
 }
+.barra-marca { flex: 1; }
 .barra-marca { display: flex; align-items: center; gap: 10px; }
 .barra-marca img { width: 32px; }
 .barra-marca .marca { font-size: 1.15rem; letter-spacing: 0.05em; }
-.barra-nav { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; }
+.barra-seccion { flex: 1; font-weight: 600; color: var(--mw-purple-dark); display: none; }
+.boton-menu { display: none; min-width: var(--toque); padding: 0; font-size: 1.3rem; }
+
+/* Menú lateral agrupado (Tienda, Equipo, Emprendedoras). */
+.cuerpo { display: grid; grid-template-columns: 248px minmax(0, 1fr); align-items: start; }
+.cuerpo > .contenido { margin: 0; width: 100%; }
+.menu-lateral {
+  position: sticky;
+  top: 57px;
+  height: calc(100vh - 57px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 12px;
+  background: var(--surface);
+  border-right: 1px solid var(--mw-border);
+}
+.menu-grupo { display: flex; flex-direction: column; gap: 2px; }
+.menu-titulo { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mw-text-muted); padding: 4px 12px 2px; }
+.menu-pie { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--mw-border); }
+/* 40 px en PC/tablet horizontal; al abrirse como panel en tablet vertical vuelven al tamaño táctil. */
+.menu-item {
+  min-height: 40px;
+  white-space: nowrap;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--mw-text);
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.menu-item:hover { background: var(--mw-cream); color: var(--mw-purple-dark); }
+.menu-item.activo { background: var(--mw-lilac-soft); color: var(--mw-purple-dark); font-weight: 600; box-shadow: inset 3px 0 0 var(--mw-purple); }
+.menu-fondo { display: none; }
+
+/* Tablet vertical y teléfono: el menú se abre como panel con ☰. */
+@media (max-width: 1000px) {
+  .cuerpo { grid-template-columns: minmax(0, 1fr); }
+  .boton-menu { display: inline-flex; align-items: center; justify-content: center; }
+  .barra-seccion { display: block; }
+  .barra-marca .marca { display: none; }
+  .menu-lateral {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: auto;
+    width: min(280px, 85vw);
+    z-index: 20;
+    transform: translateX(-105%);
+    transition: transform 0.18s ease;
+  }
+  .menu-lateral.abierto { transform: none; box-shadow: 0 0 24px rgba(42, 34, 48, 0.18); }
+  .menu-item { min-height: var(--toque); }
+  .menu-fondo { display: block; position: fixed; inset: 0; z-index: 15; background: rgba(42, 34, 48, 0.35); }
+}
+@media print {
+  .menu-lateral, .barra { display: none; }
+}
 .nav-boton {
   min-height: 40px;
   padding: 0 16px;
@@ -388,7 +450,7 @@ textarea {
 /* ---------- pantallas angostas (teléfono) ---------- */
 @media (max-width: 720px) {
   .barra { padding: 8px 16px; }
-  .barra-nav { order: 3; flex-basis: 100%; }
+  .quien { display: none; }
   .contenido { padding: 16px; }
   .rejilla { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 }
