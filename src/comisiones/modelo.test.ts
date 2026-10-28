@@ -12,7 +12,7 @@ const sinAronium: M.Aronium = { importadas: new Set(), montos: {} };
 describe('Compras (mismas reglas que compras-modelo.js)', () => {
   const libro = new M.LibroCompras([
     vent('A', [pieza(1160, '2026-10-05T10:00:00Z'), pieza(500, '2026-10-20T10:00:00Z', { material: 'souvenirs' }), pieza(900, '2026-10-21T10:00:00Z', { compraLimpiada: { fecha: 'x', por: 'y' } }), pieza(300, '2026-10-22T10:00:00Z', { estado: 'activa' })])
-  ], { importadas: new Set(['2026-09-p2']), montos: { '2026-09-p2': { A: 777 } } });
+  ], { importadas: new Set(['2026-09-p2']), montos: { '2026-09-p2': { A: 777 } } }, null);
   it('quincena por la fecha del último pago; souvenir aparte; limpiadas y no liquidadas no cuentan', () => {
     expect(libro.subPeriodo('A', '2026-10', 'p1')).toEqual({ normal: 1160, souvenir: 0, total: 1160 });
     expect(libro.subPeriodo('A', '2026-10', 'p2')).toEqual({ normal: 0, souvenir: 500, total: 500 });
@@ -30,7 +30,7 @@ describe('Rangos (mismas reglas que plan-mw-admin.js)', () => {
   const personas = [L, ...equipo];
   const ventanas = equipo.map(p => vent(p.id, [pieza(p.id === 'a' ? 20000 : 1600, '2026-10-03T10:00:00Z'), pieza(1600, '2026-10-18T10:00:00Z')]))
     .concat(vent('L', [pieza(1500, '2026-10-02T10:00:00Z'), pieza(1500, '2026-10-17T10:00:00Z')]));
-  const libro = new M.LibroCompras(ventanas, sinAronium);
+  const libro = new M.LibroCompras(ventanas, sinAronium, null);
   it('activas y calificadas exigen las dos quincenas; producción grupal incluye todo el equipo', () => {
     const s = M.statsRangoLider(personas, libro, 'L', '2026-10');
     expect(s).toEqual({ personasActivas: 5, personasCalificadas: 5, produccionGrupalMes: 21600 + 3200 * 4, compraPersonalPeriodo1: 1500, compraPersonalPeriodo2: 1500 });
@@ -78,7 +78,7 @@ describe('Comisiones (mismas reglas que comisiones-modelo.js)', () => {
     const L = per('L', { tipo: 'lider', rangoActualKey: 'plata' });
     const a = per('a', { liderId: 'L' });
     const b = per('b', { liderId: 'a' });
-    const libro = new M.LibroCompras([vent('a', [pieza(1160, '2026-10-05T00:00:00Z')]), vent('b', [pieza(2320, '2026-10-06T00:00:00Z')])], sinAronium);
+    const libro = new M.LibroCompras([vent('a', [pieza(1160, '2026-10-05T00:00:00Z')]), vent('b', [pieza(2320, '2026-10-06T00:00:00Z')])], sinAronium, null);
     const r = C.comisionesLider([L, a, b], libro, vacio, L, '2026-10', 'p1');
     const [f1] = r.niveles[0].filas;
     expect(f1.pct).toBe(10);

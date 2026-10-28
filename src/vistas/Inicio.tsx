@@ -9,6 +9,8 @@ import type { Seccion } from './Principal';
 import { useApartados } from '../apartados/acciones';
 import { estaVencida } from '../apartados/modelo';
 import { useListaDeseos } from '../deseos/acciones';
+import { puedeConfirmarCompras } from '../compras/acciones';
+import { useComprasPorConfirmar } from './ConfirmarCompras';
 import { useEventos } from '../calendario/acciones';
 import { useActividadesStaff } from '../actividadesStaff/acciones';
 import { empleadoDeCuenta, estadoIndividual, misActividades } from '../actividadesStaff/modelo';
@@ -78,6 +80,7 @@ function ResumenOperativo({ perfil, onIr }: { perfil: PerfilUsuario; onIr: Ir })
   const ventanas = apartados.estado === 'listo' ? apartados.ventanas : [];
   const lista = deseos.estado === 'listo' ? deseos.deseos : [];
   const activos = lista.filter(d => d.estado === 'pendiente' || d.estado === 'en_seguimiento').length;
+  const porConfirmar = useComprasPorConfirmar();
   return (
     <>
       <h3>Resumen operativo</h3>
@@ -90,6 +93,9 @@ function ResumenOperativo({ perfil, onIr }: { perfil: PerfilUsuario; onIr: Ir })
           detalle={perfil.rol === 'admin' ? 'Pendientes o en seguimiento' : `${activos} por atender`}
           onClick={() => onIr('deseos')}
         />
+        {puedeConfirmarCompras(perfil.rol) && (
+          <Dato titulo="Compras por confirmar" valor={porConfirmar ?? '…'} detalle="Liquidadas en la página" onClick={() => onIr('compras')} />
+        )}
       </div>
     </>
   );

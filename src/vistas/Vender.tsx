@@ -19,6 +19,8 @@ import {
   clienteDesdePersona,
   lineaDeProducto,
   lineaDeServicio,
+  TIPOS_SERVICIO,
+  type TipoServicio,
   precioUnitario,
   validarPagos,
   type ClienteVenta,
@@ -322,8 +324,8 @@ function BuscadorProductos({
       {servicio && (
         <FormServicio
           onCancelar={() => setServicio(false)}
-          onAgregar={(desc, precio) => {
-            onAgregar(lineaDeServicio(`${Date.now()}`, desc, precio));
+          onAgregar={(desc, precio, tipo) => {
+            onAgregar(lineaDeServicio(`${Date.now()}`, desc, precio, tipo));
             setServicio(false);
           }}
         />
@@ -332,7 +334,8 @@ function BuscadorProductos({
   );
 }
 
-function FormServicio({ onCancelar, onAgregar }: { onCancelar: () => void; onAgregar: (d: string, p: number) => void }) {
+function FormServicio({ onCancelar, onAgregar }: { onCancelar: () => void; onAgregar: (d: string, p: number, t: TipoServicio) => void }) {
+  const [tipo, setTipo] = useState<TipoServicio>('reparacion');
   const [desc, setDesc] = useState('');
   const [precio, setPrecio] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -348,13 +351,20 @@ function FormServicio({ onCancelar, onAgregar }: { onCancelar: () => void; onAgr
           const p = leerMonto(precio);
           if (!desc.trim()) return setError('Describe el servicio (ej. Grabado de nombre).');
           if (p === null || p <= 0) return setError('Escribe el precio.');
-          onAgregar(desc.trim(), p);
+          onAgregar(desc.trim(), p, tipo);
         }}
       >
         <div className="modal-cabeza">
           <h2>Servicio o artículo libre</h2>
         </div>
         <p className="muted small">Grabado, reparación, ajuste… No descuenta inventario ni lleva descuento de mayoreo.</p>
+        <label className="campo">
+          <span>Tipo</span>
+          <select value={tipo} onChange={e => setTipo(e.target.value as TipoServicio)}>
+            {Object.entries(TIPOS_SERVICIO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </label>
+        {tipo === 'grabado' && <p className="muted small">El grabado no cuenta como compra de la emprendedora o líder.</p>}
         <label className="campo">
           <span>Descripción</span>
           <input value={desc} onChange={e => setDesc(e.target.value)} autoFocus />

@@ -20,6 +20,7 @@ import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';
 import { normalizarReferencia } from '../venta/carrito';
 import { nuevoAviso } from '../pagina/avisos';
 import { normalizarVentana, piezasActivas, type Aviso, type Resultado, type Ventana } from './modelo';
+import { COL_COMPRAS, docPieza, idCompraPieza, piezasRecienLiquidadas } from '../compras/modelo';
 
 export const COL_VENTANAS = 'ventanasApartado';
 export const DOC_CREDITOS = ['apartadosMeta', 'creditos'] as const;
@@ -138,6 +139,11 @@ export async function ejecutarAccion(
       // 4) Escrituras.
       const ahora = new Date();
       tx.set(doc(db, COL_VENTANAS, nueva.id), nueva);
+      // Lo que se liquida en BRILLO cuenta como compra al momento (lo de la
+      // página espera a que Encargado o Administración lo confirme).
+      piezasRecienLiquidadas(actual, nueva).forEach(p =>
+        tx.set(doc(db, COL_COMPRAS, idCompraPieza(nueva.id, p.pieza.id)), docPieza(p, 'confirmada', 'brillo', { nombre: perfil.nombre, rol: perfil.rol }, ahora))
+      );
       if (efectos.credito) {
         const { usuarioId, monto } = efectos.credito;
         tx.set(refCreditos, { [usuarioId]: monto > 0 ? monto : deleteField() }, { merge: true });

@@ -798,3 +798,13 @@ input.celda-numero:not([type='checkbox']) { width: 110px; min-height: 38px; }
 @media (max-width: 900px) {
   .filtros-deseos.filtros-nomina { grid-template-columns: 1fr 1fr; }
 }
+
+/* ------------------------------------------------------------ compras por confirmar */
+.confirmar-compras .buscar-compras { flex: 1; max-width: 420px; }
+.fila-compra { grid-template-columns: minmax(0, 1fr) auto auto; }
+.fila-compra .fila-check { white-space: normal; align-items: flex-start; min-width: 0; }
+.confirmar-compras h1 .chip { vertical-align: middle; font-family: 'Poppins', system-ui, sans-serif; }
+.fila-compra .fila-check input { margin-top: 2px; flex: none; }
+@media (max-width: 900px) {
+  .fila-compra { grid-template-columns: minmax(0, 1fr) auto; }
+}

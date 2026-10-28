@@ -28,6 +28,8 @@ import {
   type Fila,
   type ResultadoLider
 } from '../comisiones/modelo';
+import { useComprasBrillo } from '../compras/acciones';
+import { ComprasBrillo } from '../compras/modelo';
 
 const $ = (n: number) => (Number(n) || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
 const fecha = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
@@ -49,9 +51,11 @@ export function Comisiones({ perfil }: { perfil: PerfilUsuario }) {
   const [mes, setMes] = useState(mesKeyDe());
   const [texto, setTexto] = useState('');
   const ventanas = ap.estado === 'listo' ? ap.ventanas : null;
-  const libro = useMemo(() => (ventanas && aronium ? new LibroCompras(ventanas, aronium) : null), [ventanas, aronium]);
+  const comprasBrillo = useComprasBrillo(db);
+  const compras = comprasBrillo instanceof ComprasBrillo ? comprasBrillo : null;
+  const libro = useMemo(() => (ventanas && aronium && compras ? new LibroCompras(ventanas, aronium, compras) : null), [ventanas, aronium, compras]);
 
-  if (per.estado === 'error' || ap.estado === 'error' || com.estado === 'error') return <p className="error">No se pudo cargar Comisiones. Revisa la conexión.</p>;
+  if (comprasBrillo === 'error' || per.estado === 'error' || ap.estado === 'error' || com.estado === 'error') return <p className="error">No se pudo cargar Comisiones. Revisa la conexión.</p>;
   if (per.estado !== 'listo' || com.estado !== 'listo' || !libro) return <p className="muted">Calculando comisiones…</p>;
 
   const ctx: Ctx = { personas: per.personas, financiero: per.financiero, libro, d: com, mes, perfil };

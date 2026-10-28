@@ -30,6 +30,8 @@ import {
   type Logro,
   type Requisito
 } from '../planmw/modelo';
+import { useComprasBrillo } from '../compras/acciones';
+import { ComprasBrillo } from '../compras/modelo';
 
 const $ = (n: number) => `$${(Number(n) || 0).toLocaleString('es-MX')}`;
 const fecha = (iso: string) => new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -54,7 +56,9 @@ export function PlanMW({ perfil }: { perfil: PerfilUsuario }) {
   const [mes, setMes] = useState(mesKeyDe());
   const [detalle, setDetalle] = useState<string | null>(null);
   const ventanas = ap.estado === 'listo' ? ap.ventanas : null;
-  const libro = useMemo(() => (ventanas && aronium ? new LibroCompras(ventanas, aronium) : null), [ventanas, aronium]);
+  const comprasBrillo = useComprasBrillo(db);
+  const compras = comprasBrillo instanceof ComprasBrillo ? comprasBrillo : null;
+  const libro = useMemo(() => (ventanas && aronium && compras ? new LibroCompras(ventanas, aronium, compras) : null), [ventanas, aronium, compras]);
   const personas = per.estado === 'listo' ? per.personas : null;
   const financiero = per.estado === 'listo' ? per.financiero : null;
 
@@ -87,7 +91,7 @@ export function PlanMW({ perfil }: { perfil: PerfilUsuario }) {
     return lista.sort((a, b) => (a.listo !== b.listo ? (a.listo ? -1 : 1) : b.progresoPct - a.progresoPct));
   }, [personas, financiero, libro]);
 
-  if (per.estado === 'error' || ap.estado === 'error' || com.estado === 'error') return <p className="error">No se pudo cargar el Plan MW. Revisa la conexión.</p>;
+  if (comprasBrillo === 'error' || per.estado === 'error' || ap.estado === 'error' || com.estado === 'error') return <p className="error">No se pudo cargar el Plan MW. Revisa la conexión.</p>;
   if (!personas || !financiero || !libro || com.estado !== 'listo') return <p className="muted">Calculando el Plan MW…</p>;
 
   const todosLogros = logros(personas);

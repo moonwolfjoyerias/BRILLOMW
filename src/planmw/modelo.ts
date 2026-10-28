@@ -6,6 +6,7 @@
 // LIQUIDADAS (fecha = último pago), separando souvenirs. Una pieza con
 // compraLimpiada ya no cuenta.
 import type { Ventana } from '../apartados/modelo';
+import type { ComprasBrillo } from '../compras/modelo';
 import { descendencia, HITOS_CONSTANCIA, nombreCompletoPersona, RANGOS_MW, type Financiero, type PersonaAdmin } from '../personas/modelo';
 
 export const UMBRAL_ACTIVA_MENSUAL = 500;
@@ -40,17 +41,30 @@ export function mesLabel(mesKey: string): string {
 /** Índice de compras: se arma una vez con las ventanas y Aronium, y responde rápido por persona/quincena. */
 export class LibroCompras {
   private piezas = new Map<string, { fecha: string; monto: number; souvenir: boolean }[]>();
-  constructor(ventanas: Ventana[], private aronium: Aronium) {
+  /**
+   * `compras`: lo confirmado en BRILLO (una pieza liquidada en la página
+   * cuenta hasta confirmarse, en la fecha que BRILLO decidió) y las compras
+   * en la caja de BRILLO. null = sin confirmación (todo lo liquidado cuenta).
+   */
+  constructor(ventanas: Ventana[], private aronium: Aronium, compras: ComprasBrillo | null) {
+    const sumar = (personaId: string, fecha: string, monto: number, souvenir: boolean) => {
+      const lista = this.piezas.get(personaId) ?? [];
+      lista.push({ fecha, monto, souvenir });
+      this.piezas.set(personaId, lista);
+    };
     ventanas.forEach(v =>
       v.apartados.forEach(p => {
         if (p.estado !== 'liquidada' || p.compraLimpiada || !p.pagos?.length) return;
-        const fecha = p.pagos[p.pagos.length - 1].fecha;
+        const fecha = compras ? compras.fechaCuentaPieza(v.id, p.id) : p.pagos[p.pagos.length - 1].fecha;
         if (!fecha) return;
-        const lista = this.piezas.get(v.usuarioId) ?? [];
-        lista.push({ fecha, monto: Number(p.total) || 0, souvenir: p.material === 'souvenirs' });
-        this.piezas.set(v.usuarioId, lista);
+        sumar(v.usuarioId, fecha, Number(p.total) || 0, p.material === 'souvenirs');
       })
     );
+    compras?.docs.forEach(d => {
+      if (d.tipo !== 'venta' || d.estado !== 'confirmada') return;
+      if (d.normal) sumar(d.personaId, d.fechaCuenta, d.normal, false);
+      if (d.souvenir) sumar(d.personaId, d.fechaCuenta, d.souvenir, true);
+    });
   }
 
   private montoAronium(personaId: string, mesKey: string, sub: SubPeriodo): number | null {

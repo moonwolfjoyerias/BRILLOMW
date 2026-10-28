@@ -15,9 +15,10 @@ import { Emprendedoras } from './Emprendedoras';
 import { Solicitudes } from './Solicitudes';
 import { Comisiones } from './Comisiones';
 import { PlanMW } from './PlanMW';
+import { ConfirmarCompras } from './ConfirmarCompras';
 import { useTema } from '../tema';
 
-export type Seccion = 'inicio' | 'vender' | 'catalogo' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'cuenta';
+export type Seccion = 'inicio' | 'vender' | 'catalogo' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'compras' | 'cuenta';
 
 interface Item { id: Seccion; nombre: string }
 
@@ -33,6 +34,8 @@ function menuPara(perfil: PerfilUsuario): { titulo: string | null; items: Item[]
         ...(cobra ? [{ id: 'vender' as const, nombre: 'Caja' }] : []),
         { id: 'catalogo', nombre: 'Catálogo' },
         { id: 'apartados', nombre: 'Apartados' },
+        // Lo liquidado en la página cuenta para el Plan MW hasta que se confirma aquí.
+        { id: 'compras', nombre: 'Compras por confirmar' },
         { id: 'deseos', nombre: 'Lista de deseos' }
       ]
     },
@@ -157,6 +160,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
           {seccion === 'cuenta' && <MiCuenta perfil={perfil} />}
           {seccion === 'catalogo' && <Catalogo perfil={perfil} />}
           {seccion === 'apartados' && <Apartados perfil={perfil} />}
+          {seccion === 'compras' && <ConfirmarCompras perfil={perfil} />}
           {seccion === 'deseos' && <ListaDeseos perfil={perfil} />}
           {seccion === 'actividadesStaff' && <ActividadesStaff perfil={perfil} />}
           {seccion === 'calendario' && <Calendario perfil={perfil} />}
