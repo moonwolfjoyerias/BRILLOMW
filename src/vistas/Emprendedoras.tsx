@@ -574,7 +574,7 @@ function PlanMW({ p, financiero }: { p: PersonaAdmin; financiero: Financiero | u
           );
         })}
       </div>
-      {p.recompensaPendiente && <p className="nota-apartado">Cumplió {p.recompensaPendiente.meses} compras: falta confirmar la entrega de {p.recompensaPendiente.premio}. Se confirma en Plan MW de la página.</p>}
+      {p.recompensaPendiente && <p className="nota-apartado">Cumplió {p.recompensaPendiente.meses} compras: falta confirmar la entrega de {p.recompensaPendiente.premio}. Se confirma en la pestaña Plan MW.</p>}
       <h3>Boletos de rifa (mes en curso)</h3>
       <div className="resumen-apartados">
         <div className="dato"><span>Próximo beneficio</span><strong className="texto-normal">{boletos.mensaje}</strong></div>
@@ -619,7 +619,7 @@ function Equipo({ p, personas, perfil }: { p: PersonaAdmin; personas: PersonaAdm
         <strong>Rango actual: {rangoLabel(p.rangoActualKey)}</strong>
         {siguiente ? <span className="muted"> · Siguiente: {siguiente.label} ({siguiente.personas} personas activas, {siguiente.produccion.toLocaleString('es-MX')} puntos de producción grupal, {siguiente.calificado} calificadas)</span> : <span className="muted"> · Ya está en el rango más alto.</span>}
       </p>
-      {p.ascensoPendiente && <p className="nota-apartado">Lista para subir a {rangoLabel(p.ascensoPendiente.rangoKey)}. El ascenso se confirma en Plan MW de la página.</p>}
+      {p.ascensoPendiente && <p className="nota-apartado">Lista para subir a {rangoLabel(p.ascensoPendiente.rangoKey)}. El ascenso se confirma en la pestaña Plan MW (ahí se ve qué requisito le falta).</p>}
       <h3>Equipo</h3>
       <div className="resumen-apartados niveles">
         {[1, 2, 3, 4, 5].map(n => (
@@ -665,7 +665,7 @@ function Equipo({ p, personas, perfil }: { p: PersonaAdmin; personas: PersonaAdm
         }}>Agregar</button>
       </div>
       {error && <p className="error">{error}</p>}
-      <p className="muted small">Comisiones y el detalle de producción por persona llegan a BRILLO con Comisiones y Plan MW.</p>
+      <p className="muted small">Sus comisiones por nivel se ven en la pestaña Comisiones, y sus requisitos de rango en Plan MW.</p>
     </>
   );
 }

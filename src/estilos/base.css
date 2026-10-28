@@ -569,7 +569,7 @@ button.fila-nomina:hover { border-color: var(--mw-lilac); }
 .detalle-nomina { display: grid; gap: 16px; }
 .detalle-nomina .tarjeta-caja { margin: 0; }
 .conceptos-nomina td { vertical-align: middle; }
-.celda-numero { width: 110px; min-height: 38px; }
+input.celda-numero:not([type='checkbox']) { width: 110px; min-height: 38px; }
 .solicitud-nomina { display: grid; gap: 2px; }
 .foto-empleado { width: 96px; height: 96px; object-fit: cover; border-radius: 50%; margin-bottom: 10px; }
 .hoja-recibo { background: #fff; }
@@ -631,3 +631,32 @@ button.fila-nomina:hover { border-color: var(--mw-lilac); }
   .personas-columnas.con-detalle .lista-personas { display: none; }
   .perfil-persona { position: static; }
 }
+
+/* ------------------------------------------------------------ comisiones y plan mw */
+.tarjeta-comision { margin: 0; }
+.tarjeta-comision h2 { margin: 0 0 4px; font-size: 1.15rem; }
+.totales-comision { display: flex; gap: 18px; flex-wrap: wrap; text-align: right; }
+.totales-comision div { display: flex; flex-direction: column; }
+.totales-comision strong { font-family: 'Cinzel', Georgia, serif; font-size: 1.15rem; color: var(--mw-purple-dark); }
+.niveles-comision { display: grid; gap: 8px; margin-top: 8px; }
+.nivel-comision { border: 1px solid var(--mw-border); border-radius: var(--radius); background: var(--surface); padding: 8px 12px; }
+.nivel-comision summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; gap: 6px; }
+.nivel-comision summary .monto { margin-left: auto; font-weight: 600; }
+.tabla-desplazable { overflow-x: auto; }
+.tabla-comision td { vertical-align: middle; white-space: nowrap; }
+.celda-comision { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.celda-comision input.celda-numero { width: 110px; }
+.celda-numero.ajustada { border-color: var(--mw-gold); background: var(--mw-gold-soft); }
+.tarjetas-proximos { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.tarjeta-caja.proximo { margin: 0; display: grid; gap: 6px; align-content: start; }
+.tarjeta-caja.proximo.listo { border-color: var(--ok); }
+.tarjeta-caja.proximo .chip { justify-self: start; }
+.boton-enlace { background: none; border: 0; padding: 0; font: inherit; color: var(--mw-purple-dark); cursor: pointer; text-align: left; min-height: 0; }
+.boton-enlace:hover { text-decoration: underline; }
+.requisitos { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 4px; }
+.requisitos li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 10px; border-radius: 8px; }
+.requisitos li.cumple { background: var(--ok-soft); }
+.requisitos li.falta { background: var(--danger-soft); }
+.planmw .filtros-deseos { grid-template-columns: minmax(0, 1fr) auto; }
+.periodo-comprobante + .periodo-comprobante { margin-top: 18px; padding-top: 12px; border-top: 1px dashed #999; break-before: page; }
+.total-comprobante { display: flex; justify-content: space-between; border-top: 2px solid #5e1a8a; color: #5e1a8a; font-size: 14px; padding-top: 8px; margin-top: 10px; }
