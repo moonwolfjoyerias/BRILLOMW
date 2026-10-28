@@ -51,6 +51,7 @@ export const MODULOS_ACTIVIDAD: Record<string, string> = {
   lista_deseos: 'Lista de deseos',
   resurtido: 'Resurtido',
   actividades_staff: 'Actividades del Staff',
+  nomina: 'Nómina',
   personas: 'Personas',
   comisiones: 'Comisiones',
   solicitudes: 'Solicitudes',
