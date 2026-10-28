@@ -94,8 +94,9 @@ Meta: dejar Aronium a **finales de 2026**.
   Collar CO/COL, Dije DI/DIJ, Exhibidor EX/EXB, Huggie HU/HUG, Juego
   JU/JUE, Prendedor PR/PRE, Pulsera PU/PUL, Rosario RO/ROS, Simulador
   SI/SIM, Tobillera TO/TOB, Acero AC/ACE, Gótico GO/GOT. **Hecho** en el
-  ticket de BRILLO; lo que no viene en la lista usa sus dos primeras
-  letras.
+  ticket de BRILLO. Fin de semana, Misterios, Relicarios, Semanarios y
+  Tiaras **no tienen abreviatura** (confirmado): el renglón empieza con el
+  color.
 - **Colores de oro** (confirmados): Blanco BL, Amarillo AM, Dorado DO,
   Florentino FL, Negro NE, Rosa RO.
 - Formas de pago que usa Aronium (del reporte de ejemplo): Efectivo,
@@ -517,7 +518,6 @@ reparaciones y ajustes, no el grabado).
 
 | # | Pendiente | De quién |
 |---|---|---|
-| 1 | Abreviaturas que faltan: categorías Fin de semana, Misterios, Relicarios, Semanarios y Tiaras (hoy salen FI, MI, RE, SE, TI) | Tienda |
-| 2 | "Cham" no existe como categoría en el catálogo de la página: ¿se agrega? | Tienda |
-| 3 | Migración de ventas: "hay inicios de mes". ¿Quiere decir que hay reportes de Aronium desde el inicio de cada mes? ¿Desde qué mes y año se migra? | Jefes |
-| 4 | Exportaciones de Aronium de **productos** y de **clientas** (el de compras ya se tiene) | Tienda |
+| 1 | "Cham" no existe como categoría en el catálogo de la página: ¿se agrega? | Tienda |
+| 2 | Migración de ventas: "hay inicios de mes". ¿Quiere decir que hay reportes de Aronium desde el inicio de cada mes? ¿Desde qué mes y año se migra? | Jefes |
+| 3 | Exportaciones de Aronium de **productos** y de **clientas** (el de compras ya se tiene) | Tienda |
