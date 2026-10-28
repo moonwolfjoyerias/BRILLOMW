@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { abreviatura, fechaTicket, renglonCantidad, renglonPieza } from './ticketFormato';
+import { abreviatura, abreviatura3, fechaTicket, renglonCantidad, renglonPieza } from './ticketFormato';
 
 describe('formato del ticket', () => {
   it('fecha con segundos y a.m./p.m.', () => {
@@ -11,6 +11,20 @@ describe('formato del ticket', () => {
     expect(renglonPieza({ categoria: 'Anillos', colorOro: 'Blanco', nombre: 'Corazón Virgen', variante: '' })).toBe('AN BL CORAZÓN VIRGEN');
     expect(renglonPieza({ categoria: '', colorOro: '', nombre: 'Grabado', variante: '' })).toBe('GRABADO');
     expect(abreviatura('Árbol')).toBe('AR');
+  });
+  it('abreviaturas oficiales de la tienda, en singular o plural', () => {
+    const esperadas: Record<string, string> = {
+      Anillos: 'AN', Aretes: 'AE', Arracadas: 'AA', Brazaletes: 'BA', Broqueles: 'BO', Cadenas: 'CA', Collares: 'CO',
+      Dijes: 'DI', Huggies: 'HU', Juegos: 'JU', Prendedores: 'PR', Pulseras: 'PU', Rosarios: 'RO', Simuladores: 'SI',
+      Tobilleras: 'TO', Exhibidores: 'EX', Cham: 'CH', Acero: 'AC', Gótico: 'GO'
+    };
+    Object.entries(esperadas).forEach(([cat, abr]) => expect(abreviatura(cat)).toBe(abr));
+    expect(abreviatura3('Aretes')).toBe('ARE');
+    expect(abreviatura3('Tiaras')).toBeNull();
+    // Colores de oro y categorías fuera de la lista: primeras dos letras.
+    expect(abreviatura('Amarillo')).toBe('AM');
+    expect(abreviatura('Tiaras')).toBe('TI');
+    expect(renglonPieza({ categoria: 'Aretes', colorOro: 'Amarillo', nombre: 'Cubos', variante: '42CM' })).toBe('AE AM CUBOS 42CM');
   });
   it('cantidad × precio etiqueta (descuento)', () => {
     expect(renglonCantidad({ cantidad: 1, precioEtiqueta: 289, descuentoAplicado: 60, esServicio: false })).toBe('1 PZ x $289.00 (-60%)');

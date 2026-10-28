@@ -12,17 +12,58 @@ export function fechaTicket(iso: string): string {
 }
 
 /**
- * Abreviaturas del renglón de cada pieza ("AN BL CORAZON VIRGEN").
- * PROVISIONAL: primeras dos letras de la categoría y del color de oro,
- * hasta que la tienda confirme su lista oficial.
+ * Abreviaturas oficiales de la tienda (lista entregada en oct-2026, las
+ * mismas de Aronium): tipo de pieza → [2 letras del ticket, 3 letras].
+ * El ticket usa las de 2 letras ("AN BL CORAZON VIRGEN").
  */
-export function abreviatura(texto: string): string {
-  return texto
+export const ABREVIATURAS: Record<string, readonly [string, string]> = {
+  ANILLO: ['AN', 'ANI'],
+  ARETE: ['AE', 'ARE'],
+  ARRACADA: ['AA', 'ARR'],
+  BRAZALETE: ['BA', 'BRA'],
+  BROQUEL: ['BO', 'BRO'],
+  CADENA: ['CA', 'CAD'],
+  CHAM: ['CH', 'CHA'],
+  COLLAR: ['CO', 'COL'],
+  DIJE: ['DI', 'DIJ'],
+  EXIBIDOR: ['EX', 'EXB'],
+  EXHIBIDOR: ['EX', 'EXB'],
+  HUGGIE: ['HU', 'HUG'],
+  JUEGO: ['JU', 'JUE'],
+  PRENDEDOR: ['PR', 'PRE'],
+  PULSERA: ['PU', 'PUL'],
+  ROSARIO: ['RO', 'ROS'],
+  SIMULADOR: ['SI', 'SIM'],
+  TOBILLERA: ['TO', 'TOB'],
+  ACERO: ['AC', 'ACE'],
+  GOTICO: ['GO', 'GOT']
+};
+
+const limpiar = (texto: string) =>
+  texto
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .replace(/[^A-Za-z]/g, '')
-    .slice(0, 2)
     .toUpperCase();
+
+/** Entrada oficial de un tipo de pieza, en singular o plural ("Aretes", "Broqueles"). */
+function oficial(texto: string): readonly [string, string] | null {
+  const t = limpiar(texto);
+  return ABREVIATURAS[t] ?? ABREVIATURAS[t.replace(/ES$/, '')] ?? ABREVIATURAS[t.replace(/S$/, '')] ?? null;
+}
+
+/**
+ * Abreviatura de 2 letras: la oficial si el tipo está en la lista; si no
+ * (colores de oro y categorías que no vienen en la lista), sus primeras
+ * dos letras ("Blanco" → BL, "Amarillo" → AM).
+ */
+export function abreviatura(texto: string): string {
+  return oficial(texto)?.[0] ?? limpiar(texto).slice(0, 2);
+}
+
+/** Abreviatura de 3 letras del tipo de pieza (la de la lista oficial), o null si no viene en la lista. */
+export function abreviatura3(texto: string): string | null {
+  return oficial(texto)?.[1] ?? null;
 }
 
 export interface DatosPieza {

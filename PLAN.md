@@ -83,6 +83,14 @@ Meta: dejar Aronium a **finales de 2026**.
   de artículos, subtotal, **IVA 16% desglosado**, total, cada forma de
   pago, recibido, ahorraste, saldo a favor, código de barras del recibo y
   avisos de garantía. La tarjeta sale como **TERMINAL**, como en Aronium.
+- **Abreviaturas oficiales** (lista recibida oct-2026), 2 letras en el
+  ticket y 3 letras de referencia: Anillo AN/ANI, Arete AE/ARE, Arracada
+  AA/ARR, Brazalete BA/BRA, Broquel BO/BRO, Cadena CA/CAD, Cham CH/CHA,
+  Collar CO/COL, Dije DI/DIJ, Exhibidor EX/EXB, Huggie HU/HUG, Juego
+  JU/JUE, Prendedor PR/PRE, Pulsera PU/PUL, Rosario RO/ROS, Simulador
+  SI/SIM, Tobillera TO/TOB, Acero AC/ACE, Gótico GO/GOT. **Hecho** en el
+  ticket de BRILLO; lo que no viene en la lista usa sus dos primeras
+  letras.
 - Formas de pago que usa Aronium (del reporte de ejemplo): Efectivo,
   Terminal, Transferencia, Cambio físico, Crédito, Gala, Regalo y
   Souvenir. Para comisiones y recompensas solo cuentan Efectivo, Terminal
@@ -487,7 +495,8 @@ nueva cuesta menos (cuenta el valor de la original) y tablets Android.
 | # | Pendiente | De quién |
 |---|---|---|
 | 1 | Etiqueta: ¿qué es el número grande de la izquierda ("31")? ¿El código "AREX001129116XP" es por producto o por cada variante (talla/forma)? ¿Qué significan sus partes (AR, EX, el número, XP)? | Tienda |
-| 2 | Ticket: ¿qué es el "Código: 000188" del cliente (número de cliente de Aronium)? ¿Y el "(.)" al final de cada artículo? Lista oficial de abreviaturas (AN, CA, PU, BL, AM, MZ…) | Tienda |
+| 2 | Ticket: ¿qué es el "Código: 000188" del cliente (número de cliente de Aronium)? ¿Y el "(.)" al final de cada artículo? Abreviaturas que faltan: categorías Fin de semana, Misterios, Relicarios, Semanarios y Tiaras, y colores de oro (hoy: Blanco BL, Amarillo AM, Dorado DO, Florentino FL, Negro NE, Rosa RO) | Tienda |
+| 2b | En la lista de abreviaturas, Cham, Exhibidor y Prendedor dicen "30/" y las demás "60/": ¿es el descuento de mayoreo de esa categoría? (hoy el descuento se sugiere por material y se puede cambiar por producto) | Jefes |
 | 3 | Formas de pago Gala, Regalo y Souvenir: ¿cuándo se usan en caja? | Jefes |
 | 4 | Fondo de caja: ¿cada caja abre con un monto fijo? | Jefes |
 | 5 | Marcas y modelos de la impresora de tickets y la de etiquetas | Tienda |
