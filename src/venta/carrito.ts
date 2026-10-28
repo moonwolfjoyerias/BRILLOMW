@@ -12,12 +12,14 @@ export interface ClienteVenta {
   nombre: string;
   /** Membresía (usuario de la página), si es emprendedora o líder. */
   membresia: string | null;
+  /** Código de su tarjeta de cliente (el número de cliente de Aronium, ej. 000188). */
+  codigoTarjeta?: string | null;
 }
 
 export const PUBLICO_GENERAL: ClienteVenta = { tipo: 'publico', personaId: null, nombre: 'Público general', membresia: null };
 
 export function clienteDesdePersona(p: Persona, nombre: string): ClienteVenta {
-  return { tipo: p.tipo, personaId: p.id, nombre, membresia: p.usuario || null };
+  return { tipo: p.tipo, personaId: p.id, nombre, membresia: p.usuario || null, codigoTarjeta: p.codigoTarjeta };
 }
 
 export interface LineaCarrito {
@@ -148,18 +150,31 @@ export function calcularTotales(carrito: LineaCarrito[], cliente: ClienteVenta):
 
 // ---------------------------------------------------------------- pagos
 
-export type MetodoPago = 'efectivo' | 'tarjeta' | 'transferencia';
+/**
+ * Formas de pago de la tienda (las mismas del reporte de Aronium). Gala,
+ * Regalo y Souvenir se usan cuando el cajero lo indica; no llevan
+ * referencia ni dan cambio. Para comisiones y recompensas solo cuentan
+ * efectivo, tarjeta (terminal) y transferencia.
+ */
+export type MetodoPago = 'efectivo' | 'tarjeta' | 'transferencia' | 'gala' | 'regalo' | 'souvenir';
 
 export const NOMBRE_METODO: Record<MetodoPago, string> = {
   efectivo: 'Efectivo',
-  tarjeta: 'Tarjeta',
-  transferencia: 'Transferencia'
+  tarjeta: 'Tarjeta (terminal)',
+  transferencia: 'Transferencia',
+  gala: 'Gala',
+  regalo: 'Regalo',
+  souvenir: 'Souvenir'
 };
+
+/** Tarjeta y transferencia siempre guardan su número de referencia (y no se repite). */
+export const LLEVA_REFERENCIA: readonly MetodoPago[] = ['tarjeta', 'transferencia'];
+export const llevaReferencia = (m: MetodoPago) => LLEVA_REFERENCIA.includes(m);
 
 export interface PagoCaptura {
   metodo: MetodoPago;
   monto: number;
-  /** Obligatoria en tarjeta y transferencia. */
+  /** Obligatoria en tarjeta y transferencia (en las demás se ignora). */
   referencia: string;
 }
 
@@ -183,16 +198,16 @@ export function validarPagos(total: number, capturados: PagoCaptura[]): Resultad
   const pagos = capturados.filter(p => p.monto > 0);
   if (!pagos.length) return { ok: false, error: 'Agrega al menos un pago.' };
   for (const p of pagos) {
-    if (p.metodo !== 'efectivo' && !normalizarReferencia(p.referencia)) {
+    if (llevaReferencia(p.metodo) && !normalizarReferencia(p.referencia)) {
       return { ok: false, error: `Falta el número de referencia del pago con ${NOMBRE_METODO[p.metodo].toLowerCase()}.` };
     }
   }
-  const refs = pagos.filter(p => p.metodo !== 'efectivo').map(p => `${p.metodo}_${normalizarReferencia(p.referencia)}`);
+  const refs = pagos.filter(p => llevaReferencia(p.metodo)).map(p => `${p.metodo}_${normalizarReferencia(p.referencia)}`);
   if (new Set(refs).size !== refs.length) return { ok: false, error: 'Hay dos pagos con la misma referencia.' };
 
   const recibido = r2(pagos.reduce((s, p) => s + p.monto, 0));
   const noEfectivo = r2(pagos.filter(p => p.metodo !== 'efectivo').reduce((s, p) => s + p.monto, 0));
-  if (noEfectivo > total) return { ok: false, error: 'Tarjeta y transferencia no pueden pasar del total (solo el efectivo da cambio).' };
+  if (noEfectivo > total) return { ok: false, error: 'Los pagos que no son en efectivo no pueden pasar del total (solo el efectivo da cambio).' };
   if (recibido < total) return { ok: false, error: `Faltan ${(total - recibido).toFixed(2)} por cobrar.` };
   const cambio = r2(recibido - total);
 
@@ -202,7 +217,7 @@ export function validarPagos(total: number, capturados: PagoCaptura[]): Resultad
   const efectivoNeto = r2(efectivoRecibido - cambio);
   const registrados: PagoRegistrado[] = pagos
     .filter(p => p.metodo !== 'efectivo')
-    .map(p => ({ metodo: p.metodo, monto: r2(p.monto), referencia: normalizarReferencia(p.referencia) }));
+    .map(p => ({ metodo: p.metodo, monto: r2(p.monto), referencia: llevaReferencia(p.metodo) ? normalizarReferencia(p.referencia) : null }));
   if (efectivoNeto > 0) registrados.unshift({ metodo: 'efectivo', monto: efectivoNeto, referencia: null });
 
   return { ok: true, recibido, cambio, pagos: registrados };

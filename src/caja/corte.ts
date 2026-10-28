@@ -5,7 +5,12 @@ import type { MetodoPago } from '../venta/carrito';
 import type { VentaRegistrada } from '../venta/registrarVenta';
 import type { MovimientoEfectivo, TurnoCaja } from './turno';
 
-export const METODOS: MetodoPago[] = ['efectivo', 'tarjeta', 'transferencia'];
+export const METODOS: MetodoPago[] = ['efectivo', 'tarjeta', 'transferencia', 'gala', 'regalo', 'souvenir'];
+/** Las que siempre se muestran en el corte; las demás solo si se usaron. */
+export const METODOS_BASE: MetodoPago[] = ['efectivo', 'tarjeta', 'transferencia'];
+/** Formas de pago que se muestran en un corte (también sirve para cortes guardados antes de Gala/Regalo/Souvenir). */
+export const metodosDelCorte = (c: Pick<ResumenCorte, 'porMetodo'>) =>
+  METODOS.filter(m => METODOS_BASE.includes(m) || (c.porMetodo[m]?.pagos ?? 0) > 0).filter(m => c.porMetodo[m]);
 
 export interface ReferenciaCorte {
   metodo: MetodoPago;
@@ -54,7 +59,7 @@ function vacio(): ResumenCorte {
     souvenirs: 0,
     totalMayoreo: 0,
     totalPublico: 0,
-    porMetodo: { efectivo: { monto: 0, pagos: 0 }, tarjeta: { monto: 0, pagos: 0 }, transferencia: { monto: 0, pagos: 0 } },
+    porMetodo: Object.fromEntries(METODOS.map(m => [m, { monto: 0, pagos: 0 }])) as ResumenCorte['porMetodo'],
     referencias: [],
     cambioEntregado: 0,
     primerFolio: null,
@@ -121,8 +126,8 @@ export function sumarCortes(cortes: ResumenCorte[]): ResumenCorte {
       g[k] += c[k];
     }
     METODOS.forEach(m => {
-      g.porMetodo[m].monto += c.porMetodo[m].monto;
-      g.porMetodo[m].pagos += c.porMetodo[m].pagos;
+      g.porMetodo[m].monto += c.porMetodo[m]?.monto ?? 0;
+      g.porMetodo[m].pagos += c.porMetodo[m]?.pagos ?? 0;
     });
     g.referencias.push(...c.referencias);
     if (c.primerFolio && (!g.primerFolio || c.primerFolio < g.primerFolio)) g.primerFolio = c.primerFolio;

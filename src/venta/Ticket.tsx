@@ -8,8 +8,12 @@ const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' 
 
 const ETIQUETA_PAGO: Record<MetodoPago, string> = {
   efectivo: 'EFECTIVO',
-  tarjeta: 'TARJETA',
-  transferencia: 'TRANSFERENCIA'
+  // En la tienda la terminal bancaria se llama así (igual que en Aronium).
+  tarjeta: 'TERMINAL',
+  transferencia: 'TRANSFERENCIA',
+  gala: 'GALA',
+  regalo: 'REGALO',
+  souvenir: 'SOUVENIR'
 };
 
 /** Renglón con texto a la izquierda e importe cargado a la derecha. */
@@ -60,8 +64,10 @@ export function Ticket({ venta: v, ancho = 80 }: { venta: VentaRegistrada; ancho
       <div>Usuario: {v.cobradoPor.nombre}</div>
       {v.orden != null && <div>Orden N°: {v.orden}</div>}
       <div className="t-linea" />
-      <div>Cliente: {v.cliente.nombre.toUpperCase()}</div>
-      {v.cliente.membresia && <div>Número de cliente: {v.cliente.membresia}</div>}
+      <div className="t-fuerte">Cliente:</div>
+      <div>{v.cliente.nombre.toUpperCase()}</div>
+      {v.cliente.membresia && <div>{v.cliente.membresia}</div>}
+      {v.cliente.codigoTarjeta && <div><span className="t-fuerte">Código:</span> {v.cliente.codigoTarjeta}</div>}
       <div className="t-linea" />
       {v.lineas.map((l, i) => (
         <div key={i} className="t-art">

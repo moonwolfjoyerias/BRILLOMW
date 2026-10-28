@@ -64,6 +64,17 @@ describe('pagos', () => {
     expect(validarPagos(300, [{ metodo: 'tarjeta', monto: 300, referencia: ' ' }]).ok).toBe(false);
     expect(validarPagos(300, [{ metodo: 'transferencia', monto: 400, referencia: 'X1' }]).ok).toBe(false);
   });
+  it('Gala, Regalo y Souvenir: sin referencia y sin cambio', () => {
+    expect(validarPagos(300, [
+      { metodo: 'gala', monto: 100, referencia: 'ignorada' },
+      { metodo: 'efectivo', monto: 250, referencia: '' }
+    ])).toEqual({
+      ok: true, recibido: 350, cambio: 50,
+      pagos: [{ metodo: 'efectivo', monto: 200, referencia: null }, { metodo: 'gala', monto: 100, referencia: null }]
+    });
+    expect(validarPagos(300, [{ metodo: 'regalo', monto: 400, referencia: '' }]).ok).toBe(false);
+    expect(validarPagos(300, [{ metodo: 'souvenir', monto: 300, referencia: '' }]).ok).toBe(true);
+  });
   it('no acepta referencias repetidas ni pagos incompletos', () => {
     expect(validarPagos(300, [
       { metodo: 'tarjeta', monto: 100, referencia: 'R1' },

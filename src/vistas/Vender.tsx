@@ -11,6 +11,7 @@ import { TarjetaCaja } from './Caja';
 import { Corte } from './Corte';
 import {
   NOMBRE_METODO,
+  llevaReferencia,
   PUBLICO_GENERAL,
   agregarLinea,
   calcularTotales,
@@ -497,7 +498,7 @@ function Cobro({
               ))}
             </select>
             <input inputMode="decimal" value={f.monto} onChange={e => cambiarFila(i, { monto: e.target.value })} aria-label="Monto" placeholder="Monto" />
-            {f.metodo !== 'efectivo' ? (
+            {llevaReferencia(f.metodo) ? (
               <input value={f.referencia} onChange={e => cambiarFila(i, { referencia: e.target.value })} aria-label="Número de referencia" placeholder="Núm. de referencia *" />
             ) : (
               <span className="muted small">Si pagan con más, escribe lo recibido.</span>
