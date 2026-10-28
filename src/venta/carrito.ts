@@ -41,6 +41,8 @@ export interface LineaCarrito {
   descuentoMayoreo: number;
   /** Servicio o artículo sin inventario (grabado, reparación, ajuste...). */
   esServicio: boolean;
+  /** Qué servicio es: el grabado no cuenta como compra de la e/l (reparaciones y ajustes sí). */
+  tipoServicio?: TipoServicio;
   /** Existencias de la variante al agregarla (tope de cantidad). null en servicios. */
   disponible: number | null;
 }
@@ -68,7 +70,15 @@ export function lineaDeProducto(p: Producto, varianteId: string): LineaCarrito {
   };
 }
 
-export function lineaDeServicio(id: string, descripcion: string, precio: number): LineaCarrito {
+export type TipoServicio = 'reparacion' | 'ajuste' | 'grabado' | 'articulo';
+export const TIPOS_SERVICIO: Record<TipoServicio, string> = {
+  reparacion: 'Reparación',
+  ajuste: 'Ajuste',
+  grabado: 'Grabado',
+  articulo: 'Artículo sin inventario'
+};
+
+export function lineaDeServicio(id: string, descripcion: string, precio: number, tipoServicio: TipoServicio = 'articulo'): LineaCarrito {
   return {
     clave: `servicio-${id}`,
     productoId: null,
@@ -84,6 +94,7 @@ export function lineaDeServicio(id: string, descripcion: string, precio: number)
     precioEtiqueta: precio,
     descuentoMayoreo: 0,
     esServicio: true,
+    tipoServicio,
     disponible: null
   };
 }

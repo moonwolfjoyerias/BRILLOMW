@@ -507,6 +507,22 @@ BRILLO no los hace por su cuenta; se piden uno por uno cuando toque.
 
 ---
 
+## 6b. Compras confirmadas por BRILLO (oct-2026)
+
+- Lo que se liquida en la página ya no cuenta solo para comisiones, rango,
+  Reto de Constancia y rifa: Encargado o Administración lo confirma en
+  BRILLO (Tienda → Compras por confirmar). Staff ve la lista, no confirma.
+- Lo liquidado antes del 29-oct-2026 también se confirma, pero al
+  confirmarse cuenta en su fecha original. Lo liquidado después cuenta el
+  día que se confirma (no se reabren meses ni quincenas ya cerrados).
+- Lo cobrado en BRILLO cuenta solo: liquidar un apartado en BRILLO y las
+  ventas de caja a una emprendedora o líder (productos, reparaciones y
+  ajustes; el grabado no; solo lo pagado con efectivo, tarjeta o
+  transferencia; Souvenirs aparte).
+- Todo queda en `comprasBrillo` (la página lo lee en
+  js/compras-brillo-firestore-sync.js). Las quincenas con archivo de
+  Aronium siguen usando Aronium como fuente oficial.
+
 ## 7. Pendientes de información
 
 Resueltos (oct-2026): ticket, etiquetas, abreviaturas, código del

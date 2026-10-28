@@ -13,8 +13,11 @@ import {
   type ClienteVenta,
   type LineaCarrito,
   type PagoRegistrado,
+  type TipoServicio,
   type Totales
 } from './carrito';
+
+import { COL_COMPRAS, compraDeVenta, idCompraVenta, type CompraVenta } from '../compras/modelo';
 
 export const COLECCION_VENTAS = 'brilloVentas';
 export const COLECCION_CONTADORES = 'brilloContadores';
@@ -37,6 +40,7 @@ export interface LineaVendida {
   precioUnitario: number;
   importe: number;
   esServicio: boolean;
+  tipoServicio?: TipoServicio;
 }
 
 export interface VentaRegistrada {
@@ -80,7 +84,8 @@ export function lineasVendidas(carrito: LineaCarrito[], cliente: ClienteVenta): 
       descuentoAplicado: pu === l.precioEtiqueta ? 0 : l.descuentoMayoreo,
       precioUnitario: pu,
       importe: Math.round(pu * l.cantidad * 100) / 100,
-      esServicio: l.esServicio
+      esServicio: l.esServicio,
+      ...(l.esServicio ? { tipoServicio: l.tipoServicio ?? 'articulo' } : {})
     };
   });
 }
@@ -204,6 +209,16 @@ export async function registrarVenta(
       tx.set(recibosRef, { siguiente: numero + 1 }, { merge: true });
       tx.set(ordenesRef, { siguiente: orden + 1 }, { merge: true });
       tx.set(doc(db, COLECCION_VENTAS, folio), { ...v, fecha: serverTimestamp() });
+      // Venta a una emprendedora o líder: cuenta como su compra (comisiones,
+      // rango, constancia, rifa) desde ya; la página la lee de comprasBrillo.
+      const compra = compraDeVenta(v);
+      if (compra) {
+        const c: CompraVenta = {
+          tipo: 'venta', folio, personaId: cliente.personaId!, personaNombre: cliente.nombre, ...compra,
+          estado: 'confirmada', fechaCuenta: v.fechaLocal, origen: 'brillo', por: perfil.nombre, porRol: perfil.rol, en: v.fechaLocal
+        };
+        tx.set(doc(db, COL_COMPRAS, idCompraVenta(folio)), c);
+      }
       for (const { p, ref } of refsPago) {
         tx.set(ref, { metodo: p.metodo, referencia: p.referencia, monto: p.monto, folio, fechaDia, fecha: serverTimestamp() });
       }
