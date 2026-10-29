@@ -235,9 +235,18 @@ export function validarInfo(d: DatosInfo, p: PersonaAdmin, personas: PersonaAdmi
   return null;
 }
 
-/** ¿Guardar estos datos da de baja a una líder que tiene equipo activo? Entonces hay que reasignarlo primero. */
-export const bajaRequiereReasignar = (p: PersonaAdmin, d: DatosInfo, personas: PersonaAdmin[]) =>
-  p.tipo === 'lider' && p.estado !== 'baja' && d.estado === 'baja' && equipoActivoDirecto(personas, p.id).length > 0;
+/**
+ * ¿Guardar estos datos deja de activa a una líder que tiene equipo activo?
+ * Entonces primero se decide a quién pasa su equipo: 'baja' (se reasigna
+ * sí o sí) o 'inactiva' (se puede quedar con ella). null: no hace falta.
+ */
+export function reasignacionAlGuardar(p: PersonaAdmin, d: DatosInfo, personas: PersonaAdmin[]): 'baja' | 'inactiva' | null {
+  if (p.tipo !== 'lider' || !equipoActivoDirecto(personas, p.id).length) return null;
+  if (p.estado !== 'baja' && d.estado === 'baja') return 'baja';
+  if (p.estado === 'activa' && d.estado === 'inactiva') return 'inactiva';
+  return null;
+}
+export const bajaRequiereReasignar = (p: PersonaAdmin, d: DatosInfo, personas: PersonaAdmin[]) => reasignacionAlGuardar(p, d, personas) === 'baja';
 
 export function aplicarInfo(crudo: Doc, d: DatosInfo): Doc {
   return {
@@ -277,21 +286,30 @@ export function sinSolicitudRama(crudo: Doc): Doc {
 
 export interface Compra {
   ventanaId: string;
+  piezaId: string;
   producto: string;
   detalle: string;
   total: number;
   fecha: string;
 }
 
-/** Piezas liquidadas de sus apartados que siguen contando como compra (no limpiadas). */
+/** Piezas liquidadas de sus apartados que no se limpiaron (fecha = día en que se liquidó), la más reciente primero. */
 export function comprasDe(ventanas: Ventana[], personaId: string): Compra[] {
   return ventanas
     .filter(v => v.usuarioId === personaId)
     .flatMap(v =>
       v.apartados
         .filter(p => p.estado === 'liquidada' && !p.compraLimpiada)
-        .map(p => ({ ventanaId: v.id, producto: p.producto, detalle: [p.colorOro, p.variante].filter(Boolean).join(' · ') || 'Sin variante', total: Number(p.total) || 0, fecha: p.fechaSolicitud || v.fechaInicio }))
-    );
+        .map(p => ({
+          ventanaId: v.id,
+          piezaId: p.id,
+          producto: p.producto,
+          detalle: [p.colorOro, p.variante].filter(Boolean).join(' · ') || 'Sin variante',
+          total: Number(p.total) || 0,
+          fecha: p.pagos?.length ? p.pagos[p.pagos.length - 1].fecha || p.fechaSolicitud || v.fechaInicio : p.fechaSolicitud || v.fechaInicio
+        }))
+    )
+    .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
 }
 
 /** Marca sus compras con compraLimpiada (no borra piezas ni ventanas), como limpiarHistorialComprasPersona(). */

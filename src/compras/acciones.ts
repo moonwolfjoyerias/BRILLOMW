@@ -6,6 +6,7 @@ import { collection, doc, onSnapshot, runTransaction, type Firestore } from 'fir
 import { useEffect, useState } from 'react';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';
+import { nuevoAviso } from '../pagina/avisos';
 import { COL_COMPRAS, ComprasBrillo, docPieza, idCompraPieza, type DocCompra, type PiezaARevisar } from './modelo';
 
 export const puedeConfirmarCompras = (rol: PerfilUsuario['rol']) => rol === 'encargado' || rol === 'admin';
@@ -75,6 +76,9 @@ export function rechazarCompra(db: Firestore, p: PiezaARevisar, motivo: string, 
     const actual = await tx.get(ref);
     if (actual.exists() && actual.data().estado === 'confirmada') throw new ErrorCompra('Esa compra ya está confirmada. Para quitarla, primero regrésala a pendiente.');
     tx.set(ref, docPieza(p, 'rechazada', 'pagina', { nombre: perfil.nombre, rol: perfil.rol }, ahora, motivo.trim()));
+    // Que sepa por qué esa compra no le cuenta.
+    const aviso = nuevoAviso({ texto: `Tu compra de "${p.pieza.producto}" no se confirmó en la tienda, así que todavía no cuenta para tu Plan MW. Motivo: ${motivo.trim().replace(/[.\s]+$/, '')}.`, link: 'compras', paraId: p.ventana.usuarioId, rolDestino: 'emprendedora_lider', origen: 'admin' }, ahora);
+    tx.set(doc(db, 'notificaciones', aviso.id), aviso);
     const r = nuevoRegistroActividad(perfil, 'apartados', 'rechazar_compra', conOrigen(`Compra NO confirmada: ${p.pieza.producto} de ${p.ventana.usuarioNombre} (${dinero(Number(p.pieza.total) || 0)}) — ${motivo.trim()}`, equipo), equipo, ahora);
     tx.set(doc(db, 'auditoria', r.id), r);
   });

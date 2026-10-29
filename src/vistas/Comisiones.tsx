@@ -119,7 +119,7 @@ export function Comisiones({ perfil }: { perfil: PerfilUsuario }) {
 function TarjetaLider({ ctx, lider, p1, p2 }: { ctx: Ctx; lider: PersonaAdmin; p1: ResultadoLider; p2: ResultadoLider }) {
   const [abierto, setAbierto] = useState(false);
   const [modal, setModal] = useState<null | 'pago' | 'rango'>(null);
-  const bono = bonoDelPeriodo(lider, ctx.mes, ctx.d.bonos);
+  const bono = bonoDelPeriodo(lider, ctx.mes, ctx.d.bonos, ctx.d.config);
   const estado = estadoPagoMes(p1.estadoPago, p2.estadoPago);
   const minimo = cumpleRangoActual({ personas: ctx.personas, libro: ctx.libro }, lider, p1.rangoKey, ctx.mes);
   const manual = ctx.d.rangoManual[claveRangoManual(lider.id, ctx.mes)];

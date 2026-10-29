@@ -13,11 +13,13 @@ export interface Aviso {
   productoId?: string | null;
   /** Tipo de aviso de la página (ej. 'nomina'); null si no tiene. */
   tipo?: string | null;
+  /** Id fijo cuando el mismo aviso puede salir de la página y de BRILLO (así nunca se duplica). */
+  id?: string;
 }
 
 export function nuevoAviso(a: Aviso, ahora: Date, i = 0) {
   return {
-    id: `NOTIF-${ahora.getTime()}${i ? `-${i}` : ''}`,
+    id: a.id ?? `NOTIF-${ahora.getTime()}${i ? `-${i}` : ''}`,
     texto: a.texto,
     link: a.link,
     leida: false,

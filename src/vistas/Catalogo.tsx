@@ -43,7 +43,10 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
         (!material || p.material === material) &&
         (!soloConExistencias || stockTotal(p) > 0) &&
         (!q || normal(`${p.nombre} ${p.codigo} ${p.categoria}`).includes(q))
-    );
+    )
+      // Agotados o no disponibles al final, como en la página (el orden de
+      // "lo más nuevo arriba" se conserva dentro de cada grupo).
+      .sort((a, b) => Number(!a.disponible || stockTotal(a) <= 0) - Number(!b.disponible || stockTotal(b) <= 0));
   }, [productos, busqueda, material, soloConExistencias]);
 
   if (catalogo.estado === 'cargando') return <p className="muted">Cargando catálogo…</p>;

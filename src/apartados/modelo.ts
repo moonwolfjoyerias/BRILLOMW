@@ -278,7 +278,14 @@ export function confirmarDeposito(
   v.fechaInicio = ahoraISO(ahora);
   v.fechaVencimiento = r.dias ? new Date(ahora.getTime() + r.dias * 86400000).toISOString() : null;
   v.auditoria.push(historial(`Depósito de $${d.monto} confirmado${d.referencia ? ` — referencia ${d.referencia}` : ''}`, usuario, ahora));
-  return { ok: true, ventana: v, efectos: { actividad: { accion: 'confirmar_deposito', descripcion: `Depósito de $${d.monto} confirmado para ${v.usuarioNombre}` } } };
+  return {
+    ok: true,
+    ventana: v,
+    efectos: {
+      avisos: [{ texto: `Confirmamos tu depósito de $${d.monto}: tus piezas ya quedaron apartadas.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider' }],
+      actividad: { accion: 'confirmar_deposito', descripcion: `Depósito de $${d.monto} confirmado para ${v.usuarioNombre}` }
+    }
+  };
 }
 
 export function aprobarVip(ventana: Ventana, usuario: string, ahora = new Date()): Resultado {
@@ -286,7 +293,15 @@ export function aprobarVip(ventana: Ventana, usuario: string, ahora = new Date()
   const v = copia(ventana);
   v.estado = 'activa';
   v.auditoria.push(historial('Apartado VIP aprobado', usuario, ahora));
-  return { ok: true, ventana: v, efectos: { actividad: { accion: 'aprobar_vip_ventana', descripcion: `Apartado VIP de ${v.usuarioNombre} aprobado` } } };
+  return {
+    ok: true,
+    ventana: v,
+    efectos: {
+      // Igual que la página: es la única señal de que sus piezas ya quedaron apartadas.
+      avisos: [{ texto: '¡Tus piezas ya quedaron apartadas! Confirmamos tu apartado VIP.', link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider' }],
+      actividad: { accion: 'aprobar_vip_ventana', descripcion: `Apartado VIP de ${v.usuarioNombre} aprobado` }
+    }
+  };
 }
 
 export function aplicarExcedente(ventana: Ventana, usuario: string, ahora = new Date()): Resultado {
@@ -571,6 +586,8 @@ export function registrarPedidoComprobante(ventana: Ventana, usuario: string, ah
 export function avisosDeVencimiento(ventana: Ventana, ahora = Date.now()): { ventana: Ventana; avisos: Aviso[] } | null {
   if (ventana.estado !== 'activa') return null;
   const v = copia(ventana);
+  // Mismo id que pone la página (idAvisoVencimiento en apartados-modelo.js).
+  const idAviso = (tipo: string) => `NOTIF-${tipo}-${v.id}-${v.fechaVencimiento ? new Date(v.fechaVencimiento).getTime() : 0}`;
   const avisos: Aviso[] = [];
   const n = piezasActivas(v).length;
   if (estaVencida(v, ahora)) {
@@ -581,18 +598,19 @@ export function avisosDeVencimiento(ventana: Ventana, ahora = Date.now()): { ven
         link: `admin-apartados.html?buscar=${encodeURIComponent(v.usuarioNombre)}`,
         paraId: null,
         rolDestino: 'admin',
-        origen: 'emprendedora_lider'
+        origen: 'emprendedora_lider',
+        id: idAviso('vencido')
       });
     }
   } else if (v.fechaVencimiento && n) {
     const faltan = new Date(v.fechaVencimiento).getTime() - ahora;
     if (faltan <= 86400000 && !v.avisoVencimiento1DiaEnviado) {
       v.avisoVencimiento1DiaEnviado = true;
-      avisos.push({ texto: `Tu apartado de ${n} ${plural(n, 'pieza')} vence en menos de 1 día — si no se liquida o renueva, se pierde.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider' });
+      avisos.push({ texto: `Tu apartado de ${n} ${plural(n, 'pieza')} vence en menos de 1 día — si no se liquida o renueva, se pierde.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider', id: idAviso('vence1d') });
     }
     if (faltan <= 7200000 && !v.avisoVencimiento2HorasEnviado) {
       v.avisoVencimiento2HorasEnviado = true;
-      avisos.push({ texto: `Tu apartado de ${n} ${plural(n, 'pieza')} vence en menos de 2 horas.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider' });
+      avisos.push({ texto: `Tu apartado de ${n} ${plural(n, 'pieza')} vence en menos de 2 horas.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider', id: idAviso('vence2h') });
     }
   }
   return avisos.length ? { ventana: v, avisos } : null;
@@ -602,9 +620,11 @@ export function avisosDeVencimiento(ventana: Ventana, ahora = Date.now()): { ven
 
 /** ¿La referencia ya se usó en algún depósito o pago de cualquier ventana? (existeReferenciaDuplicada) */
 export function referenciaUsada(ventanas: Ventana[], referencia: string): boolean {
-  const ref = referencia.trim();
+  // Sin importar mayúsculas ni espacios, como la página (normalizarReferenciaPago).
+  const norm = (r: string | null | undefined) => String(r ?? '').trim().toUpperCase().replace(/\s+/g, '');
+  const ref = norm(referencia);
   if (!ref) return false;
-  return ventanas.some(v => v.referenciaDeposito === ref || v.apartados.some(p => p.pagos.some(pg => pg.referencia === ref)));
+  return ventanas.some(v => norm(v.referenciaDeposito) === ref || v.apartados.some(p => p.pagos.some(pg => norm(pg.referencia) === ref)));
 }
 
 /** Normaliza una ventana leída de Firestore (campos faltantes en datos viejos). */

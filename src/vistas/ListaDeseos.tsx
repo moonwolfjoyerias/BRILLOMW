@@ -323,6 +323,13 @@ function DetalleSolicitud({ s, productos, perfil, onHecho, onCerrar }: { s: Soli
           </li>
         ))}
       </ul>
+      {/* Foto que mandó la emprendedora desde la página (ya viene reducida). */}
+      {typeof s.fotoReferencia === 'string' && s.fotoReferencia.startsWith('data:image/') && (
+        <>
+          <h3>Foto de referencia</h3>
+          <img className="foto-referencia" src={s.fotoReferencia} alt="Foto de referencia que envió la emprendedora" />
+        </>
+      )}
       {s.comentarioEstado && <p className="nota-apartado"><strong>Comentario:</strong> {s.comentarioEstado}</p>}
       <h3>Actualizar estado</h3>
       <select value={estado} onChange={e => setEstado(e.target.value)} aria-label="Nuevo estado">

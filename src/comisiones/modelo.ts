@@ -18,6 +18,27 @@ export const COMISIONES_PCT: Record<string, number[]> = {
 export const BONOS_RANGO: Record<string, number> = { plata: 2500, oro: 3500, diamante: 5000, corona: 10000 };
 export const IVA_DIVISOR = 1.16;
 
+/**
+ * Una versión de un parámetro de Configuración de Admin
+ * (`configuracionVersiones`, js/configuracion-modelo.js de la página).
+ * Si Admin cambió porcentajes, IVA o bonos, aquí se usan los mismos
+ * valores que en la página, con la fecha en que entraron en vigor.
+ */
+export interface VersionConfig { tipo: string; parametro: string; valor: unknown; vigenteDesde: string; vigenteHasta?: string | null }
+
+/** Valor numérico vigente en esa fecha ('YYYY-MM-DD'), como obtenerValorVigente(). */
+export function valorVigente(config: VersionConfig[] | undefined, tipo: string, parametro: string, fecha: string): number | undefined {
+  const v = (config ?? [])
+    .filter(x => x.tipo === tipo && x.parametro === parametro)
+    .sort((a, b) => a.vigenteDesde.localeCompare(b.vigenteDesde))
+    .find(x => x.vigenteDesde <= fecha && (!x.vigenteHasta || fecha < x.vigenteHasta));
+  return typeof v?.valor === 'number' ? v.valor : undefined;
+}
+const fechaPeriodo = (periodoKey: string) => `${periodoKey}-01`;
+export const ivaDivisor = (periodoKey: string, config?: VersionConfig[]) => valorVigente(config, 'formula', 'iva_divisor', fechaPeriodo(periodoKey)) ?? IVA_DIVISOR;
+export const montoBonoRango = (rangoKey: string, periodoKey: string, config?: VersionConfig[]) =>
+  valorVigente(config, 'bono', rangoKey, fechaPeriodo(periodoKey)) ?? BONOS_RANGO[rangoKey];
+
 export interface Ajuste {
   liderId: string;
   emprendedoraId: string;
@@ -38,6 +59,8 @@ export interface DatosComisiones {
   pagos: Record<string, Pago>;
   bonos: Record<string, Bono>;
   rangoManual: Record<string, string>;
+  /** Configuración de Admin (si no se pudo leer, valores de siempre). */
+  config?: VersionConfig[];
 }
 
 export const claveAjuste = (liderId: string, personaId: string, periodoKey: string, sub: SubPeriodo) => `${liderId}__${personaId}__${periodoKey}__${sub}`;
@@ -72,7 +95,10 @@ export function rangoAplicado(p: PersonaAdmin, periodoKey: string, rangoManual: 
   return { rangoKey: p.rangoActualKey, origen: 'sin cambios de rango registrados todavía' };
 }
 
-export const pctNivel = (nivel: number, rangoKey: string) => (COMISIONES_PCT[rangoKey] ?? COMISIONES_PCT.sin_rango)[nivel - 1] ?? 0;
+export const pctNivel = (nivel: number, rangoKey: string, periodoKey?: string, config?: VersionConfig[]) =>
+  (periodoKey ? valorVigente(config, 'comision', `nivel${nivel}_${rangoKey}`, fechaPeriodo(periodoKey)) : undefined) ??
+  (COMISIONES_PCT[rangoKey] ?? COMISIONES_PCT.sin_rango)[nivel - 1] ??
+  0;
 
 export interface Fila {
   persona: PersonaAdmin;
@@ -105,12 +131,12 @@ export function comisionesLider(personas: PersonaAdmin[], libro: LibroCompras, d
   const { conNivel } = descendencia(personas, lider.id);
   const { rangoKey, origen } = rangoAplicado(lider, periodoKey, d.rangoManual);
   const niveles = [1, 2, 3, 4, 5].map(nivel => {
-    const pct = pctNivel(nivel, rangoKey);
+    const pct = pctNivel(nivel, rangoKey, periodoKey, d.config);
     const filas = conNivel
       .filter(c => c.nivel === nivel)
       .map(({ persona }) => {
         const compras = libro.subPeriodo(persona.id, periodoKey, sub);
-        const base = compras.normal / IVA_DIVISOR;
+        const base = compras.normal / ivaDivisor(periodoKey, d.config);
         const comisionCalculada = base * (pct / 100);
         const clave = claveAjuste(lider.id, persona.id, periodoKey, sub);
         const ajuste = d.ajustes[clave] ?? null;
@@ -134,12 +160,12 @@ export function comisionesLider(personas: PersonaAdmin[], libro: LibroCompras, d
 }
 
 /** Bono por llegar por primera vez a un rango, si el ascenso fue ese mes (obtenerBonoRangoPeriodo). */
-export function bonoDelPeriodo(lider: PersonaAdmin, periodoKey: string, bonos: Record<string, Bono>) {
+export function bonoDelPeriodo(lider: PersonaAdmin, periodoKey: string, bonos: Record<string, Bono>, config?: VersionConfig[]) {
   const asc = logrosDe(lider).find((l: Logro) => l.tipo === 'ascenso_rango' && l.fecha.slice(0, 7) === periodoKey && !!l.rangoNuevo && !!BONOS_RANGO[l.rangoNuevo]);
   if (!asc?.rangoNuevo) return null;
   const clave = `${lider.id}__${asc.rangoNuevo}`;
   const r = bonos[clave];
-  return { rango: asc.rangoNuevo, monto: BONOS_RANGO[asc.rangoNuevo], fechaAscenso: asc.fecha, pagado: !!r, fechaPago: r?.fechaPago ?? null, registradoPor: r?.registradoPor ?? null, clave };
+  return { rango: asc.rangoNuevo, monto: montoBonoRango(asc.rangoNuevo, periodoKey, config), fechaAscenso: asc.fecha, pagado: !!r, fechaPago: r?.fechaPago ?? null, registradoPor: r?.registradoPor ?? null, clave };
 }
 
 /** El registro que se guarda al ajustar una comisión a mano (guardarAjusteManual). */
