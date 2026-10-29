@@ -12,9 +12,10 @@ import { MarcoModal, useEnvio } from './Modal';
 import { useApartados } from '../apartados/acciones';
 import { regla, type Ventana } from '../apartados/modelo';
 import { guardarPersonas, usePersonasAdmin, type CambioPersonas } from '../personas/acciones';
+import { useComprasBrillo } from '../compras/acciones';
+import { ComprasBrillo } from '../compras/modelo';
 import {
   aplicarInfo,
-  bajaRequiereReasignar,
   boletosRifa,
   CATEGORIAS_PERSONA,
   comprasDe,
@@ -31,6 +32,7 @@ import {
   RANGOS_MW,
   rangoLabel,
   reactivar,
+  reasignacionAlGuardar,
   sinSolicitudRama,
   superiorSugerida,
   validarCambioLider,
@@ -179,7 +181,7 @@ function Perfil({ p, personas, financiero, ventanas, perfil, onCerrar }: {
   onCerrar: () => void;
 }) {
   const [tab, setTab] = useState<Tab>('info');
-  const [modal, setModal] = useState<null | 'editar' | 'convertir'>(null);
+  const [modal, setModal] = useState<null | 'editar' | 'convertir' | 'reasignar'>(null);
   const { enviando, error, aplicar } = useCambio(perfil);
   const esLider = p.tipo === 'lider';
   const nombre = nombreCompletoPersona(p);
@@ -281,6 +283,9 @@ function Perfil({ p, personas, financiero, ventanas, perfil, onCerrar }: {
           })()}
           {error && <p className="error">{error}</p>}
           <div className="acciones">
+            {esLider && equipoActivoDirecto(personas, p.id).length > 0 && (
+              <button className="btn" disabled={enviando} onClick={() => setModal('reasignar')}>Reasignar su equipo ({equipoActivoDirecto(personas, p.id).length})</button>
+            )}
             {esLider ? (
               <button className="btn" disabled={enviando} onClick={convertirEmprendedora}>Convertir en Emprendedora</button>
             ) : (
@@ -310,13 +315,28 @@ function Perfil({ p, personas, financiero, ventanas, perfil, onCerrar }: {
           onCerrar={() => setModal(null)}
         />
       )}
+      {modal === 'reasignar' && (
+        // Si una líder ya no está activa o se da de baja, su equipo pasa a la líder superior.
+        <Reasignar
+          p={p}
+          personas={personas}
+          perfil={perfil}
+          titulo={`Reasignar el equipo de ${nombre}`}
+          explicacion="Su equipo pasa a la líder inmediata superior cuando ya no está activa. Confirma o cambia el destino."
+          boton="Reasignar equipo"
+          aplicarPersona={c => c}
+          accion="reasignar_equipo_lider"
+          texto={(movidos, destino) => `${nombre} reasignación de equipo — equipo de ${movidos} persona${movidos === 1 ? '' : 's'} ${destino ? `reasignado a ${destino}` : 'dejado sin líder asignada (pendiente de decidir)'}`}
+          onCerrar={() => setModal(null)}
+        />
+      )}
     </div>
   );
 }
 
 function EditarInfo({ p, personas, ventanas, perfil, onCerrar }: { p: PersonaAdmin; personas: PersonaAdmin[]; ventanas: Ventana[]; perfil: PerfilUsuario; onCerrar: () => void }) {
   const [d, setD] = useState<DatosInfo>({ nombre: p.nombre, apellidos: p.apellidos, telefono: p.telefono, correo: p.correo, usuario: p.usuario, categoria: p.categoria, estado: p.estado, liderId: p.liderId });
-  const [reasignar, setReasignar] = useState(false);
+  const [reasignar, setReasignar] = useState<'baja' | 'inactiva' | null>(null);
   const { enviando, error, setError, enviar } = useEnvio();
   const set = <K extends keyof DatosInfo>(k: K, v: DatosInfo[K]) => setD(x => ({ ...x, [k]: v }));
   const candidatas = personas.filter(x => x.tipo === 'lider' && x.id !== p.id).sort((a, b) => nombreCompletoPersona(a).localeCompare(nombreCompletoPersona(b), 'es'));
@@ -332,7 +352,8 @@ function EditarInfo({ p, personas, ventanas, perfil, onCerrar }: { p: PersonaAdm
     ev.preventDefault();
     const err = validarInfo(d, p, personas);
     if (err) { setError(err); return; }
-    if (bajaRequiereReasignar(p, d, personas)) { setReasignar(true); return; }
+    const motivo = reasignacionAlGuardar(p, d, personas);
+    if (motivo) { setReasignar(motivo); return; }
     void enviar(async () => {
       const r = await guardarPersonas(db, cambio(), perfil, equipoActual());
       if (!r) onCerrar();
@@ -341,17 +362,19 @@ function EditarInfo({ p, personas, ventanas, perfil, onCerrar }: { p: PersonaAdm
   };
 
   if (reasignar) {
+    const baja = reasignar === 'baja';
     return (
       <Reasignar
         p={p}
         personas={personas}
         perfil={perfil}
-        titulo={`Dar de baja a ${nombre} — reasignar su equipo`}
-        explicacion="Su equipo se comprime hacia la líder inmediata superior al darla de baja. Confirma o cambia el destino antes de continuar."
-        boton="Dar de baja y reasignar"
+        titulo={baja ? `Dar de baja a ${nombre} — reasignar su equipo` : `${nombre} pasa a inactiva — ¿reasignar su equipo?`}
+        explicacion={`Su equipo pasa a la líder inmediata superior ${baja ? 'al darla de baja' : 'si ya no está activa'}. Confirma o cambia el destino antes de continuar.`}
+        boton={baja ? 'Dar de baja y reasignar' : 'Guardar cambios'}
         aplicarPersona={c => aplicarInfo(c, d)}
-        accion="baja_lider_comprimir_equipo"
-        texto={(movidos, destino) => `${nombre} dada de baja — equipo de ${movidos} persona${movidos === 1 ? '' : 's'} ${destino ? `reasignado a ${destino}` : 'dejado sin líder asignada (pendiente de decidir)'}`}
+        accion={baja ? 'baja_lider_comprimir_equipo' : 'reasignar_equipo_lider'}
+        texto={(movidos, destino) => `${nombre} ${baja ? 'dada de baja' : 'pasó a inactiva'} — ${movidos ? `equipo de ${movidos} persona${movidos === 1 ? '' : 's'} ${destino ? `reasignado a ${destino}` : 'dejado sin líder asignada (pendiente de decidir)'}` : 'su equipo se queda con ella'}`}
+        permitirMantener={!baja}
         extra={d.categoria !== p.categoria ? cambio().categoria : undefined}
         onCerrar={onCerrar}
       />
@@ -390,8 +413,8 @@ function EditarInfo({ p, personas, ventanas, perfil, onCerrar }: { p: PersonaAdm
   );
 }
 
-/** Reasignar el equipo directo antes de dar de baja o convertir a Emprendedora (nunca automático). */
-function Reasignar({ p, personas, perfil, titulo, explicacion, boton, aplicarPersona, accion, texto, extra, onCerrar }: {
+/** Reasignar el equipo directo antes de dar de baja, pasar a inactiva o convertir a Emprendedora (nunca automático). */
+function Reasignar({ p, personas, perfil, titulo, explicacion, boton, aplicarPersona, accion, texto, extra, permitirMantener, onCerrar }: {
   p: PersonaAdmin;
   personas: PersonaAdmin[];
   perfil: PerfilUsuario;
@@ -402,21 +425,33 @@ function Reasignar({ p, personas, perfil, titulo, explicacion, boton, aplicarPer
   accion: string;
   texto: (movidos: number, destino: string | null) => string;
   extra?: CambioPersonas['categoria'];
+  /** Ofrecer que su equipo se quede con ella (al pasar a inactiva). */
+  permitirMantener?: boolean;
   onCerrar: () => void;
 }) {
   const equipo = equipoActivoDirecto(personas, p.id);
+  const MANTENER = '__mantener';
   const sugerida = superiorSugerida(personas, p);
   const [destino, setDestino] = useState(sugerida?.id ?? '');
   const { enviando, error, enviar } = useEnvio();
   const opciones = lideresDisponibles(personas, p.id);
   const confirmar = () => {
-    const d = destino ? personas.find(x => x.id === destino) : undefined;
+    const mantener = destino === MANTENER;
+    const d = destino && !mantener ? personas.find(x => x.id === destino) : undefined;
+    const mover = mantener ? [] : equipo;
     void enviar(async () => {
       const err = await guardarPersonas(
         db,
         {
-          personas: [{ id: p.id, aplicar: aplicarPersona }, ...equipo.map(m => ({ id: m.id, aplicar: (c: Record<string, unknown>) => ({ ...c, liderId: destino || null }) }))],
-          actividad: [{ accion, descripcion: texto(equipo.length, d ? nombreCompletoPersona(d) : null) }],
+          personas: [{ id: p.id, aplicar: aplicarPersona }, ...mover.map(m => ({ id: m.id, aplicar: (c: Record<string, unknown>) => ({ ...c, liderId: destino || null }) }))],
+          actividad: [{ accion, descripcion: texto(mover.length, d ? nombreCompletoPersona(d) : null) }],
+          // Cada integrante sabe a qué rama pasó, y la líder que la recibe, a quién recibe.
+          avisos: d
+            ? [
+                ...mover.map(m => ({ texto: `Administración cambió tu equipo — ahora perteneces a la rama de ${nombreCompletoPersona(d)}.`, link: 'cuenta', paraId: m.id, rolDestino: 'emprendedora_lider' as const, origen: 'admin' })),
+                ...(mover.length ? [{ texto: `Se sumaron a tu equipo: ${mover.map(m => nombreCompletoPersona(m)).join(', ')}.`, link: 'equipo', paraId: d.id, rolDestino: 'emprendedora_lider' as const, origen: 'admin' }] : [])
+              ]
+            : [],
           ...(extra ? { categoria: extra } : {})
         },
         perfil,
@@ -433,6 +468,7 @@ function Reasignar({ p, personas, perfil, titulo, explicacion, boton, aplicarPer
       <label className="campo">
         <span>Nueva líder para este equipo</span>
         <select value={destino} onChange={e => setDestino(e.target.value)}>
+          {permitirMantener && <option value={MANTENER}>— Mantener su equipo con ella —</option>}
           <option value="">— Dejar sin líder por ahora (decidir después) —</option>
           {opciones.map(l => <option key={l.id} value={l.id}>{nombreCompletoPersona(l)}{l.id === sugerida?.id ? ' (líder superior — sugerida)' : ''}</option>)}
         </select>
@@ -489,28 +525,52 @@ function CambiarLider({ p, personas, perfil, onCerrar }: { p: PersonaAdmin; pers
   );
 }
 
+const CHIP_COMPRA: Record<string, [string, string]> = {
+  confirmada: ['chip ok', 'Confirmada'],
+  rechazada: ['chip agotado', 'No confirmada'],
+  pendiente: ['chip pendiente', 'Por confirmar']
+};
+
 function Compras({ p, ventanas, perfil }: { p: PersonaAdmin; ventanas: Ventana[]; perfil: PerfilUsuario }) {
   const compras = comprasDe(ventanas, p.id);
-  const total = compras.reduce((s, c) => s + c.total, 0);
+  const libro = useComprasBrillo(db);
   const { enviando, error, aplicar } = useCambio(perfil);
-  if (!compras.length) return <p className="muted">Sin compras registradas todavía. Aquí aparecen las piezas que {p.nombre} liquide en Apartados.</p>;
+  const lb = libro instanceof ComprasBrillo ? libro : null;
+  const estado = (c: (typeof compras)[number]) => lb?.pieza(c.ventanaId, c.piezaId)?.estado ?? 'pendiente';
+  // Lo cobrado en la caja de BRILLO ya cuenta solo.
+  const caja = lb ? [...lb.ventasDe(p.id)].sort((a, b) => b.fechaCuenta.localeCompare(a.fechaCuenta)) : [];
+  if (!compras.length && !caja.length) return <p className="muted">Sin compras registradas todavía. Aquí aparecen las piezas que {p.nombre} liquide en Apartados y lo que compre en la caja.</p>;
   const ids = [...new Set(compras.map(c => c.ventanaId))];
+  const total = compras.reduce((s, c) => s + c.total, 0);
+  const cuentan = compras.filter(c => estado(c) === 'confirmada').reduce((s, c) => s + c.total, 0) + caja.reduce((s, v) => s + v.normal + v.souvenir, 0);
+  const porConfirmar = compras.filter(c => estado(c) === 'pendiente').length;
   return (
     <>
       <div className="resumen-apartados">
-        <div className="dato"><span>Compras liquidadas</span><strong>{compras.length}</strong></div>
-        <div className="dato"><span>Total acumulado</span><strong>{$(total)}</strong></div>
+        <div className="dato"><span>Compras liquidadas</span><strong>{compras.length}</strong><span className="small">{$(total)}</span></div>
+        <div className="dato"><span>Ya cuentan para Plan MW</span><strong>{lb ? $(cuentan) : '…'}</strong><span className="small">confirmadas + caja</span></div>
+        <div className="dato"><span>Por confirmar</span><strong>{lb ? porConfirmar : '…'}</strong><span className="small">se confirman en Compras por confirmar</span></div>
       </div>
+      {libro === 'error' && <p className="error">No se pudo leer qué compras están confirmadas.</p>}
       <ul className="historial">
-        {compras.map((c, i) => (
-          <li key={i}>
-            <strong>{c.producto} · {$(c.total)}</strong>
-            <span className="muted small bloque">{c.detalle} · Ventana {c.ventanaId} · {fecha(c.fecha)}</span>
+        {compras.map(c => {
+          const [chip, txt] = CHIP_COMPRA[lb ? estado(c) : 'pendiente'];
+          return (
+            <li key={`${c.ventanaId}__${c.piezaId}`}>
+              <strong>{c.producto} · {$(c.total)}</strong> {lb && <span className={chip}>{txt}</span>}
+              <span className="muted small bloque">{c.detalle} · Ventana {c.ventanaId} · liquidada el {fecha(c.fecha)}</span>
+            </li>
+          );
+        })}
+        {caja.map(v => (
+          <li key={v.folio}>
+            <strong>Compra en tienda · {$(v.normal + v.souvenir)}</strong> <span className="chip ok">Cuenta</span>
+            <span className="muted small bloque">Folio {v.folio}{v.souvenir ? ` · Souvenir ${$(v.souvenir)}` : ''} · {fecha(v.fechaCuenta)}</span>
           </li>
         ))}
       </ul>
       {error && <p className="error">{error}</p>}
-      <div className="acciones">
+      {compras.length > 0 && <div className="acciones">
         <button className="btn peligro" disabled={enviando} onClick={() => aplicar(
           {
             personas: [],
@@ -519,7 +579,7 @@ function Compras({ p, ventanas, perfil }: { p: PersonaAdmin; ventanas: Ventana[]
           },
           `Se quitarán las ${compras.length} compras de ${nombreCompletoPersona(p)} (${$(total)}). Dejarán de contar para su rango, comisiones, rifa y constancia. Sus apartados no se borran. ¿Continuar?`
         )}>Limpiar historial de compras</button>
-      </div>
+      </div>}
     </>
   );
 }

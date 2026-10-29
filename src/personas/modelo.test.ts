@@ -27,6 +27,8 @@ describe('Emprendedoras/Líderes (mismas reglas que la página)', () => {
   it('dar de baja a una líder con equipo pide reasignar; sugerencia = su líder superior', () => {
     const d = { nombre: 'L2', apellidos: '', telefono: '', correo: '', usuario: '', categoria: 'normal', estado: 'baja', liderId: 'L1' };
     expect(P.bajaRequiereReasignar(L2, d, todas)).toBe(true);
+    expect(P.reasignacionAlGuardar(L2, { ...d, estado: 'inactiva' }, todas)).toBe('inactiva');
+    expect(P.reasignacionAlGuardar(L2, { ...d, estado: 'activa' }, todas)).toBeNull();
     expect(P.superiorSugerida(todas, L2)?.id).toBe('L1');
     expect(P.validarInfo({ ...d, nombre: ' ' }, L2, todas)).toMatch(/nombre/);
     expect(P.validarInfo({ ...d, liderId: 'E1' }, L2, todas)).toMatch(/líder de la lista/);

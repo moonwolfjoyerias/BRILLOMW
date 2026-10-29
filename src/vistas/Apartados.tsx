@@ -168,17 +168,26 @@ export function Apartados({ perfil }: { perfil: PerfilUsuario }) {
   const productos = catalogo.estado === 'listo' ? catalogo.productos : [];
   const filtradas = useMemo(() => filtrarVentanas(ventanas, filtro, busqueda), [ventanas, filtro, busqueda]);
 
-  // Igual que la página al abrir Apartados de Admin: avisos de
-  // vencimiento (a Admin cuando ya venció; a la clienta 1 día y 2 horas
-  // antes). Cada aviso una sola vez: la bandera queda en la ventana.
+  // Avisos de vencimiento (a Admin cuando ya venció; a la clienta 1 día
+  // y 2 horas antes). Antes solo los mandaba Admin y solo cuando cambiaba
+  // algo; ahora cualquiera que tenga Apartados abierto, revisando cada 5
+  // minutos. Cada aviso una sola vez: la bandera queda en la ventana
+  // (en una transacción) y el aviso lleva un id fijo, así que aunque lo
+  // revisen varias cajas o la página a la vez, no se duplica.
+  const [pulso, setPulso] = useState(0);
   useEffect(() => {
-    if (perfil.rol !== 'admin' || datos.estado !== 'listo') return;
+    const t = setInterval(() => setPulso(x => x + 1), 5 * 60000);
+    return () => clearInterval(t);
+  }, []);
+  useEffect(() => {
+    if (datos.estado !== 'listo') return;
     for (const v of datos.ventanas) {
-      if (yaRevisadas.current.has(v.id) || !avisosDeVencimiento(v)) continue;
-      yaRevisadas.current.add(v.id);
-      void guardarSinActividad(db, v.id, actual => avisosDeVencimiento(actual)).catch(() => yaRevisadas.current.delete(v.id));
+      const clave = `${v.id}|${!!v.avisoVencimientoEnviado}|${!!v.avisoVencimiento1DiaEnviado}|${!!v.avisoVencimiento2HorasEnviado}`;
+      if (yaRevisadas.current.has(clave) || !avisosDeVencimiento(v)) continue;
+      yaRevisadas.current.add(clave);
+      void guardarSinActividad(db, v.id, actual => avisosDeVencimiento(actual)).catch(() => yaRevisadas.current.delete(clave));
     }
-  }, [perfil.rol, datos]);
+  }, [datos, pulso]);
 
   useEffect(() => {
     if (!aviso) return;

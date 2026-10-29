@@ -103,3 +103,19 @@ describe('Comisiones (mismas reglas que comisiones-modelo.js)', () => {
     expect(C.csv([['a,b', 1.5]])).toBe('﻿"a,b",1.50');
   });
 });
+
+describe('Configuración de Admin en comisiones', () => {
+  const config: C.VersionConfig[] = [
+    { tipo: 'comision', parametro: 'nivel1_sin_rango', valor: 10, vigenteDesde: '2020-01-01', vigenteHasta: '2026-11-01' },
+    { tipo: 'comision', parametro: 'nivel1_sin_rango', valor: 12, vigenteDesde: '2026-11-01' },
+    { tipo: 'formula', parametro: 'iva_divisor', valor: 1.2, vigenteDesde: '2026-11-01' }
+  ];
+  it('usa el valor vigente en el mes del periodo; sin configuración, el de siempre', () => {
+    expect(C.pctNivel(1, 'sin_rango', '2026-10', config)).toBe(10);
+    expect(C.pctNivel(1, 'sin_rango', '2026-11', config)).toBe(12);
+    expect(C.pctNivel(2, 'sin_rango', '2026-11', config)).toBe(5);
+    expect(C.ivaDivisor('2026-10', config)).toBe(1.16);
+    expect(C.ivaDivisor('2026-11', config)).toBe(1.2);
+    expect(C.montoBonoRango('oro', '2026-11', config)).toBe(3500);
+  });
+});

@@ -9,7 +9,7 @@ import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';
 import { nuevoAviso } from '../pagina/avisos';
 import type { Aronium, SubPeriodo } from '../planmw/modelo';
 import { mesLabel } from '../planmw/modelo';
-import { claveAjuste, clavePago, claveRangoManual, type Ajuste, type Bono, type DatosComisiones, type Pago } from './modelo';
+import { claveAjuste, clavePago, claveRangoManual, type Ajuste, type Bono, type DatosComisiones, type Pago, type VersionConfig } from './modelo';
 
 export const COL = {
   ajustes: 'comisionesAjustes',
@@ -26,7 +26,8 @@ export function useComisiones(db: Firestore): EstadoComisiones {
   useEffect(() => {
     const d: Partial<DatosComisiones> = {};
     let fallo = false;
-    const listo = () => !fallo && Object.keys(d).length === 5 && setEstado({ estado: 'listo', ...(d as DatosComisiones) });
+    const necesarias: (keyof DatosComisiones)[] = ['ajustes', 'historial', 'pagos', 'bonos', 'rangoManual', 'config'];
+    const listo = () => !fallo && necesarias.every(k => k in d) && setEstado({ estado: 'listo', ...(d as DatosComisiones) });
     const mapa = <T,>(col: string, clave: keyof DatosComisiones, valor: (x: Record<string, unknown>) => T) =>
       onSnapshot(
         collection(db, col),
@@ -47,6 +48,12 @@ export function useComisiones(db: Firestore): EstadoComisiones {
         collection(db, COL.historial),
         s => { d.historial = s.docs.map(x => ({ ...(x.data() as Ajuste), id: x.id })); listo(); },
         () => { fallo = true; setEstado({ estado: 'error' }); }
+      ),
+      // Configuración de Admin: si no se puede leer, se calcula con los valores de siempre.
+      onSnapshot(
+        collection(db, 'configuracionVersiones'),
+        s => { d.config = s.docs.map(x => x.data() as VersionConfig); listo(); },
+        () => { d.config = []; listo(); }
       )
     ];
     return () => cortes.forEach(c => c());

@@ -16,9 +16,10 @@ import { Solicitudes } from './Solicitudes';
 import { Comisiones } from './Comisiones';
 import { PlanMW } from './PlanMW';
 import { ConfirmarCompras } from './ConfirmarCompras';
+import { Estadisticas } from './Estadisticas';
 import { useTema } from '../tema';
 
-export type Seccion = 'inicio' | 'vender' | 'catalogo' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'compras' | 'cuenta';
+export type Seccion = 'inicio' | 'vender' | 'catalogo' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'compras' | 'estadisticas' | 'cuenta';
 
 interface Item { id: Seccion; nombre: string }
 
@@ -50,6 +51,8 @@ function menuPara(perfil: PerfilUsuario): { titulo: string | null; items: Item[]
       ]
     }
   ];
+  // Estadísticas: Administración (todo) y Encargado (tienda, staff y uso; Nómina si tiene el permiso).
+  if (perfil.rol !== 'staff') grupos.push({ titulo: 'Resultados', items: [{ id: 'estadisticas', nombre: 'Estadísticas' }] });
   // Emprendedoras/Líderes, Solicitudes, Comisiones y Plan MW: solo Administración, como en la página.
   if (perfil.rol === 'admin') {
     grupos.push({
@@ -170,6 +173,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
           {seccion === 'solicitudes' && <Solicitudes perfil={perfil} />}
           {seccion === 'comisiones' && <Comisiones perfil={perfil} />}
           {seccion === 'planmw' && <PlanMW perfil={perfil} />}
+          {seccion === 'estadisticas' && <Estadisticas perfil={perfil} />}
         </main>
       </div>
     </div>

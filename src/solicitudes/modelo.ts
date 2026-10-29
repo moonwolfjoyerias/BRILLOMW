@@ -230,3 +230,40 @@ export function eventoDesdeSolicitud(s: SolicitudEvento, ahora: Date): Doc {
     asistentes: []
   };
 }
+
+/** A partir de cuántas solicitudes públicas recientes hacia la misma líder se marca riesgo (página: RIESGO_EQUIPO_INFLADO_TOPE). */
+export const RIESGO_EQUIPO_INFLADO_TOPE = 3;
+
+/**
+ * Revisión de una inscripción, como revisarSolicitudPublica() de la página:
+ * si está duplicada (otra pendiente o una cuenta con el mismo correo o
+ * teléfono) y si hay riesgo de equipo inflado (varias solicitudes públicas
+ * recientes que indican a la misma líder), aunque se haya registrado antes
+ * de que la página guardara esa marca.
+ */
+export function revisarInscripcion(s: SolicitudInscripcion, todas: Solicitud[], personas: PersonaAdmin[]): { riesgo: boolean; conteo: number | null; duplicada: string | null } {
+  const correo = (v: string) => v.trim().toLowerCase();
+  const tel = (v: string) => v.replace(/\D/g, '');
+  const c = correo(s.correo);
+  const t = tel(s.telefono);
+  const otras = todas.filter((x): x is SolicitudInscripcion => x.tipo === 'inscripcion' && x.id !== s.id);
+  let duplicada: string | null = null;
+  if (s.estado === 'pendiente') {
+    if (otras.some(x => x.estado === 'pendiente' && ((c && correo(x.correo) === c) || (t && tel(x.telefono) === t)))) duplicada = 'Hay otra solicitud pendiente con este correo o teléfono.';
+    else if (personas.some(p => (c && correo(p.correo) === c) || (t && tel(p.telefono) === t))) duplicada = 'Ya existe una cuenta registrada con este correo o teléfono.';
+  }
+  if (s.origen !== 'publico') return { riesgo: false, conteo: null, duplicada };
+  const lider = (s.liderIndicado ?? '').trim().toLowerCase();
+  let conteo: number | null = null;
+  if (lider) {
+    const ref = new Date(s.fechaSolicitud || Date.now()).getTime();
+    const limite = ref - RIESGO_EQUIPO_INFLADO_DIAS * 86400000;
+    conteo = otras.filter(x =>
+      x.origen === 'publico' &&
+      (x.liderIndicado ?? '').trim().toLowerCase() === lider &&
+      new Date(x.fechaSolicitud).getTime() <= ref &&
+      (x.estado === 'pendiente' || (x.estado === 'aprobada' && new Date(x.fechaRevision || x.fechaSolicitud).getTime() >= limite))
+    ).length + 1;
+  }
+  return { riesgo: s.riesgoEquipoInflado || (conteo !== null && conteo >= RIESGO_EQUIPO_INFLADO_TOPE), conteo: s.riesgoEquipoInfladoConteo ?? conteo, duplicada };
+}

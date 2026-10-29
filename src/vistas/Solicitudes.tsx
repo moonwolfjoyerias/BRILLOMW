@@ -13,6 +13,7 @@ import {
   ESTADOS_SOLICITUD,
   filtrarSolicitudes,
   RIESGO_EQUIPO_INFLADO_DIAS,
+  revisarInscripcion,
   tituloSolicitud,
   type FiltrosSolicitudes,
   type Solicitud,
@@ -75,7 +76,15 @@ export function Solicitudes({ perfil }: { perfil: PerfilUsuario }) {
                 </span>
               </span>
               <span className="etiquetas">
-                {s.tipo === 'inscripcion' && s.riesgoEquipoInflado && <span className="chip agotado">⚠ Riesgo</span>}
+                {s.tipo === 'inscripcion' && (() => {
+                  const r = revisarInscripcion(s, sol.solicitudes, per.personas);
+                  return (
+                    <>
+                      {r.duplicada && <span className="chip agotado">⚠ Duplicada</span>}
+                      {r.riesgo && <span className="chip agotado">⚠ Riesgo</span>}
+                    </>
+                  );
+                })()}
                 <span className={CHIP[s.estado] ?? 'chip neutro'}>{ESTADOS_SOLICITUD[s.estado] ?? s.estado}</span>
               </span>
             </button>
@@ -165,6 +174,7 @@ function DetalleInscripcion({ s, personas, solicitudes, perfil, onCerrar }: {
   const [creada, setCreada] = useState<Extract<ResultadoAprobar, { ok: true }> | null>(null);
   const { enviando, error, setError, enviar } = useEnvio();
   const publica = s.origen === 'publico';
+  const revision = revisarInscripcion(s, solicitudes, personas);
 
   if (creada) return <Credenciales c={creada} s={s} onCerrar={onCerrar} />;
 
@@ -184,12 +194,13 @@ function DetalleInscripcion({ s, personas, solicitudes, perfil, onCerrar }: {
 
   return (
     <MarcoModal titulo="Solicitud de inscripción" onCerrar={onCerrar} enviando={enviando}>
+      {revision.duplicada && <p className="aviso-pendiente"><strong>⚠ Posible duplicada.</strong> {revision.duplicada} Revisa antes de aprobar.</p>}
       {publica ? (
         <>
           <h3>Cómo llegó</h3>
-          {s.riesgoEquipoInflado && (
+          {revision.riesgo && (
             <p className="aviso-pendiente">
-              <strong>⚠ Posible riesgo de equipo inflado.</strong> Ya hay {s.riesgoEquipoInfladoConteo} solicitudes públicas recientes (pendientes, o aprobadas en los últimos {RIESGO_EQUIPO_INFLADO_DIAS} días) que indican a esta misma líder. Verifica antes de aprobar (por ejemplo, llámale a cada una).
+              <strong>⚠ Posible riesgo de equipo inflado.</strong> Ya hay {revision.conteo} solicitudes públicas recientes (pendientes, o aprobadas en los últimos {RIESGO_EQUIPO_INFLADO_DIAS} días) que indican a esta misma líder. Verifica antes de aprobar (por ejemplo, llámale a cada una).
             </p>
           )}
           <dl className="datos">
