@@ -3,7 +3,7 @@
 // existencias en `productos` (la colección de la página), asigna folio y
 // guarda la venta. Si algo falla, no se guarda nada.
 import { FirebaseError } from 'firebase/app';
-import { doc, runTransaction, serverTimestamp, type Firestore } from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp, type Firestore } from '../datos/firestore';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { COLECCION_TURNOS, idTurno, type IdCaja } from '../caja/turno';
 import {

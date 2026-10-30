@@ -3,7 +3,7 @@
 // versión actual del servidor, aplica la regla de ./modelo y guarda
 // junto el documento, su historial, la Actividad y los avisos.
 import { FirebaseError } from 'firebase/app';
-import { collection, doc, onSnapshot, runTransaction, type Firestore } from 'firebase/firestore';
+import { collection, doc, onSnapshot, runTransaction, type Firestore } from '../datos/firestore';
 import { useEffect, useState } from 'react';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';

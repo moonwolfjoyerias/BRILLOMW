@@ -2,7 +2,7 @@
 // (`auditoria`), en vivo. Muestra quién hizo qué, cuándo y desde dónde
 // (página o BRILLO, PC o tablet).
 import { useEffect, useMemo, useState } from 'react';
-import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, limit, onSnapshot, orderBy, query } from '../datos/firestore';
 import { db } from '../firebase';
 import type { PerfilUsuario } from '../sesion/perfil';
 import {

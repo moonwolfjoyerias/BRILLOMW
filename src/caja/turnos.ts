@@ -9,7 +9,7 @@ import {
   serverTimestamp,
   where,
   type Firestore
-} from 'firebase/firestore';
+} from '../datos/firestore';
 import { FirebaseError } from 'firebase/app';
 import { db } from '../firebase';
 import type { PerfilUsuario } from '../sesion/perfil';

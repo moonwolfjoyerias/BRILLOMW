@@ -14,7 +14,7 @@ import { COL_GARANTIAS, lineaDeGarantia, normalizarFolio, piezaGarantia, validar
 import { descartarCambio, guardarCambio } from '../venta/accionesVenta';
 import { EncabezadoTienda, Fila, type AnchoTicket } from '../venta/Ticket';
 import { fechaTicket, renglonPieza } from '../venta/ticketFormato';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from '../datos/firestore';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 const dinero = (n: number) => MXN.format(n);

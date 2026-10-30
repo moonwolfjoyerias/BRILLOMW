@@ -4,7 +4,7 @@
 // cancelarlo. Lee solo lo que se busca: un día, un folio, o un documento
 // por mes del historial de esa clienta.
 import { useState } from 'react';
-import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where } from '../datos/firestore';
 import { db } from '../firebase';
 import { equipoActual } from '../plataforma';
 import type { PerfilUsuario } from '../sesion/perfil';

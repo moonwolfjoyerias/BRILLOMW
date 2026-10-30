@@ -4,6 +4,7 @@
 import { deleteApp, initializeApp, type FirebaseApp } from 'firebase/app';
 import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
 import { usuarioAEmail } from './perfil';
+import { PILOTO } from '../piloto';
 
 export type CrearAcceso = (usuario: string, password: string, nombre: string) => Promise<string>;
 
@@ -11,6 +12,8 @@ export type CrearAcceso = (usuario: string, password: string, nombre: string) =>
 export class UsuarioOcupado extends Error {}
 
 export function crearAccesoCon(appPrincipal: FirebaseApp, conectar?: (app: FirebaseApp) => void): CrearAcceso {
+  // En BRILLO PILOTO no se crea ninguna cuenta real: se inventa un id.
+  if (PILOTO) return async usuario => `piloto-${usuario}`;
   return async (usuario, password, nombre) => {
     const temporal = initializeApp(appPrincipal.options, `crear-cuenta-${Date.now()}`);
     conectar?.(temporal);

@@ -1,7 +1,7 @@
 // Lo que se hace sobre ventas ya cobradas y sobre los cambios físicos
 // abiertos. Cada acción es UNA transacción con su registro en Actividad.
 import { FirebaseError } from 'firebase/app';
-import { collection, doc, getDoc, onSnapshot, query, runTransaction, where, type Firestore } from 'firebase/firestore';
+import { collection, doc, getDoc, onSnapshot, query, runTransaction, where, type Firestore } from '../datos/firestore';
 import { useEffect, useState } from 'react';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';

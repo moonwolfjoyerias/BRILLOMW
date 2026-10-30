@@ -2,7 +2,7 @@
 // Administración (Staff solo ve la lista). Cada acción va en UNA
 // transacción con su registro en Actividad.
 import { FirebaseError } from 'firebase/app';
-import { collection, doc, onSnapshot, runTransaction, type Firestore } from 'firebase/firestore';
+import { collection, doc, onSnapshot, runTransaction, type Firestore } from '../datos/firestore';
 import { useEffect, useState } from 'react';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';

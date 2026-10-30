@@ -12,7 +12,30 @@ npm run dev        # abre la app en el navegador
 npm test           # pruebas
 npm run typecheck  # revisión de tipos
 npm run build      # versión lista para empaquetar en dist/
+npm run dev:piloto # BRILLO PILOTO en el navegador (nada se guarda)
+npm run build:piloto # BRILLO PILOTO en dist/piloto/
 ```
+
+## BRILLO PILOTO
+
+La misma app, con los datos reales, pero **sin guardar nada**: para
+practicar y enseñar a usar BRILLO sin afectar a nadie. Se publica junto con
+BRILLO en la misma dirección terminada en `/piloto/`, y como se arma del
+mismo código, cada cambio que se fusione a `main` también llega al piloto.
+
+- Se entra con las cuentas reales. Lo que se lee es real (catálogo,
+  emprendedoras, ventas…).
+- Lo que se "guarda" (ventas, cambios físicos, garantías, inventario, nómina,
+  aprobar inscripciones…) se queda solo en la memoria de esa pantalla: se ve
+  como si se hubiera guardado, pero a Firebase no llega nada. Al recargar, o
+  con "Reiniciar práctica", se borra. No se crean cuentas de acceso.
+- Una franja y la etiqueta "PILOTO" lo indican, y cada ticket impreso dice
+  "PILOTO · SIN VALOR".
+- Cómo funciona: todo BRILLO usa Firestore a través de `src/datos/firestore.ts`;
+  en piloto esa puerta pone las escrituras en una capa en memoria encima de
+  lo real. La prueba `src/datos/puerta.test.ts` falla (y no se publica) si
+  algún archivo nuevo importa `firebase/firestore` directo y se saltara el
+  piloto.
 
 ## Estructura
 

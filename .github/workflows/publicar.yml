@@ -31,6 +31,9 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      # BRILLO PILOTO: el mismo código, sin guardar nada, en .../piloto/.
+      # Se arma en cada publicación, así que siempre trae los mismos cambios.
+      - run: npm run build:piloto
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

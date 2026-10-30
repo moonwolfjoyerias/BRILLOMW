@@ -18,6 +18,7 @@ import { PlanMW } from './PlanMW';
 import { ConfirmarCompras } from './ConfirmarCompras';
 import { Estadisticas } from './Estadisticas';
 import { useTema } from '../tema';
+import { PILOTO } from '../piloto';
 
 export type Seccion = 'inicio' | 'vender' | 'catalogo' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'compras' | 'estadisticas' | 'cuenta';
 
@@ -119,6 +120,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
         <div className="barra-marca">
           <img src="./isotipo.png" alt="" />
           <span className="marca">BRILLO MW</span>
+          {PILOTO && <span className="chip-piloto" title="Práctica: nada se guarda">PILOTO</span>}
         </div>
         <span className="barra-seccion">{actual?.nombre}</span>
         <div className="barra-usuario">

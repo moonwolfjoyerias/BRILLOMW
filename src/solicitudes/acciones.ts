@@ -2,7 +2,7 @@
 // Aprobar una inscripción crea el acceso real (Firebase Auth) y luego, en
 // UNA transacción: la persona, sus datos de constancia/rifa, su perfil de
 // acceso, la solicitud resuelta, Actividad y el aviso a quien la invitó.
-import { collection, doc, onSnapshot, runTransaction, type Firestore } from 'firebase/firestore';
+import { collection, doc, onSnapshot, runTransaction, type Firestore } from '../datos/firestore';
 import { useEffect, useState } from 'react';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { UsuarioOcupado, type CrearAcceso } from '../sesion/crearAcceso';

@@ -13,7 +13,7 @@ import {
   serverTimestamp,
   type DocumentReference,
   type Firestore
-} from 'firebase/firestore';
+} from '../datos/firestore';
 import { useEffect, useState } from 'react';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot } from '../datos/firestore';
 import { db } from '../firebase';
 import { marcaAlta, normalizarProducto, type Producto } from './producto';
 

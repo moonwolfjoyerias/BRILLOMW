@@ -2,7 +2,7 @@
 // Administración). Cada acción va en UNA transacción con su registro en
 // Actividad (módulo comisiones) y, si aplica, el aviso a la líder.
 import { FirebaseError } from 'firebase/app';
-import { collection, doc, onSnapshot, runTransaction, type Firestore } from 'firebase/firestore';
+import { collection, doc, onSnapshot, runTransaction, type Firestore } from '../datos/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';
