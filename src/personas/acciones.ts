@@ -4,7 +4,7 @@
 // apartados si cambia su etiqueta, el registro en Actividad (módulo
 // personas) y los avisos.
 import { FirebaseError } from 'firebase/app';
-import { collection, doc, onSnapshot, runTransaction, type Firestore, type Transaction } from 'firebase/firestore';
+import { collection, doc, onSnapshot, runTransaction, type Firestore, type Transaction } from '../datos/firestore';
 import { useEffect, useState } from 'react';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';

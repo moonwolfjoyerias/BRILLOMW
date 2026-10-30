@@ -1,7 +1,7 @@
 // Confirmar ascensos de rango y recompensas del Reto de Constancia (solo
 // Administración), en UNA transacción con Actividad y el aviso a la persona.
 // Mismo resultado que abrirConfirmarAscensoRango / abrirConfirmarRecompensaConstancia.
-import { doc, runTransaction, type Firestore } from 'firebase/firestore';
+import { doc, runTransaction, type Firestore } from '../datos/firestore';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';
 import { nuevoAviso } from '../pagina/avisos';

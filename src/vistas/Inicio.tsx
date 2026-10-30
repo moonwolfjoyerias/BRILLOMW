@@ -2,7 +2,7 @@
 // Admin), con los mismos números, más lo propio de BRILLO (cajas y
 // ventas del día). Cada tarjeta lleva a su pestaña.
 import { useEffect, useState } from 'react';
-import { collection, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import { collection, limit, onSnapshot, orderBy, query, where } from '../datos/firestore';
 import { db } from '../firebase';
 import { puedeManejarCaja, type PerfilUsuario } from '../sesion/perfil';
 import type { Seccion } from './Principal';

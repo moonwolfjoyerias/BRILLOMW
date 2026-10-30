@@ -1,7 +1,7 @@
 // Emprendedoras y líderes: `personas/{id}` de la PÁGINA (js/personas-ejemplo.js).
 // BRILLO solo las lee, para identificarlas en caja y aplicar el mayoreo.
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot } from '../datos/firestore';
 import { db } from '../firebase';
 
 export interface Persona {

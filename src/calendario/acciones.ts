@@ -2,7 +2,7 @@
 // página), cada acción en UNA transacción junto con su registro en
 // Actividad (módulo calendario, como Encargado y Admin en la página).
 import { FirebaseError } from 'firebase/app';
-import { collection, doc, onSnapshot, runTransaction, type Firestore } from 'firebase/firestore';
+import { collection, doc, onSnapshot, runTransaction, type Firestore } from '../datos/firestore';
 import { useEffect, useState } from 'react';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';

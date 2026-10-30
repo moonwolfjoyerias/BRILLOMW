@@ -1,7 +1,7 @@
 // "Mi cuenta": datos propios (`users/{uid}`, la misma cuenta de la página)
 // y el recibo de nómina (`nominaEmpleados` / `nominaPeriodos`).
 import { FirebaseError } from 'firebase/app';
-import { collection, doc, onSnapshot, query, runTransaction, setDoc, updateDoc, where, type Firestore } from 'firebase/firestore';
+import { collection, doc, onSnapshot, query, runTransaction, setDoc, updateDoc, where, type Firestore } from '../datos/firestore';
 import { useEffect, useState } from 'react';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { nuevoAviso } from '../pagina/avisos';

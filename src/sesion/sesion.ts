@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from '../datos/firestore';
 import { FirebaseError } from 'firebase/app';
 import { auth, db } from '../firebase';
 import { usuarioAEmail, validarPerfil, type PerfilUsuario, type ResultadoPerfil } from './perfil';

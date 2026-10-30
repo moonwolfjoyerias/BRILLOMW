@@ -4,7 +4,7 @@
 // Siempre se parte de la versión actual del servidor y solo se cambia lo que
 // toca la acción, para no pisar lo que la página u otro equipo hizo.
 import { FirebaseError } from 'firebase/app';
-import { collection, doc, onSnapshot, runTransaction, type Firestore, type Transaction } from 'firebase/firestore';
+import { collection, doc, onSnapshot, runTransaction, type Firestore, type Transaction } from '../datos/firestore';
 import { useEffect, useState } from 'react';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';

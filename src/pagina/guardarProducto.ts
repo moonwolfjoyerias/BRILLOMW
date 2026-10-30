@@ -2,7 +2,7 @@
 // registro en `auditoria`, que es la pestaña "Actividad" de la página,
 // en la MISMA operación: o se guardan los dos o ninguno.
 import { FirebaseError } from 'firebase/app';
-import { collection, doc, getDocs, runTransaction, writeBatch, type Firestore } from 'firebase/firestore';
+import { collection, doc, getDocs, runTransaction, writeBatch, type Firestore } from '../datos/firestore';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { armarDocumento, describirCambios, textoEstable, type DatosProducto, type UltimaAccion } from './edicion';
 import { normalizarProducto, type Producto } from './producto';

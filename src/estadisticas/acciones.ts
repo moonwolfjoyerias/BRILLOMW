@@ -1,6 +1,6 @@
 // Lecturas propias de Estadísticas: ventas de caja y Actividad, solo del
 // rango elegido (no se descarga todo el historial).
-import { collection, onSnapshot, query, where, type Firestore } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, type Firestore } from '../datos/firestore';
 import { useEffect, useState } from 'react';
 import { COLECCION_VENTAS, type VentaRegistrada } from '../venta/registrarVenta';
 import type { Rango } from './modelo';

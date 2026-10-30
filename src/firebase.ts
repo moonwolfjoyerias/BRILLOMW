@@ -7,9 +7,11 @@ import { connectAuthEmulator, getAuth } from 'firebase/auth';
 import {
   connectFirestoreEmulator,
   initializeFirestore,
+  memoryLocalCache,
   persistentLocalCache,
   persistentMultipleTabManager
 } from 'firebase/firestore';
+import { PILOTO } from './piloto';
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyBLHJwoZlplK8keaf0vtwNjr9k_ziF1PpM',
@@ -25,8 +27,10 @@ export const auth = getAuth(app);
 
 // Caché local persistente: la caja sigue mostrando datos (y más adelante
 // podrá registrar ventas) aunque se caiga el internet; se sincroniza al volver.
+// BRILLO PILOTO solo lee: usa una caché en memoria aparte, para no mezclar
+// nada con la caché de la app normal en el mismo equipo.
 export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+  localCache: PILOTO ? memoryLocalCache() : persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 
 // Solo en desarrollo y si se pide (VITE_EMULADOR=puerto): datos de prueba en

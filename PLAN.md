@@ -576,6 +576,7 @@ reparaciones y ajustes, no el grabado).
 - **Datos Aronium:** pestaña en BRILLO (como Compras Aronium de la página)
   para subir inventario, clientas e historial de las e/l. Espera los
   archivos de Aronium.
-- **BRILLO PILOTO:** modo en la misma app para probar todo en la caja
-  (cobrar, inventario, tickets) sin guardar nada en Firebase.
+- ~~BRILLO PILOTO~~ **Hecho (oct-2026):** misma app y mismos datos, sin
+  guardar nada; se publica en `.../piloto/` con cada cambio a `main` (ver
+  README).
 - **Etiquetas con QR** y **reporte quincenal claro**: se ven después.
