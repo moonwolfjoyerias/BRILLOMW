@@ -154,6 +154,19 @@ Meta: dejar Aronium a **finales de 2026**.
   favor**.
 - Solo para **emprendedoras y líderes**. El saldo **no caduca**.
 - Lo autoriza Encargado o Administrativo.
+- **Hecho (oct-2026):** botón "Cambio físico" en la caja. Cada pieza vale su
+  precio etiqueta de **hoy** con su descuento de mayoreo (o se escribe a mano
+  si ya no está en el catálogo). Se imprime el preticket ("ticket falso")
+  para Staff y la e/l. El cambio queda **abierto** hasta cerrar la venta
+  (se pueden agregar más piezas; "Cambios abiertos" para retomarlo). Al
+  cobrar se usa primero el cambio; si sobra, queda como **saldo a favor** a
+  su nombre (sale en el ticket) y se puede usar en otra compra. Cerrada la
+  venta, "Regresar al inventario" pone las piezas a la venta otra vez (si
+  no se presiona en ese momento, se hace desde Caja → Ventas).
+- Ticket falso / presupuesto también se imprime desde la caja con lo que se
+  pasó, aunque no haya cambio físico. Antes de confirmar el pago se imprime
+  el **ticket de verificación**: logo, línea "Verificó", y una casilla por
+  cada pieza (no por modelo) con su precio etiqueta.
 
 ### Garantías
 
@@ -169,6 +182,26 @@ Meta: dejar Aronium a **finales de 2026**.
   guarda** por si se pueden aprovechar sus zirconias.
 - Los certificados se siguen imprimiendo fuera de BRILLO (llevan cuidados
   y un folio).
+- **Hecho (oct-2026):** botón "Garantía" en la caja con **Primer cambio**
+  (folio del certificado + código de la pieza regresada + código de la que
+  se lleva) y **Segundo cambio** (mismo folio; se confirma la pieza con su
+  etiqueta y se elige la nueva). La diferencia se calcula con descuento si es
+  e/l y a precio etiqueta si es público; sale en el ticket bajo "GARANTIA"
+  con el nombre, precio etiqueta y diferencia. Después del segundo cambio la
+  garantía queda terminada.
+
+### Historial de ventas y cancelaciones
+
+- **Hecho:** Caja → Ventas: buscar por día, folio o emprendedora/líder;
+  reimprimir el ticket, regresar al inventario y cancelar.
+- **Cancelar:** solo Administrativo, el mismo día y con la caja abierta (lo
+  anterior se corrige con un cambio físico). Deshace existencias, compra del
+  Plan MW, referencias, saldo a favor, cambio físico (vuelve a abierto) y
+  garantías; la venta queda marcada como cancelada, no se borra.
+- **Mis compras (página):** la e/l busca sus tickets por fechas o por pieza
+  (nombre o código) y los ve con fotos. Para no gastar lecturas, BRILLO
+  guarda un resumen por persona y mes (`brilloTicketsPersona`): buscar lee un
+  documento por mes y abrir un ticket lee solo esa venta.
 
 ### Regla de dinero para comisiones y recompensas
 
@@ -536,4 +569,13 @@ reparaciones y ajustes, no el grabado).
 |---|---|---|
 | 1 | "Cham" no existe como categoría en el catálogo de la página: ¿se agrega? | Tienda |
 | 2 | Migración de ventas: "hay inicios de mes". ¿Quiere decir que hay reportes de Aronium desde el inicio de cada mes? ¿Desde qué mes y año se migra? | Jefes |
-| 3 | Exportaciones de Aronium de **productos** y de **clientas** (el de compras ya se tiene) | Tienda |
+| 3 | Exportaciones de Aronium de **productos** y de **clientas** (el de compras ya se tiene); ¿exporta ventas con detalle de artículos? | Tienda |
+
+### Pendientes por decisión (oct-2026)
+
+- **Datos Aronium:** pestaña en BRILLO (como Compras Aronium de la página)
+  para subir inventario, clientas e historial de las e/l. Espera los
+  archivos de Aronium.
+- **BRILLO PILOTO:** modo en la misma app para probar todo en la caja
+  (cobrar, inventario, tickets) sin guardar nada en Firebase.
+- **Etiquetas con QR** y **reporte quincenal claro**: se ven después.

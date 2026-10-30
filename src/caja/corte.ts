@@ -5,7 +5,8 @@ import type { MetodoPago } from '../venta/carrito';
 import type { VentaRegistrada } from '../venta/registrarVenta';
 import type { MovimientoEfectivo, TurnoCaja } from './turno';
 
-export const METODOS: MetodoPago[] = ['efectivo', 'tarjeta', 'transferencia', 'gala', 'regalo', 'souvenir'];
+// Cambio físico y saldo a favor no son dinero: salen en el corte solo si se usaron.
+export const METODOS: MetodoPago[] = ['efectivo', 'tarjeta', 'transferencia', 'gala', 'regalo', 'souvenir', 'cambio_fisico', 'saldo_favor'];
 /** Las que siempre se muestran en el corte; las demás solo si se usaron. */
 export const METODOS_BASE: MetodoPago[] = ['efectivo', 'tarjeta', 'transferencia'];
 /** Formas de pago que se muestran en un corte (también sirve para cortes guardados antes de Gala/Regalo/Souvenir). */

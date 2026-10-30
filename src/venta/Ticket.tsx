@@ -13,7 +13,9 @@ const ETIQUETA_PAGO: Record<MetodoPago, string> = {
   transferencia: 'TRANSFERENCIA',
   gala: 'GALA',
   regalo: 'REGALO',
-  souvenir: 'SOUVENIR'
+  souvenir: 'SOUVENIR',
+  cambio_fisico: 'CAMBIO FISICO',
+  saldo_favor: 'SALDO A FAVOR'
 };
 
 /** Renglón con texto a la izquierda e importe cargado a la derecha. */
@@ -46,18 +48,28 @@ function CodigoBarras({ texto }: { texto: string }) {
 export type AnchoTicket = 58 | 80;
 
 /** Ticket con el formato de la tienda, para papel de 58 u 80 mm. */
+/** Encabezado de la tienda (lema, logo y datos), igual en todos los tickets. */
+export function EncabezadoTienda() {
+  return (
+    <div className="t-centro">
+      <div className="t-lema">{TIENDA.lema}</div>
+      <img src="./imagotipo-ticket.jpg" alt="" className="t-imagotipo" />
+      <div className="t-tienda">{TIENDA.nombre}</div>
+      {TIENDA.lineasEncabezado.map(l => (
+        <div key={l}>{l}</div>
+      ))}
+    </div>
+  );
+}
+
 export function Ticket({ venta: v, ancho = 80 }: { venta: VentaRegistrada; ancho?: AnchoTicket }) {
   const ahorro = Math.round((v.totales.totalEtiqueta - v.totales.total) * 100) / 100;
+  const normales = v.lineas.filter(l => !l.garantia);
+  const garantias = v.lineas.filter(l => l.garantia);
   return (
     <div className={ancho === 58 ? 'ticket t58' : 'ticket'}>
-      <div className="t-centro">
-        <div className="t-lema">{TIENDA.lema}</div>
-        <img src="./imagotipo-ticket.jpg" alt="" className="t-imagotipo" />
-        <div className="t-tienda">{TIENDA.nombre}</div>
-        {TIENDA.lineasEncabezado.map(l => (
-          <div key={l}>{l}</div>
-        ))}
-      </div>
+      {v.estado === 'cancelada' && <div className="t-centro t-fuerte">*** VENTA CANCELADA ***</div>}
+      <EncabezadoTienda />
       <div className="t-espacio" />
       <div>N° Recibo: {v.folio}</div>
       <div>{fechaTicket(v.fechaLocal)}</div>
@@ -69,12 +81,40 @@ export function Ticket({ venta: v, ancho = 80 }: { venta: VentaRegistrada; ancho
       {v.cliente.membresia && <div>{v.cliente.membresia}</div>}
       {v.cliente.codigoTarjeta && <div><span className="t-fuerte">Código:</span> {v.cliente.codigoTarjeta}</div>}
       <div className="t-linea" />
-      {v.lineas.map((l, i) => (
+      {normales.map((l, i) => (
         <div key={i} className="t-art">
           <div>{renglonPieza({ categoria: l.categoria, colorOro: l.colorOro, nombre: l.nombre, variante: l.variante })}</div>
           <Fila izq={renglonCantidad(l)} der={MXN.format(l.importe)} />
         </div>
       ))}
+      {garantias.length > 0 && (
+        <>
+          {normales.length > 0 && <div className="t-linea" />}
+          <div className="t-centro t-fuerte">GARANTIA</div>
+          {garantias.map((l, i) => (
+            <div key={i} className="t-art">
+              <div>Folio cert.: {l.garantia!.folio} · {l.garantia!.numero === 1 ? '1er' : '2o'} cambio</div>
+              <div>{renglonPieza({ categoria: l.categoria, colorOro: l.colorOro, nombre: l.nombre, variante: l.variante })}</div>
+              <Fila izq="Precio etiqueta" der={MXN.format(l.precioEtiqueta)} />
+              <Fila izq="Diferencia a pagar" der={MXN.format(l.importe)} />
+              <div className="t-sangria">Regresa: {l.garantia!.regresada.nombre}{l.garantia!.regresada.codigo ? ` (${l.garantia!.regresada.codigo})` : ''}</div>
+            </div>
+          ))}
+        </>
+      )}
+      {v.cambioFisico && (
+        <>
+          <div className="t-linea" />
+          <div className="t-centro t-fuerte">CAMBIO FISICO</div>
+          {v.cambioFisico.piezas.map((p, i) => (
+            <div key={i} className="t-art">
+              <div>{renglonPieza({ categoria: p.categoria, colorOro: p.colorOro, nombre: p.nombre, variante: p.variante })}</div>
+              <Fila izq={`1 PZ x ${MXN.format(p.precioEtiqueta)}${p.descuento ? ` (-${p.descuento}%)` : ''}`} der={MXN.format(p.valor)} />
+            </div>
+          ))}
+          <Fila izq="Total a favor:" der={MXN.format(v.cambioFisico.valor)} fuerte />
+        </>
+      )}
       <div className="t-linea" />
       <div>Cantidad de artículos: {v.totales.piezas}</div>
       <div className="t-linea" />
@@ -90,6 +130,19 @@ export function Ticket({ venta: v, ancho = 80 }: { venta: VentaRegistrada; ancho
       ))}
       <Fila izq="Recibido:" der={MXN.format(v.recibido)} />
       {v.cambio > 0 && <Fila izq="Cambio:" der={MXN.format(v.cambio)} />}
+      {v.saldoAFavor && v.saldoAFavor.guardado > 0 && (
+        <>
+          <div className="t-linea" />
+          <Fila izq="SALDO A FAVOR GUARDADO:" der={MXN.format(v.saldoAFavor.guardado)} fuerte />
+        </>
+      )}
+      {v.saldoAFavor && <Fila izq="Tu saldo a favor:" der={MXN.format(v.saldoAFavor.saldoFinal)} />}
+      {v.cancelada && (
+        <>
+          <div className="t-linea" />
+          <div>Cancelada por {v.cancelada.por}: {v.cancelada.motivo}</div>
+        </>
+      )}
       {ahorro > 0 && (
         <>
           <div className="t-linea" />

@@ -45,6 +45,22 @@ export interface LineaCarrito {
   tipoServicio?: TipoServicio;
   /** Existencias de la variante al agregarla (tope de cantidad). null en servicios. */
   disponible: number | null;
+  /** Cambio por garantía: la pieza nueva sale del inventario y solo se paga la diferencia. */
+  garantia?: LineaGarantia;
+}
+
+/** Datos de garantía de una línea (ver venta/garantias.ts). */
+export interface LineaGarantia {
+  /** Folio del certificado de garantía (identifica la garantía en los dos cambios). */
+  folio: string;
+  numero: 1 | 2;
+  /** Pieza que regresa (defectuosa): se guarda, no vuelve a la venta. */
+  regresada: { productoId: string | null; varianteId: string | null; codigo: string; nombre: string; variante: string; precioEtiqueta: number; valor: number };
+  /** Valor de la pieza que se llevó primero: siempre es la base de la diferencia. */
+  valorOriginal: number;
+  /** Valor de la pieza nueva para esta clienta (con su descuento si es e/l). */
+  valorNueva: number;
+  diferencia: number;
 }
 
 export function lineaDeProducto(p: Producto, varianteId: string): LineaCarrito {
@@ -121,6 +137,7 @@ export function cambiarCantidad(carrito: LineaCarrito[], clave: string, cantidad
 
 /** Precio unitario para esta clienta: mayoreo automático si es emprendedora o líder. */
 export function precioUnitario(l: LineaCarrito, cliente: ClienteVenta): number {
+  if (l.garantia) return l.garantia.diferencia;
   if (cliente.tipo === 'publico' || l.esServicio) return l.precioEtiqueta;
   return precioMayoreo({ precioEtiqueta: l.precioEtiqueta, descuento: l.descuentoMayoreo });
 }
@@ -143,7 +160,8 @@ export interface Totales {
 
 export function calcularTotales(carrito: LineaCarrito[], cliente: ClienteVenta): Totales {
   const total = r2(carrito.reduce((s, l) => s + precioUnitario(l, cliente) * l.cantidad, 0));
-  const totalEtiqueta = r2(carrito.reduce((s, l) => s + l.precioEtiqueta * l.cantidad, 0));
+  // Una garantía no es "ahorro": cuenta a precio etiqueta solo lo que se paga de diferencia.
+  const totalEtiqueta = r2(carrito.reduce((s, l) => s + (l.garantia ? l.garantia.diferencia : l.precioEtiqueta) * l.cantidad, 0));
   const baseSinIva = r2(total / (1 + IVA_TASA));
   const totalSouvenirs = r2(
     carrito.filter(l => l.material === 'souvenirs').reduce((s, l) => s + precioUnitario(l, cliente) * l.cantidad, 0)
@@ -167,7 +185,7 @@ export function calcularTotales(carrito: LineaCarrito[], cliente: ClienteVenta):
  * referencia ni dan cambio. Para comisiones y recompensas solo cuentan
  * efectivo, tarjeta (terminal) y transferencia.
  */
-export type MetodoPago = 'efectivo' | 'tarjeta' | 'transferencia' | 'gala' | 'regalo' | 'souvenir';
+export type MetodoPago = 'efectivo' | 'tarjeta' | 'transferencia' | 'gala' | 'regalo' | 'souvenir' | 'cambio_fisico' | 'saldo_favor';
 
 export const NOMBRE_METODO: Record<MetodoPago, string> = {
   efectivo: 'Efectivo',
@@ -175,8 +193,16 @@ export const NOMBRE_METODO: Record<MetodoPago, string> = {
   transferencia: 'Transferencia',
   gala: 'Gala',
   regalo: 'Regalo',
-  souvenir: 'Souvenir'
+  souvenir: 'Souvenir',
+  cambio_fisico: 'Cambio físico',
+  saldo_favor: 'Saldo a favor'
 };
+
+/**
+ * Las que el cajero escribe al cobrar. Cambio físico y saldo a favor no se
+ * capturan a mano: salen del cambio abierto y del saldo guardado de la e/l.
+ */
+export const METODOS_CAPTURABLES: MetodoPago[] = ['efectivo', 'tarjeta', 'transferencia', 'gala', 'regalo', 'souvenir'];
 
 /** Tarjeta y transferencia siempre guardan su número de referencia (y no se repite). */
 export const LLEVA_REFERENCIA: readonly MetodoPago[] = ['tarjeta', 'transferencia'];
@@ -207,6 +233,8 @@ export const normalizarReferencia = (r: string) => r.trim().toUpperCase().replac
  */
 export function validarPagos(total: number, capturados: PagoCaptura[]): ResultadoPagos {
   const pagos = capturados.filter(p => p.monto > 0);
+  // Todo quedó cubierto con cambio físico o saldo a favor: no hay nada que cobrar.
+  if (total <= 0 && !pagos.length) return { ok: true, recibido: 0, cambio: 0, pagos: [] };
   if (!pagos.length) return { ok: false, error: 'Agrega al menos un pago.' };
   for (const p of pagos) {
     if (llevaReferencia(p.metodo) && !normalizarReferencia(p.referencia)) {

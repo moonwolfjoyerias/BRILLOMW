@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { db } from '../firebase';
 import { equipoActual } from '../plataforma';
 import type { PerfilUsuario } from '../sesion/perfil';
@@ -9,8 +9,10 @@ import { CAJAS, fechaLocal, leerMonto, nombreCaja, type IdCaja } from '../caja/t
 import { useTurnosDelDia } from '../caja/turnos';
 import { TarjetaCaja } from './Caja';
 import { Corte } from './Corte';
+import { HistorialVentas } from './HistorialVentas';
 import {
   NOMBRE_METODO,
+  METODOS_CAPTURABLES,
   llevaReferencia,
   PUBLICO_GENERAL,
   agregarLinea,
@@ -32,6 +34,9 @@ import {
 import { registrarVenta, type VentaRegistrada } from '../venta/registrarVenta';
 import { Ticket, type AnchoTicket } from '../venta/Ticket';
 import { anchoGuardado, guardarAncho, imprimirTicket } from '../venta/imprimir';
+import { aplicarCreditos, pagosDeCreditos, piezasRegresables, valorCambio, type PiezaCambio } from '../venta/cambios';
+import { regresarAlInventario, useCambiosAbiertos, useSaldoAFavor } from '../venta/accionesVenta';
+import { CambioFisicoModal, CambiosAbiertosModal, GarantiaModal, TicketPresupuesto, TicketVerificacion } from './CajaExtras';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 const dinero = (n: number) => MXN.format(n);
@@ -58,10 +63,37 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
   const [aviso, setAviso] = useState<string | null>(null);
   const [cobrando, setCobrando] = useState(false);
   const [ticket, setTicket] = useState<VentaRegistrada | null>(null);
+  // Cambio físico de esta e/l (abierto hasta que se cierre la venta).
+  const [cambio, setCambio] = useState<{ id: string | null; piezas: PiezaCambio[] } | null>(null);
+  const [extra, setExtra] = useState<null | 'cambio' | 'abiertos' | 'garantia'>(null);
+  const cambiosAbiertos = useCambiosAbiertos(db);
+  const saldo = useSaldoAFavor(db, cliente.tipo !== 'publico' ? cliente.personaId : null) ?? 0;
+  // Presupuesto, preticket y verificación se imprimen sin salir de la venta.
+  const [paraImprimir, setParaImprimir] = useState<ReactNode>(null);
+  useEffect(() => {
+    if (!paraImprimir) return;
+    const t = window.setTimeout(() => {
+      imprimirTicket(anchoGuardado());
+      setParaImprimir(null);
+    }, 50);
+    return () => window.clearTimeout(t);
+  }, [paraImprimir]);
 
   const turno = turnos.estado === 'listo' ? turnos.turnos.find(t => t.caja === caja) : undefined;
   const cajaAbierta = turno?.estado === 'abierta';
   const totales = calcularTotales(carrito, cliente);
+  const aFavor = cambio ? valorCambio(cambio.piezas) : 0;
+  const hayVenta = carrito.length > 0 || !!cambio;
+
+  /** El cambio físico es de una persona: si cambia la clienta, se suelta (sigue abierto, se retoma después). */
+  function cambiarCliente(c: ClienteVenta) {
+    if (cambio && c.personaId !== cliente.personaId) setCambio(null);
+    if (carrito.some(l => l.garantia) && c.personaId !== cliente.personaId) {
+      setAviso('Hay una garantía en la venta: quítala antes de cambiar de cliente.');
+      return;
+    }
+    setCliente(c);
+  }
   const productos = catalogo.estado === 'listo' ? catalogo.productos : [];
 
   function elegirCaja(c: IdCaja) {
@@ -79,12 +111,13 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
     setAviso(r.error ?? null);
   }
 
-  const [modo, setModo] = useState<'cobrar' | 'corte'>('cobrar');
+  const [modo, setModo] = useState<'cobrar' | 'corte' | 'ventas'>('cobrar');
 
   function nuevaVenta() {
     setTicket(null);
     setCarrito([]);
     setCliente(PUBLICO_GENERAL);
+    setCambio(null);
     setAviso(null);
   }
 
@@ -107,6 +140,7 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
         <nav className="pestanas" aria-label="Caja">
           <button className={modo === 'cobrar' ? 'nav-boton activo' : 'nav-boton'} onClick={() => setModo('cobrar')}>Cobrar</button>
           <button className={modo === 'corte' ? 'nav-boton activo' : 'nav-boton'} onClick={() => setModo('corte')}>Corte del día</button>
+          <button className={modo === 'ventas' ? 'nav-boton activo' : 'nav-boton'} onClick={() => setModo('ventas')}>Ventas</button>
         </nav>
         <label className="campo-en-linea">
           <span>Este equipo es</span>
@@ -118,7 +152,9 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
         </label>
       </div>
 
-      {modo === 'corte' ? (
+      {modo === 'ventas' ? (
+        <HistorialVentas perfil={perfil} />
+      ) : modo === 'corte' ? (
         <Corte perfil={perfil} />
       ) : turnos.estado === 'listo' && !cajaAbierta ? (
         // Caja y venta en una sola pestaña: si la caja de este equipo no se
@@ -130,14 +166,41 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
         <div className="vender-columnas">
           <BuscadorProductos productos={productos} cargando={catalogo.estado === 'cargando'} enCarrito={carrito} onAgregar={agregar} />
           <div className="panel-venta">
-            <SelectorCliente cliente={cliente} onCambiar={setCliente} />
+            <SelectorCliente cliente={cliente} onCambiar={cambiarCliente} />
+            <div className="acciones-caja">
+              <button className="btn" disabled={cliente.tipo === 'publico'} title={cliente.tipo === 'publico' ? 'Solo emprendedoras y líderes' : undefined} onClick={() => setExtra('cambio')}>
+                Cambio físico{cambio ? ` (${dinero(aFavor)})` : ''}
+              </button>
+              <button className="btn" onClick={() => setExtra('abiertos')}>Cambios abiertos{cambiosAbiertos?.length ? ` (${cambiosAbiertos.length})` : ''}</button>
+              <button className="btn" onClick={() => setExtra('garantia')}>Garantía</button>
+              <button className="btn" disabled={!hayVenta} onClick={() => setParaImprimir(<TicketPresupuesto cliente={cliente} carrito={carrito} cambio={cambio?.piezas ?? []} saldo={saldo} ancho={anchoGuardado()} />)}>
+                Ticket falso / presupuesto
+              </button>
+            </div>
             {aviso && <p className="error" role="alert">{aviso}</p>}
+            {cambio && (
+              <p className="nota-apartado small">
+                Cambio físico: {cambio.piezas.length} pieza(s) · <strong>{dinero(aFavor)} a favor</strong>. Queda abierto hasta cerrar la venta.
+              </p>
+            )}
             {carrito.length === 0 ? (
-              <p className="muted vacio">Agrega productos para empezar la venta.</p>
+              <p className="muted vacio">{cambio ? 'Agrega lo que se lleva, o cobra para guardar todo como saldo a favor.' : 'Agrega productos para empezar la venta.'}</p>
             ) : (
               <ul className="lineas">
                 {carrito.map(l => {
                   const pu = precioUnitario(l, cliente);
+                  if (l.garantia) {
+                    return (
+                      <li key={l.clave} className="linea">
+                        <div className="linea-desc">
+                          <strong>Garantía · {l.descripcion}</strong>
+                          <span className="muted small">Folio {l.garantia.folio} · {l.garantia.numero === 1 ? '1er' : '2º'} cambio · regresa {l.garantia.regresada.nombre} · se lleva una de {dinero(l.precioEtiqueta)}</span>
+                        </div>
+                        <button className="btn mini" onClick={() => setCarrito(c => c.filter(x => x.clave !== l.clave))}>Quitar</button>
+                        <strong className="linea-importe">{dinero(pu)}</strong>
+                      </li>
+                    );
+                  }
                   return (
                     <li key={l.clave} className="linea">
                       <div className="linea-desc">
@@ -173,13 +236,31 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
               <dd className="muted small">{dinero(totales.iva)}</dd>
               <dt className="total">Total</dt>
               <dd className="total">{dinero(totales.total)}</dd>
+              {cambio && (
+                <>
+                  <dt>Cambio físico</dt>
+                  <dd>−{dinero(Math.min(aFavor, totales.total))}</dd>
+                  {aFavor > totales.total && (
+                    <>
+                      <dt>Queda a su favor</dt>
+                      <dd>{dinero(aFavor - totales.total)}</dd>
+                    </>
+                  )}
+                </>
+              )}
+              {saldo > 0 && (
+                <>
+                  <dt className="muted small">Saldo a favor guardado</dt>
+                  <dd className="muted small">{dinero(saldo)}</dd>
+                </>
+              )}
             </dl>
             <div className="acciones">
-              <button className="btn" onClick={nuevaVenta} disabled={!carrito.length}>
+              <button className="btn" onClick={nuevaVenta} disabled={!hayVenta}>
                 Vaciar
               </button>
-              <button className="btn primario cobrar" onClick={() => setCobrando(true)} disabled={!carrito.length}>
-                Cobrar {dinero(totales.total)}
+              <button className="btn primario cobrar" onClick={() => setCobrando(true)} disabled={!hayVenta}>
+                Cobrar {dinero(aplicarCreditos(totales.total, aFavor, 0, false).porPagar)}
               </button>
             </div>
           </div>
@@ -189,9 +270,12 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
       {cobrando && (
         <Cobro
           total={totales.total}
+          aFavor={aFavor}
+          saldo={cliente.tipo !== 'publico' ? saldo : 0}
+          onVerificacion={() => setParaImprimir(<TicketVerificacion cliente={cliente} carrito={carrito} ancho={anchoGuardado()} />)}
           onCancelar={() => setCobrando(false)}
-          onConfirmar={async (pagos, recibido, cambio) => {
-            const r = await registrarVenta(db, { caja, fechaDia: hoy, cliente, carrito, pagos, recibido, cambio, perfil, equipo: equipoActual() });
+          onConfirmar={async (pagos, recibido, cambioEfectivo) => {
+            const r = await registrarVenta(db, { caja, fechaDia: hoy, cliente, carrito, pagos, recibido, cambio: cambioEfectivo, perfil, equipo: equipoActual(), cambioId: cambio?.id ?? null });
             if (!r.ok) return r.error;
             setCobrando(false);
             setTicket(r.venta);
@@ -199,7 +283,53 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
           }}
         />
       )}
-      {ticket && <VentaTerminada venta={ticket} onNueva={nuevaVenta} />}
+      {ticket && <VentaTerminada venta={ticket} perfil={perfil} onNueva={nuevaVenta} />}
+      {extra === 'cambio' && (
+        <CambioFisicoModal
+          cliente={cliente}
+          inicial={cambio ?? { id: null, piezas: [] }}
+          productos={productos}
+          perfil={perfil}
+          onCerrar={() => setExtra(null)}
+          onGuardado={c => { setCambio(c); setExtra(null); }}
+          onImprimir={piezas => setParaImprimir(<TicketPresupuesto cliente={cliente} carrito={carrito} cambio={piezas} saldo={saldo} ancho={anchoGuardado()} />)}
+        />
+      )}
+      {extra === 'abiertos' && (
+        <CambiosAbiertosModal
+          cambios={cambiosAbiertos ?? []}
+          perfil={perfil}
+          onCerrar={() => setExtra(null)}
+          onRetomar={c => {
+            if (carrito.length && c.personaId !== cliente.personaId) {
+              setAviso(`La venta en curso es de otra persona. Cóbrala o vacíala antes de retomar el cambio de ${c.cliente.nombre}.`);
+            } else {
+              setCliente(c.cliente);
+              setCambio({ id: c.id, piezas: c.piezas });
+              setAviso(null);
+            }
+            setExtra(null);
+          }}
+        />
+      )}
+      {extra === 'garantia' && (
+        <GarantiaModal
+          cliente={cliente}
+          productos={productos}
+          onCerrar={() => setExtra(null)}
+          onAgregar={(l, clienteG) => {
+            if (clienteG.personaId !== cliente.personaId) {
+              if (carrito.length || cambio) return `Esta garantía es de ${clienteG.nombre}. Cobra o vacía la venta en curso primero.`;
+              setCliente(clienteG);
+            }
+            if (carrito.some(x => x.clave === l.clave)) return 'Esa garantía ya está en la venta.';
+            setCarrito(c => [...c, l]);
+            setExtra(null);
+            return null;
+          }}
+        />
+      )}
+      <div className="ticket-impresion" aria-hidden="true">{paraImprimir}</div>
     </section>
   );
 }
@@ -454,14 +584,26 @@ function SelectorCliente({ cliente, onCambiar }: { cliente: ClienteVenta; onCamb
 // ------------------------------------------------------------ cobro
 
 function Cobro({
-  total,
+  total: totalVenta,
+  aFavor,
+  saldo,
+  onVerificacion,
   onCancelar,
   onConfirmar
 }: {
   total: number;
+  /** Valor del cambio físico de esta venta (0 si no hay). */
+  aFavor: number;
+  /** Saldo a favor guardado de la e/l (0 si es público general). */
+  saldo: number;
+  onVerificacion: () => void;
   onCancelar: () => void;
   onConfirmar: (pagos: PagoRegistrado[], recibido: number, cambio: number) => Promise<string | null>;
 }) {
+  const [usarSaldo, setUsarSaldo] = useState(saldo > 0);
+  const creditos = aplicarCreditos(totalVenta, aFavor, saldo, usarSaldo);
+  // Lo que falta después del cambio físico y el saldo: es lo que se cobra en dinero.
+  const total = creditos.porPagar;
   const [filas, setFilas] = useState<{ metodo: MetodoPago; monto: string; referencia: string }[]>([
     { metodo: 'efectivo', monto: String(total), referencia: '' }
   ]);
@@ -488,7 +630,9 @@ function Cobro({
     if (!r.ok) return setError(r.error);
     setError(null);
     setEnviando(true);
-    const err = await onConfirmar(r.pagos, r.recibido, r.cambio);
+    const creditosPagados = pagosDeCreditos(creditos);
+    const recibido = Math.round((r.recibido + creditos.usarCambio + creditos.usarSaldo) * 100) / 100;
+    const err = await onConfirmar([...creditosPagados, ...r.pagos], recibido, r.cambio);
     setEnviando(false);
     if (err) setError(err);
   }
@@ -500,10 +644,34 @@ function Cobro({
           <h2>Cobrar {dinero(total)}</h2>
           <button type="button" className="btn" onClick={onCancelar} disabled={enviando}>Volver</button>
         </div>
-        {filas.map((f, i) => (
+        <button type="button" className="btn ancho" onClick={onVerificacion}>Imprimir ticket de verificación</button>
+        {(aFavor > 0 || saldo > 0) && (
+          <dl className="totales">
+            <dt>Total de la venta</dt>
+            <dd>{dinero(totalVenta)}</dd>
+            {creditos.usarCambio > 0 && (<><dt>Cambio físico</dt><dd>−{dinero(creditos.usarCambio)}</dd></>)}
+            {creditos.sobrante > 0 && (<><dt>Se guarda como saldo a favor</dt><dd>{dinero(creditos.sobrante)}</dd></>)}
+            {saldo > 0 && (
+              <>
+                <dt>
+                  <label className="check">
+                    <input type="checkbox" checked={usarSaldo} onChange={e => {
+                      setUsarSaldo(e.target.checked);
+                      const c = aplicarCreditos(totalVenta, aFavor, saldo, e.target.checked);
+                      setFilas([{ metodo: 'efectivo', monto: String(c.porPagar), referencia: '' }]);
+                    }} /> Usar saldo a favor ({dinero(saldo)})
+                  </label>
+                </dt>
+                <dd>{creditos.usarSaldo > 0 ? `−${dinero(creditos.usarSaldo)}` : ''}</dd>
+              </>
+            )}
+          </dl>
+        )}
+        {total <= 0 && <p className="nota-apartado small">No hay nada que cobrar en dinero.</p>}
+        {total > 0 && filas.map((f, i) => (
           <div key={i} className="fila-pago">
             <select value={f.metodo} onChange={e => cambiarFila(i, { metodo: e.target.value as MetodoPago })} aria-label="Método de pago">
-              {(Object.keys(NOMBRE_METODO) as MetodoPago[]).map(m => (
+              {METODOS_CAPTURABLES.map(m => (
                 <option key={m} value={m}>{NOMBRE_METODO[m]}</option>
               ))}
             </select>
@@ -518,13 +686,15 @@ function Cobro({
             )}
           </div>
         ))}
-        <button
-          type="button"
-          className="btn"
-          onClick={() => setFilas(fs => [...fs, { metodo: 'tarjeta', monto: diferencia < 0 ? String(-diferencia) : '', referencia: '' }])}
-        >
-          + Otro método de pago
-        </button>
+        {total > 0 && (
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setFilas(fs => [...fs, { metodo: 'tarjeta', monto: diferencia < 0 ? String(-diferencia) : '', referencia: '' }])}
+          >
+            + Otro método de pago
+          </button>
+        )}
         <p className={diferencia < 0 ? 'resumen-cobro falta' : 'resumen-cobro'}>
           {!montosValidos ? 'Revisa los montos.' : diferencia < 0 ? `Faltan ${dinero(-diferencia)}` : diferencia > 0 ? `Cambio: ${dinero(diferencia)}` : 'Pago exacto'}
         </p>
@@ -541,8 +711,12 @@ function Cobro({
 
 // ------------------------------------------------------------ ticket
 
-function VentaTerminada({ venta, onNueva }: { venta: VentaRegistrada; onNueva: () => void }) {
+function VentaTerminada({ venta: inicial, perfil, onNueva }: { venta: VentaRegistrada; perfil: PerfilUsuario; onNueva: () => void }) {
+  const [venta, setVenta] = useState(inicial);
   const [ancho, setAncho] = useState<AnchoTicket>(anchoGuardado);
+  const [regresando, setRegresando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const regresables = venta.cambioFisico ? piezasRegresables(venta.cambioFisico.piezas).length : 0;
   function elegirAncho(a: AnchoTicket) {
     setAncho(a);
     guardarAncho(a);
@@ -554,6 +728,26 @@ function VentaTerminada({ venta, onNueva }: { venta: VentaRegistrada; onNueva: (
           <h2>Venta {venta.folio}</h2>
           {venta.cambio > 0 && <span className="chip ok grande">Cambio: {dinero(venta.cambio)}</span>}
         </div>
+        {venta.saldoAFavor && venta.saldoAFavor.guardado > 0 && (
+          <p className="nota-apartado small">Se guardaron <strong>{dinero(venta.saldoAFavor.guardado)}</strong> de saldo a favor a nombre de {venta.cliente.nombre}. Su saldo: {dinero(venta.saldoAFavor.saldoFinal)}.</p>
+        )}
+        {venta.cambioFisico && regresables > 0 && (
+          venta.cambioFisico.regresado ? (
+            <p className="chip ok">Las piezas del cambio físico ya están a la venta.</p>
+          ) : (
+            <button className="btn ancho" disabled={regresando} onClick={async () => {
+              setRegresando(true);
+              const err = await regresarAlInventario(db, venta.folio, perfil, equipoActual());
+              setRegresando(false);
+              if (err) return setError(err);
+              setError(null);
+              setVenta(v => ({ ...v, cambioFisico: { ...v.cambioFisico!, regresado: { por: perfil.nombre, en: new Date().toISOString() } } }));
+            }}>
+              {regresando ? 'Regresando…' : `Regresar al inventario (${regresables} pieza${regresables === 1 ? '' : 's'} del cambio físico)`}
+            </button>
+          )
+        )}
+        {error && <p className="error">{error}</p>}
         <div className="ticket-vista">
           <Ticket venta={venta} ancho={ancho} />
         </div>
