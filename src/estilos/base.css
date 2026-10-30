@@ -861,3 +861,19 @@ input.celda-numero:not([type='checkbox']) { width: 110px; min-height: 38px; }
   .filtros-estadisticas { position: static; }
 }
 .foto-referencia { display: block; max-width: 100%; max-height: 320px; border-radius: 10px; border: 1px solid var(--mw-border); object-fit: contain; background: var(--surface); margin: 0 0 12px; }
+
+/* ------------------------------------------------------------ caja: cambios, garantías, presupuesto */
+.acciones-caja { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.acciones-caja .btn { flex: 1 1 auto; }
+.en-linea { display: flex; gap: 8px; align-items: center; }
+.en-linea input { flex: 1 1 auto; min-width: 0; }
+.fila-manual { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) 70px auto; gap: 6px; margin: 6px 0 10px; }
+.campo-pieza { margin-bottom: 8px; }
+.campo-pieza .variantes-eleccion { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
+.detalle-manual { margin: 0 0 10px; }
+.detalle-manual summary { cursor: pointer; }
+.t-verifica { padding: 2px 0; }
+@media (max-width: 600px) {
+  .fila-manual { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+.t-casilla { font-size: 18px; line-height: 1; vertical-align: -2px; }

@@ -12,10 +12,14 @@ import {
   precioUnitario,
   type ClienteVenta,
   type LineaCarrito,
+  type LineaGarantia,
   type PagoRegistrado,
   type TipoServicio,
   type Totales
 } from './carrito';
+import { COL_CAMBIOS, COL_SALDO_MOVIMIENTOS, COL_SALDOS, valorCambio, type CambioEnVenta, type CambioFisico } from './cambios';
+import { COL_GARANTIAS, garantiaDespues, validarCambio, type Garantia } from './garantias';
+import { COL_TICKETS_PERSONA, idIndicePersona, resumenTicket, type ResumenTicket } from './historial';
 
 import { COL_COMPRAS, compraDeVenta, idCompraVenta, type CompraVenta } from '../compras/modelo';
 
@@ -41,6 +45,7 @@ export interface LineaVendida {
   importe: number;
   esServicio: boolean;
   tipoServicio?: TipoServicio;
+  garantia?: LineaGarantia;
 }
 
 export interface VentaRegistrada {
@@ -62,8 +67,13 @@ export interface VentaRegistrada {
   cambio: number;
   cobradoPor: { uid: string; nombre: string; rol: string };
   equipo: string;
-  estado: 'completada';
+  estado: 'completada' | 'cancelada';
   origen: 'pos';
+  /** Piezas que dejó como cambio físico (si hubo). */
+  cambioFisico?: CambioEnVenta;
+  /** Saldo a favor de la e/l: lo que usó, lo que se le guardó y cómo quedó. */
+  saldoAFavor?: { usado: number; guardado: number; saldoFinal: number };
+  cancelada?: { por: string; en: string; motivo: string };
 }
 
 export function lineasVendidas(carrito: LineaCarrito[], cliente: ClienteVenta): LineaVendida[] {
@@ -85,7 +95,8 @@ export function lineasVendidas(carrito: LineaCarrito[], cliente: ClienteVenta): 
       precioUnitario: pu,
       importe: Math.round(pu * l.cantidad * 100) / 100,
       esServicio: l.esServicio,
-      ...(l.esServicio ? { tipoServicio: l.tipoServicio ?? 'articulo' } : {})
+      ...(l.esServicio ? { tipoServicio: l.tipoServicio ?? 'articulo' } : {}),
+      ...(l.garantia ? { garantia: l.garantia, descuentoAplicado: 0 } : {})
     };
   });
 }
@@ -135,13 +146,20 @@ export async function registrarVenta(
     cambio: number;
     perfil: PerfilUsuario;
     equipo: string;
+    /** Cambio físico abierto de esta clienta que se cierra con la venta. */
+    cambioId?: string | null;
   }
 ): Promise<{ ok: true; venta: VentaRegistrada } | { ok: false; error: string }> {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
     return { ok: false, error: 'Sin conexión a internet. Por ahora, para cobrar se necesita conexión.' };
   }
   const { caja, fechaDia, cliente, carrito, pagos, perfil } = datos;
-  if (!carrito.length) return { ok: false, error: 'El carrito está vacío.' };
+  if (!carrito.length && !datos.cambioId) return { ok: false, error: 'El carrito está vacío.' };
+  const personaId = cliente.tipo !== 'publico' ? cliente.personaId : null;
+  const usoCambio = pagos.filter(p => p.metodo === 'cambio_fisico').reduce((s, p) => s + p.monto, 0);
+  const usoSaldo = pagos.filter(p => p.metodo === 'saldo_favor').reduce((s, p) => s + p.monto, 0);
+  if ((datos.cambioId || usoSaldo > 0) && !personaId) return { ok: false, error: 'El cambio físico y el saldo a favor son solo de emprendedoras y líderes.' };
+  const lineasGarantia = carrito.filter(l => l.garantia);
   const lineas = lineasVendidas(carrito, cliente);
   const totales = calcularTotales(carrito, cliente);
   const turnoId = idTurno(fechaDia, caja);
@@ -168,6 +186,17 @@ export async function registrarVenta(
         const s = await tx.get(ref);
         if (s.exists()) usadas.push(`${p.referencia} (folio ${String(s.data().folio ?? '?')})`);
       }
+      const cambioRef = datos.cambioId ? doc(db, COL_CAMBIOS, datos.cambioId) : null;
+      const cambioSnap = cambioRef ? await tx.get(cambioRef) : null;
+      const saldoRef = personaId ? doc(db, COL_SALDOS, personaId) : null;
+      const saldoSnap = saldoRef ? await tx.get(saldoRef) : null;
+      const garantias = new Map<string, Garantia | null>();
+      for (const l of lineasGarantia) {
+        const s = await tx.get(doc(db, COL_GARANTIAS, l.garantia!.folio));
+        garantias.set(l.garantia!.folio, s.exists() ? (s.data() as Garantia) : null);
+      }
+      const indiceRef = personaId ? doc(db, COL_TICKETS_PERSONA, idIndicePersona(personaId, fechaDia)) : null;
+      const indiceSnap = indiceRef ? await tx.get(indiceRef) : null;
 
       // 2) Validaciones con datos del servidor.
       if (!turno.exists() || turno.data().estado !== 'abierta') {
@@ -176,6 +205,23 @@ export async function registrarVenta(
       if (usadas.length) throw new ErrorVenta(`Esa referencia ya se registró antes: ${usadas.join(', ')}. Revisa el comprobante.`);
       const r = descontarExistencias(actuales, lineas);
       if (!r.ok) throw new ErrorVenta(r.error);
+      for (const l of lineasGarantia) {
+        const err = validarCambio(l.garantia!.numero, garantias.get(l.garantia!.folio) ?? null, l.garantia!.regresada.codigo);
+        if (err) throw new ErrorVenta(`Garantía ${l.garantia!.folio}: ${err}`);
+      }
+      // Cambio físico: se usa el que está guardado (alguien pudo agregar piezas).
+      let cambio: CambioFisico | null = null;
+      if (cambioRef) {
+        if (!cambioSnap?.exists() || cambioSnap.data().estado !== 'abierto') throw new ErrorVenta('Ese cambio físico ya se cerró con otra venta.');
+        cambio = { ...(cambioSnap.data() as CambioFisico), id: cambioSnap.id };
+        if (cambio.personaId !== personaId) throw new ErrorVenta('El cambio físico es de otra persona.');
+      }
+      const valorDelCambio = cambio ? valorCambio(cambio.piezas) : 0;
+      if (Math.round(usoCambio * 100) > Math.round(valorDelCambio * 100)) throw new ErrorVenta('El cambio físico cambió mientras cobrabas. Vuelve a abrir el cobro.');
+      const saldoAntes = Number(saldoSnap?.exists() ? saldoSnap.data().saldo : 0) || 0;
+      if (Math.round(usoSaldo * 100) > Math.round(saldoAntes * 100)) throw new ErrorVenta('Su saldo a favor cambió mientras cobrabas. Vuelve a abrir el cobro.');
+      const aSaldo = Math.round((valorDelCambio - usoCambio) * 100) / 100;
+      const saldoFinal = Math.round((saldoAntes - usoSaldo + aSaldo) * 100) / 100;
 
       // 3) Escrituras.
       const numero = Number(recibos.exists() ? recibos.data().siguiente : 1) || 1;
@@ -198,7 +244,9 @@ export async function registrarVenta(
         cobradoPor: { uid: perfil.uid, nombre: perfil.nombre, rol: perfil.rol },
         equipo: datos.equipo,
         estado: 'completada',
-        origen: 'pos'
+        origen: 'pos',
+        ...(cambio ? { cambioFisico: { id: cambio.id, piezas: cambio.piezas, valor: valorDelCambio, usado: usoCambio, aSaldo, regresado: null } } : {}),
+        ...(personaId && (usoSaldo > 0 || aSaldo > 0) ? { saldoAFavor: { usado: usoSaldo, guardado: aSaldo, saldoFinal } } : {})
       };
       r.cambios.forEach((variantes, id) =>
         tx.update(doc(db, 'productos', id), { variantes, disponible: variantes.some(x => (Number(x.stock) || 0) > 0) })
@@ -221,6 +269,22 @@ export async function registrarVenta(
       }
       for (const { p, ref } of refsPago) {
         tx.set(ref, { metodo: p.metodo, referencia: p.referencia, monto: p.monto, folio, fechaDia, fecha: serverTimestamp() });
+      }
+      if (cambioRef && cambio) tx.update(cambioRef, { estado: 'cerrado', folioVenta: folio, actualizadoEn: v.fechaLocal });
+      if (saldoRef && (usoSaldo > 0 || aSaldo > 0)) {
+        tx.set(saldoRef, { personaId, personaNombre: cliente.nombre, saldo: saldoFinal, actualizadoEn: v.fechaLocal }, { merge: true });
+        const mov = (tipo: 'uso' | 'abono', monto: number) =>
+          tx.set(doc(db, COL_SALDO_MOVIMIENTOS, `${folio}__${tipo}`), { personaId, tipo, monto, folio, fecha: v.fechaLocal, por: perfil.nombre });
+        if (usoSaldo > 0) mov('uso', usoSaldo);
+        if (aSaldo > 0) mov('abono', aSaldo);
+      }
+      for (const l of lineasGarantia) {
+        const g = garantiaDespues(garantias.get(l.garantia!.folio) ?? null, l, cliente, folio, perfil.nombre, v.fechaLocal);
+        tx.set(doc(db, COL_GARANTIAS, l.garantia!.folio), g);
+      }
+      if (indiceRef) {
+        const previos = (indiceSnap?.exists() ? (indiceSnap.data().tickets as ResumenTicket[]) : []) ?? [];
+        tx.set(indiceRef, { personaId, mes: fechaDia.slice(0, 7), tickets: [...previos, resumenTicket(v)] });
       }
       return v;
     });
