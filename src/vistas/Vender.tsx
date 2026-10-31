@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type SetStateAction } from 'react';
 import { db } from '../firebase';
 import { equipoActual } from '../plataforma';
 import type { PerfilUsuario } from '../sesion/perfil';
@@ -34,9 +34,11 @@ import {
 import { registrarVenta, type VentaRegistrada } from '../venta/registrarVenta';
 import { Ticket, type AnchoTicket } from '../venta/Ticket';
 import { anchoGuardado, guardarAncho, imprimirTicket } from '../venta/imprimir';
-import { aplicarCreditos, pagosDeCreditos, piezasRegresables, valorCambio, type PiezaCambio } from '../venta/cambios';
+import { aplicarCreditos, pagosDeCreditos, piezasRegresables, valorCambio } from '../venta/cambios';
 import { regresarAlInventario, useCambiosAbiertos, useSaldoAFavor } from '../venta/accionesVenta';
 import { CambioFisicoModal, CambiosAbiertosModal, GarantiaModal, TicketPresupuesto, TicketVerificacion } from './CajaExtras';
+import { nombrePestana, tieneAlgo, useVentasAbiertas, type VentaAbierta } from '../venta/ventasAbiertas';
+import { PILOTO } from '../piloto';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 const dinero = (n: number) => MXN.format(n);
@@ -58,13 +60,19 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
   const [caja, setCaja] = useState<IdCaja>(cajaGuardada);
   const turnos = useTurnosDelDia(hoy);
   const catalogo = useCatalogo();
-  const [carrito, setCarrito] = useState<LineaCarrito[]>([]);
-  const [cliente, setCliente] = useState<ClienteVenta>(PUBLICO_GENERAL);
+  // Varias compras abiertas a la vez (pestañas); todo lo de abajo es de la activa.
+  const ventas = useVentasAbiertas(caja);
+  const { carrito, cliente, cambio } = ventas.actual;
+  const cambiarVenta = <K extends keyof VentaAbierta>(k: K) => (x: SetStateAction<VentaAbierta[K]>) =>
+    ventas.actualizar(v => ({ ...v, [k]: typeof x === 'function' ? (x as (p: VentaAbierta[K]) => VentaAbierta[K])(v[k]) : x }));
+  const setCarrito = cambiarVenta('carrito');
+  const setCliente = cambiarVenta('cliente');
+  // Cambio físico de esta e/l (abierto hasta que se cierre la venta).
+  const setCambio = cambiarVenta('cambio');
   const [aviso, setAviso] = useState<string | null>(null);
   const [cobrando, setCobrando] = useState(false);
   const [ticket, setTicket] = useState<VentaRegistrada | null>(null);
-  // Cambio físico de esta e/l (abierto hasta que se cierre la venta).
-  const [cambio, setCambio] = useState<{ id: string | null; piezas: PiezaCambio[] } | null>(null);
+  // Venta de la que salió el ticket: al terminar se cierra esa pestaña.
   const [extra, setExtra] = useState<null | 'cambio' | 'abiertos' | 'garantia'>(null);
   const cambiosAbiertos = useCambiosAbiertos(db);
   const saldo = useSaldoAFavor(db, cliente.tipo !== 'publico' ? cliente.personaId : null) ?? 0;
@@ -81,6 +89,11 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
 
   const turno = turnos.estado === 'listo' ? turnos.turnos.find(t => t.caja === caja) : undefined;
   const cajaAbierta = turno?.estado === 'abierta';
+  // Con la caja abierta, cobrar ocupa toda la pantalla (sin menú ni barra de BRILLO).
+  const [completa, setCompleta] = useState(true);
+  useEffect(() => {
+    if (cajaAbierta) setCompleta(true);
+  }, [cajaAbierta]);
   const totales = calcularTotales(carrito, cliente);
   const aFavor = cambio ? valorCambio(cambio.piezas) : 0;
   const hayVenta = carrito.length > 0 || !!cambio;
@@ -113,56 +126,60 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
 
   const [modo, setModo] = useState<'cobrar' | 'corte' | 'ventas'>('cobrar');
 
-  function nuevaVenta() {
-    setTicket(null);
-    setCarrito([]);
-    setCliente(PUBLICO_GENERAL);
-    setCambio(null);
+  /** Deja vacía la venta de la pestaña activa. */
+  function vaciar() {
+    ventas.actualizar(v => ({ ...v, carrito: [], cliente: PUBLICO_GENERAL, cambio: null }));
     setAviso(null);
   }
 
-  return (
-    <section className="vender">
-      <div className="encabezado-seccion con-accion">
-        <div>
-          <h1>Caja</h1>
-          <p className="muted">
-            {nombreCaja(caja)} ·{' '}
-            {turnos.estado !== 'listo'
-              ? 'consultando…'
-              : cajaAbierta
-                ? `abierta por ${turno!.abiertaPor.nombre} · fondo ${dinero(turno!.fondoInicial)}`
-                : turno?.estado === 'cerrada'
-                  ? 'cerrada hoy (ve el corte en «Corte del día»)'
-                  : 'sin abrir hoy'}
-          </p>
-        </div>
-        <nav className="pestanas" aria-label="Caja">
-          <button className={modo === 'cobrar' ? 'nav-boton activo' : 'nav-boton'} onClick={() => setModo('cobrar')}>Cobrar</button>
-          <button className={modo === 'corte' ? 'nav-boton activo' : 'nav-boton'} onClick={() => setModo('corte')}>Corte del día</button>
-          <button className={modo === 'ventas' ? 'nav-boton activo' : 'nav-boton'} onClick={() => setModo('ventas')}>Ventas</button>
-        </nav>
-        <label className="campo-en-linea">
-          <span>Este equipo es</span>
-          <select value={caja} onChange={e => elegirCaja(e.target.value as IdCaja)}>
-            {CAJAS.map(c => (
-              <option key={c.id} value={c.id}>{c.nombre}</option>
-            ))}
-          </select>
-        </label>
-      </div>
+  /** Ya se cobró: se cierra la pestaña de esa venta. */
+  function terminarVenta() {
+    setTicket(null);
+    setAviso(null);
+  }
 
-      {modo === 'ventas' ? (
-        <HistorialVentas perfil={perfil} />
-      ) : modo === 'corte' ? (
-        <Corte perfil={perfil} />
-      ) : turnos.estado === 'listo' && !cajaAbierta ? (
-        // Caja y venta en una sola pestaña: si la caja de este equipo no se
-        // ha abierto hoy, aquí mismo se abre con su fondo inicial.
-        <div className="cajas">
-          <TarjetaCaja caja={caja} nombre={nombreCaja(caja)} turno={turno} hoy={hoy} perfil={perfil} />
-        </div>
-      ) : (
+  const pantallaCompleta = modo === 'cobrar' && cajaAbierta && completa;
+  function salir() {
+    setCompleta(false);
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+  }
+  function pantallaNavegador() {
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+    else void document.documentElement.requestFullscreen?.().catch(() => {});
+  }
+
+  const pestanas = (
+    <nav className="pestanas-venta" aria-label="Ventas abiertas">
+      {ventas.ventas.map((v, i) => {
+        const piezas = v.carrito.reduce((s, l) => s + l.cantidad, 0);
+        return (
+          <span key={v.id} className={v.id === ventas.activaId ? 'pestana-venta activa' : 'pestana-venta'}>
+            <button className="pestana-elegir" onClick={() => { ventas.elegir(v.id); setAviso(null); }} aria-current={v.id === ventas.activaId ? 'page' : undefined}>
+              <span className="pestana-nombre">{nombrePestana(v, i)}</span>
+              {(piezas > 0 || v.cambio) && <span className="pestana-cuenta">{piezas}{v.cambio ? ' + cambio' : ''}</span>}
+            </button>
+            {ventas.ventas.length > 1 && (
+              <button
+                className="pestana-cerrar"
+                aria-label={`Cerrar ${nombrePestana(v, i)}`}
+                onClick={() => {
+                  if (tieneAlgo(v) && !window.confirm(`¿Cerrar "${nombrePestana(v, i)}"? Se quitan sus artículos${v.cambio?.id ? ' (su cambio físico sigue guardado en "Cambios abiertos")' : ''}.`)) return;
+                  ventas.cerrar(v.id);
+                }}
+              >
+                ×
+              </button>
+            )}
+          </span>
+        );
+      })}
+      <button className="btn mini pestana-nueva" onClick={() => { ventas.nueva(); setAviso(null); }}>+ Nueva venta</button>
+    </nav>
+  );
+
+  const vistaCobro = (
+    <>
+      {pestanas}
         <div className="vender-columnas">
           <BuscadorProductos productos={productos} cargando={catalogo.estado === 'cargando'} enCarrito={carrito} onAgregar={agregar} />
           <div className="panel-venta">
@@ -256,7 +273,7 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
               )}
             </dl>
             <div className="acciones">
-              <button className="btn" onClick={nuevaVenta} disabled={!hayVenta}>
+              <button className="btn" onClick={vaciar} disabled={!hayVenta}>
                 Vaciar
               </button>
               <button className="btn primario cobrar" onClick={() => setCobrando(true)} disabled={!hayVenta}>
@@ -265,6 +282,74 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
             </div>
           </div>
         </div>
+    </>
+  );
+
+  return (
+    <section className="vender">
+      {pantallaCompleta && (
+        <div className="caja-completa">
+          <div className="barra-caja">
+            <div className="barra-caja-info">
+              <strong>{nombreCaja(caja)}</strong>
+              {PILOTO && <span className="chip-piloto">PILOTO</span>}
+              <span className="muted small">abierta por {turno!.abiertaPor.nombre} · {perfil.nombre}</span>
+            </div>
+            <div className="acciones">
+              <button className="btn" onClick={pantallaNavegador} title="Pantalla completa del navegador (F11)">⛶</button>
+              <button className="btn" onClick={salir}>Salir</button>
+            </div>
+          </div>
+          {vistaCobro}
+        </div>
+      )}
+      <div className="encabezado-seccion con-accion">
+        <div>
+          <h1>Caja</h1>
+          <p className="muted">
+            {nombreCaja(caja)} ·{' '}
+            {turnos.estado !== 'listo'
+              ? 'consultando…'
+              : cajaAbierta
+                ? `abierta por ${turno!.abiertaPor.nombre} · fondo ${dinero(turno!.fondoInicial)}`
+                : turno?.estado === 'cerrada'
+                  ? 'cerrada hoy (ve el corte en «Corte del día»)'
+                  : 'sin abrir hoy'}
+          </p>
+        </div>
+        <nav className="pestanas" aria-label="Caja">
+          <button className={modo === 'cobrar' ? 'nav-boton activo' : 'nav-boton'} onClick={() => setModo('cobrar')}>Cobrar</button>
+          <button className={modo === 'corte' ? 'nav-boton activo' : 'nav-boton'} onClick={() => setModo('corte')}>Corte del día</button>
+          <button className={modo === 'ventas' ? 'nav-boton activo' : 'nav-boton'} onClick={() => setModo('ventas')}>Ventas</button>
+        </nav>
+        <label className="campo-en-linea">
+          <span>Este equipo es</span>
+          <select value={caja} onChange={e => elegirCaja(e.target.value as IdCaja)}>
+            {CAJAS.map(c => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {modo === 'ventas' ? (
+        <HistorialVentas perfil={perfil} />
+      ) : modo === 'corte' ? (
+        <Corte perfil={perfil} />
+      ) : turnos.estado === 'listo' && !cajaAbierta ? (
+        // Caja y venta en una sola pestaña: si la caja de este equipo no se
+        // ha abierto hoy, aquí mismo se abre con su fondo inicial.
+        <div className="cajas">
+          <TarjetaCaja caja={caja} nombre={nombreCaja(caja)} turno={turno} hoy={hoy} perfil={perfil} />
+        </div>
+      ) : pantallaCompleta ? null : (
+        <>
+          {/* Fuera de la pantalla completa: el regreso a ella. */}
+          <div className="acciones izq">
+            <button className="btn primario" onClick={() => setCompleta(true)}>Cobrar en pantalla completa</button>
+          </div>
+          {vistaCobro}
+        </>
       )}
 
       {cobrando && (
@@ -278,12 +363,15 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
             const r = await registrarVenta(db, { caja, fechaDia: hoy, cliente, carrito, pagos, recibido, cambio: cambioEfectivo, perfil, equipo: equipoActual(), cambioId: cambio?.id ?? null });
             if (!r.ok) return r.error;
             setCobrando(false);
+            // La venta ya quedó guardada: su pestaña se cierra en ese momento,
+            // así no se puede volver a cobrar aunque se recargue la página.
+            ventas.cerrar(ventas.activaId);
             setTicket(r.venta);
             return null;
           }}
         />
       )}
-      {ticket && <VentaTerminada venta={ticket} perfil={perfil} onNueva={nuevaVenta} />}
+      {ticket && <VentaTerminada venta={ticket} perfil={perfil} onNueva={terminarVenta} />}
       {extra === 'cambio' && (
         <CambioFisicoModal
           cliente={cliente}
