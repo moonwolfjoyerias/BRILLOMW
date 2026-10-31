@@ -243,6 +243,17 @@ cálculos del Plan MW.
 - Hoy se diseñan e imprimen en otro programa; **BRILLO las generará e
   imprimirá**.
 - Las tablets leen el QR con la cámara y toman las fotos de los productos.
+- **Hecho (oct-2026): escanear con la cámara.** Botón de cámara en el
+  formulario de producto, el buscador del Catálogo, la caja (pasa el
+  artículo directo) y el campo de pieza de Cambio físico / Garantía. En el
+  formulario, el código se escribe en mayúsculas y llena solo **categoría**
+  (inicio del código, abreviaturas oficiales de 3 letras o, si no, de 2) y
+  **material** (final: XP, GT, CM = Oro laminado; ACERO = Acero inoxidable)
+  con su descuento sugerido; lo que no reconoce se deja como está. Lo mismo
+  pasa si el código se escribe o lo lee el lector de mano. Si el código ya
+  existe, solo avisa ("Ese código ya lo tiene …"). Igual en la página
+  (catálogo de Admin, Encargado y Staff). La calidad ya no se usa: todo es
+  Premium.
 
 ### Inicio y Mi cuenta
 

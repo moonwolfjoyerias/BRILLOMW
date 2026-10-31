@@ -7,9 +7,12 @@ import {
   borradorVacio,
   nuevoIdFoto,
   nuevoIdVariante,
+  productoConCodigo,
   validarBorrador,
   type BorradorProducto
 } from '../pagina/edicion';
+import { datosDeCodigo } from '../pagina/codigoProducto';
+import { BotonCamara } from '../escaner/EscanerQR';
 import { comprimirFoto } from '../pagina/fotos';
 import { crearProducto, editarProducto } from '../pagina/guardarProducto';
 import {
@@ -60,6 +63,23 @@ export function ProductoForm({
       // Prendedor: 30%) o del material; si ya lo cambiaron a mano no se pisa.
       descuento: sugerido(material, prev.categoria, prev.descuento)
     }));
+  }
+
+  // Código escaneado (cámara o lector) o escrito: se guarda en mayúsculas y,
+  // si su inicio y final se reconocen, llena categoría, material y descuento.
+  const codigoAplicado = useRef(producto?.codigo ?? '');
+  const [avisoCodigo, setAvisoCodigo] = useState<string | null>(null);
+  function aplicarCodigo(texto: string) {
+    const d = datosDeCodigo(texto);
+    if (!d.codigo || d.codigo === codigoAplicado.current) return set('codigo', d.codigo);
+    codigoAplicado.current = d.codigo;
+    setB(prev => {
+      const material = d.material ?? prev.material;
+      const categoria = d.categoria ?? prev.categoria;
+      return { ...prev, codigo: d.codigo, material, categoria, descuento: sugerido(material, categoria, prev.descuento) };
+    });
+    const mismo = productoConCodigo(catalogo, d.codigo, producto?.id);
+    setAvisoCodigo(mismo ? `Ese código ya lo tiene "${mismo.nombre}". Usa un código distinto.` : null);
   }
 
   function cambiarCategoria(categoria: string) {
@@ -167,7 +187,24 @@ export function ProductoForm({
           </label>
           <label className="campo">
             <span>Código *</span>
-            <input value={b.codigo} onChange={e => set('codigo', e.target.value)} placeholder="Ej. AN-045" autoCapitalize="characters" />
+            <span className="en-linea">
+              <input
+                value={b.codigo}
+                onChange={e => set('codigo', e.target.value)}
+                onBlur={e => aplicarCodigo(e.target.value)}
+                onKeyDown={e => {
+                  // El lector de mano termina con Enter: no debe guardar el formulario.
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    aplicarCodigo(e.currentTarget.value);
+                  }
+                }}
+                placeholder="Ej. AN-045"
+                autoCapitalize="characters"
+              />
+              <BotonCamara titulo="Escanear la etiqueta" onCodigo={aplicarCodigo} />
+            </span>
+            {avisoCodigo && <span className="error small">{avisoCodigo}</span>}
           </label>
           <label className="campo ancho-3">
             <span>Descripción *</span>

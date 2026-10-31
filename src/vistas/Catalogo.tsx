@@ -6,6 +6,8 @@ import { RevisionDeseos } from './RevisionDeseos';
 import { db } from '../firebase';
 import { equipoActual } from '../plataforma';
 import { eliminarProducto } from '../pagina/guardarProducto';
+import { BotonCamara } from '../escaner/EscanerQR';
+import { limpiarCodigo } from '../pagina/codigoProducto';
 import {
   NOMBRE_MATERIAL,
   etiquetaVariante,
@@ -73,13 +75,16 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
       )}
 
       <div className="filtros">
-        <input
-          type="search"
-          placeholder="Buscar por nombre, código o categoría"
-          value={busqueda}
-          onChange={e => setBusqueda(e.target.value)}
-          aria-label="Buscar"
-        />
+        <div className="en-linea">
+          <input
+            type="search"
+            placeholder="Buscar por nombre, código o categoría"
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+            aria-label="Buscar"
+          />
+          <BotonCamara titulo="Buscar por etiqueta" onCodigo={t => setBusqueda(limpiarCodigo(t))} />
+        </div>
         <select value={material} onChange={e => setMaterial(e.target.value)} aria-label="Material">
           <option value="">Todos los materiales</option>
           {Object.entries(NOMBRE_MATERIAL).map(([k, v]) => (
