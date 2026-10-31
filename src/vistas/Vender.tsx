@@ -39,6 +39,8 @@ import { regresarAlInventario, useCambiosAbiertos, useSaldoAFavor } from '../ven
 import { CambioFisicoModal, CambiosAbiertosModal, GarantiaModal, TicketPresupuesto, TicketVerificacion } from './CajaExtras';
 import { nombrePestana, tieneAlgo, useVentasAbiertas, type VentaAbierta } from '../venta/ventasAbiertas';
 import { PILOTO } from '../piloto';
+import { BotonCamara } from '../escaner/EscanerQR';
+import { limpiarCodigo } from '../pagina/codigoProducto';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 const dinero = (n: number) => MXN.format(n);
@@ -467,6 +469,18 @@ function BuscadorProductos({
     entrada.current?.focus();
   }
 
+  // QR leído con la cámara: si es el código de un producto se agrega; si
+  // no, queda escrito en el buscador para ver qué hay parecido.
+  function alEscanear(texto: string) {
+    const codigo = normal(limpiarCodigo(texto));
+    const exacto = productos.find(p => p.codigo && normal(p.codigo) === codigo);
+    if (exacto && stockTotal(exacto) > 0) {
+      tomar(exacto);
+      setQ('');
+    } else setQ(limpiarCodigo(texto));
+    entrada.current?.focus();
+  }
+
   const cantidadEnCarrito = (p: Producto) => enCarrito.filter(l => l.productoId === p.id).reduce((s, l) => s + l.cantidad, 0);
 
   return (
@@ -481,6 +495,7 @@ function BuscadorProductos({
           aria-label="Buscar producto"
           autoFocus
         />
+        <BotonCamara titulo="Escanear artículo" onCodigo={alEscanear} />
         <button type="button" className="btn" onClick={() => setServicio(true)}>
           + Servicio
         </button>

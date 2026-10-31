@@ -15,6 +15,8 @@ import { descartarCambio, guardarCambio } from '../venta/accionesVenta';
 import { EncabezadoTienda, Fila, type AnchoTicket } from '../venta/Ticket';
 import { fechaTicket, renglonPieza } from '../venta/ticketFormato';
 import { doc, getDoc } from '../datos/firestore';
+import { BotonCamara } from '../escaner/EscanerQR';
+import { limpiarCodigo } from '../pagina/codigoProducto';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 const dinero = (n: number) => MXN.format(n);
@@ -40,7 +42,10 @@ function CampoPieza({ etiqueta, productos, soloConExistencias, onPieza, autoFocu
   const [error, setError] = useState<string | null>(null);
   const tomar = (e: FormEvent) => {
     e.preventDefault();
-    const encontrados = porCodigo(productos, codigo);
+    buscar(codigo);
+  };
+  const buscar = (texto: string) => {
+    const encontrados = porCodigo(productos, texto);
     if (!encontrados.length) return setError('No hay ningún producto con ese código.');
     if (encontrados.length > 1) {
       setError(null);
@@ -64,6 +69,7 @@ function CampoPieza({ etiqueta, productos, soloConExistencias, onPieza, autoFocu
         <span>{etiqueta}</span>
         <span className="en-linea">
           <input value={codigo} onChange={e => setCodigo(e.target.value)} placeholder="Escanea o escribe el código" autoFocus={autoFocus} />
+          <BotonCamara titulo={etiqueta} onCodigo={t => { const c = limpiarCodigo(t); setCodigo(c); buscar(c); }} />
           <button className="btn" type="submit">Agregar</button>
         </span>
       </label>
