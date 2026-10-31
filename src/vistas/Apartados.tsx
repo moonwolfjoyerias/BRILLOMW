@@ -119,7 +119,10 @@ export function filtrarVentanas(ventanas: Ventana[], filtro: Filtro, busqueda: s
         if (v.ocultaEnPanel) return false;
         if (v.estado === 'cerrada' && v.resolucionDeposito !== 'credito') return false;
       }
-      const coincideEstado = filtro === 'todos' || filtro === 'ocultas' || v.estado === filtro;
+      // "Vencida" = activas que ya pasaron su fecha y siguen pendientes de
+      // gestionar (vencer es solo un aviso: sigue activa hasta liquidarla o desapartarla).
+      const coincideEstado =
+        filtro === 'todos' || filtro === 'ocultas' || (filtro === 'vencida' ? v.estado === 'activa' && estaVencida(v) : v.estado === filtro);
       const texto = normal([v.usuarioNombre, ...v.apartados.map(p => p.producto)].join(' '));
       return coincideEstado && (!t || texto.includes(t));
     })
