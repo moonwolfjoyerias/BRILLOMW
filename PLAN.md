@@ -147,6 +147,20 @@ Meta: dejar Aronium a **finales de 2026**.
 - Pendiente: los pagos de comisión del reporte de Aronium (todavía no se
   pagan comisiones desde BRILLO) y el desglose por denominaciones.
 
+### Caja en pantalla completa y pestañas de venta (oct-2026, hecho)
+
+- Con la caja abierta, **Cobrar** ocupa toda la pantalla (sin menú). Arriba:
+  nombre de la caja, quién la abrió, **⛶** (pantalla completa del navegador,
+  como F11) y **Salir** (regresa a la vista normal de Caja; "Cobrar en
+  pantalla completa" vuelve a entrar).
+- **Pestañas de venta:** "+ Nueva venta" abre otra compra sin perder la
+  anterior (por si una clienta se queda pendiente). Cada pestaña tiene su
+  cliente, artículos y cambio físico; lleva el nombre de la e/l o "Venta N"
+  (número fijo). La × la cierra (pregunta si tiene algo).
+- Se guardan en **ese equipo** (por caja; el piloto aparte): sobreviven a
+  recargar la página. **No apartan piezas**: la existencia se revisa al
+  cobrar. Al cobrar, su pestaña se cierra en ese momento.
+
 ### Cambios físicos (devoluciones)
 
 - Se aceptan si la pieza viene **intacta y con su etiqueta**.
