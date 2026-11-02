@@ -5,6 +5,9 @@ import { Catalogo } from './Catalogo';
 import { Productos } from './Productos';
 import { Documentos } from './Documentos';
 import { Clientes } from './Clientes';
+import { TiposPago } from './TiposPago';
+import { useTiposPago } from '../pagos/acciones';
+import { db } from '../firebase';
 import { Stock } from './Stock';
 import { Vender } from './Vender';
 import { Apartados } from './Apartados';
@@ -24,7 +27,7 @@ import { Estadisticas } from './Estadisticas';
 import { useTema } from '../tema';
 import { PILOTO } from '../piloto';
 
-export type Seccion = 'inicio' | 'vender' | 'documentos' | 'clientes' | 'catalogo' | 'productos' | 'stock' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'compras' | 'estadisticas' | 'cuenta';
+export type Seccion = 'inicio' | 'vender' | 'documentos' | 'clientes' | 'tiposPago' | 'catalogo' | 'productos' | 'stock' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'compras' | 'estadisticas' | 'cuenta';
 
 interface Item { id: Seccion; nombre: string }
 
@@ -72,6 +75,7 @@ function menuPara(perfil: PerfilUsuario): { titulo: string | null; items: Item[]
         { id: 'planmw', nombre: 'Plan MW' }
       ]
     });
+    grupos.push({ titulo: 'Configuración', items: [{ id: 'tiposPago', nombre: 'Tipos de pago' }] });
   }
   return grupos;
 }
@@ -92,6 +96,8 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
   const [saliendo, setSaliendo] = useState(false);
   const [tema, alternarTema] = useTema();
   const [seccion, setSeccion] = useState<Seccion>('inicio');
+  // Tipos de pago configurados: los usa la caja, el corte y las comisiones.
+  useTiposPago(db);
   // En pantallas angostas el menú se abre y cierra con el botón ☰.
   const [menuAbierto, setMenuAbierto] = useState(false);
   useEffect(() => {
@@ -174,6 +180,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
           {seccion === 'productos' && <Productos perfil={perfil} />}
           {seccion === 'documentos' && <Documentos perfil={perfil} />}
           {seccion === 'clientes' && <Clientes perfil={perfil} />}
+          {seccion === 'tiposPago' && <TiposPago perfil={perfil} />}
           {seccion === 'stock' && <Stock perfil={perfil} />}
           {seccion === 'apartados' && <Apartados perfil={perfil} />}
           {seccion === 'compras' && <ConfirmarCompras perfil={perfil} />}

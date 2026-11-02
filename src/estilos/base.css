@@ -1011,3 +1011,7 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
 .fila-clic:hover td { background: var(--mw-lilac-soft); }
 .chip.bloque-izq { display: block; width: max-content; margin-top: 4px; }
 @media (max-width: 900px) { .filtros-documentos { grid-template-columns: 1fr 1fr; } .filtros-documentos input { grid-column: 1 / -1; } }
+.tabla-tipos-pago td { vertical-align: middle; }
+.tabla-tipos-pago input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--mw-purple); }
+.agregar-tipo { margin: 12px 0; max-width: 520px; }
+.agregar-tipo .btn { white-space: nowrap; }

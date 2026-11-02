@@ -2,7 +2,7 @@
 import { Fila, type AnchoTicket } from '../venta/Ticket';
 import { TIENDA } from '../venta/tienda';
 import { fechaTicket } from '../venta/ticketFormato';
-import { NOMBRE_METODO } from '../venta/carrito';
+import { nombreMetodo } from '../venta/carrito';
 import { metodosDelCorte, textoDiferencia, type ResumenCorte } from './corte';
 import type { CierreCaja, MovimientoEfectivo } from './turno';
 
@@ -60,7 +60,7 @@ export function TicketCorte({
       {c.souvenirs > 0 && <Fila izq="Souvenirs:" der={$(c.souvenirs)} />}
       <div className="t-linea" />
       {metodosDelCorte(c).map(m => (
-        <Fila key={m} izq={`${NOMBRE_METODO[m].toUpperCase()} (${c.porMetodo[m].pagos}):`} der={$(c.porMetodo[m].monto)} />
+        <Fila key={m} izq={`${nombreMetodo(m).toUpperCase()} (${c.porMetodo[m].pagos}):`} der={$(c.porMetodo[m].monto)} />
       ))}
       {c.referencias.length > 0 && (
         <>

@@ -1,12 +1,12 @@
 import { TIENDA } from './tienda';
 import { code128B } from './code128';
 import { fechaTicket, renglonCantidad, renglonPieza } from './ticketFormato';
-import type { MetodoPago } from './carrito';
+import { nombreMetodo, type MetodoBase } from './carrito';
 import type { VentaRegistrada } from './registrarVenta';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 
-const ETIQUETA_PAGO: Record<MetodoPago, string> = {
+const ETIQUETA_PAGO: Record<MetodoBase, string> = {
   efectivo: 'EFECTIVO',
   // En la tienda la terminal bancaria se llama así (igual que en Aronium).
   tarjeta: 'TERMINAL',
@@ -124,7 +124,7 @@ export function Ticket({ venta: v, ancho = 80 }: { venta: VentaRegistrada; ancho
       <div className="t-linea" />
       {v.pagos.map((p, i) => (
         <div key={i}>
-          <Fila izq={`${ETIQUETA_PAGO[p.metodo]}:`} der={MXN.format(p.monto)} />
+          <Fila izq={`${(ETIQUETA_PAGO as Record<string, string>)[p.metodo] ?? nombreMetodo(p.metodo).toUpperCase()}:`} der={MXN.format(p.monto)} />
           {p.referencia && <div className="t-sangria">Ref. {p.referencia}</div>}
         </div>
       ))}

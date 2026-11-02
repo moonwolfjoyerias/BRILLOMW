@@ -10,7 +10,8 @@ import { CAJAS, COLECCION_TURNOS, fechaLocal, nombreCaja, type TurnoCaja } from 
 import { COLECCION_VENTAS, type VentaRegistrada } from '../venta/registrarVenta';
 import { COL_CAMBIOS, valorCambio, type CambioFisico } from '../venta/cambios';
 import { COL_GARANTIAS, type Garantia } from '../venta/garantias';
-import { NOMBRE_METODO, type MetodoPago } from '../venta/carrito';
+import { nombreMetodo } from '../venta/carrito';
+import { tiposPago } from '../pagos/tipos';
 import { fechaTicket } from '../venta/ticketFormato';
 import { DetalleVenta } from './HistorialVentas';
 import {
@@ -107,7 +108,7 @@ export function Documentos({ perfil }: { perfil: PerfilUsuario }) {
               </select>
               <select value={metodo} onChange={e => setMetodo(e.target.value)} aria-label="Forma de pago">
                 <option value="">Todas las formas de pago</option>
-                {(Object.keys(NOMBRE_METODO) as MetodoPago[]).map(m => <option key={m} value={m}>{NOMBRE_METODO[m]}</option>)}
+                {[...tiposPago().map(t => t.id), 'cambio_fisico', 'saldo_favor'].map(m => <option key={m} value={m}>{nombreMetodo(m)}</option>)}
               </select>
               <select value={caja} onChange={e => setCaja(e.target.value)} aria-label="Caja">
                 <option value="">Todas las cajas</option>
@@ -132,7 +133,7 @@ export function Documentos({ perfil }: { perfil: PerfilUsuario }) {
                       <td>{fechaTicket(v.fechaLocal)}</td>
                       <td>{nombreCaja(v.caja)}</td>
                       <td>{v.cliente.nombre}{v.cliente.membresia ? <span className="muted small bloque">{v.cliente.membresia}</span> : null}</td>
-                      <td className="small">{[...new Set(v.pagos.map(p => NOMBRE_METODO[p.metodo as MetodoPago] ?? p.metodo))].join(', ') || '—'}</td>
+                      <td className="small">{[...new Set(v.pagos.map(p => nombreMetodo(p.metodo)))].join(', ') || '—'}</td>
                       <td className="small">{v.cobradoPor?.nombre}</td>
                       <td className="num"><strong>{dinero(v.totales.total)}</strong></td>
                     </tr>

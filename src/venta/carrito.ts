@@ -1,4 +1,5 @@
 // Carrito y cobro de la caja. Funciones puras (sin Firebase) para probarlas.
+import { nombreTipo, pideReferencia } from '../pagos/tipos';
 import { precioMayoreo, type Producto } from '../pagina/producto';
 import type { Persona } from '../pagina/persona';
 
@@ -185,9 +186,11 @@ export function calcularTotales(carrito: LineaCarrito[], cliente: ClienteVenta):
  * referencia ni dan cambio. Para comisiones y recompensas solo cuentan
  * efectivo, tarjeta (terminal) y transferencia.
  */
-export type MetodoPago = 'efectivo' | 'tarjeta' | 'transferencia' | 'gala' | 'regalo' | 'souvenir' | 'cambio_fisico' | 'saldo_favor';
+export type MetodoBase = 'efectivo' | 'tarjeta' | 'transferencia' | 'gala' | 'regalo' | 'souvenir' | 'cambio_fisico' | 'saldo_favor';
+/** Los de siempre o uno agregado en Tipos de pago (ver pagos/tipos.ts). */
+export type MetodoPago = MetodoBase | (string & {});
 
-export const NOMBRE_METODO: Record<MetodoPago, string> = {
+export const NOMBRE_METODO: Record<MetodoBase, string> = {
   efectivo: 'Efectivo',
   tarjeta: 'Tarjeta (terminal)',
   transferencia: 'Transferencia',
@@ -204,9 +207,14 @@ export const NOMBRE_METODO: Record<MetodoPago, string> = {
  */
 export const METODOS_CAPTURABLES: MetodoPago[] = ['efectivo', 'tarjeta', 'transferencia', 'gala', 'regalo', 'souvenir'];
 
-/** Tarjeta y transferencia siempre guardan su número de referencia (y no se repite). */
+/** Los que guardan su número de referencia (y no se repite): por omisión tarjeta y transferencia; se configura en Tipos de pago. */
 export const LLEVA_REFERENCIA: readonly MetodoPago[] = ['tarjeta', 'transferencia'];
-export const llevaReferencia = (m: MetodoPago) => LLEVA_REFERENCIA.includes(m);
+export const llevaReferencia = (m: MetodoPago) => pideReferencia(m);
+
+/** Nombre para mostrar de una forma de pago (también las agregadas en Tipos de pago). */
+export function nombreMetodo(m: MetodoPago): string {
+  return (NOMBRE_METODO as Record<string, string>)[m] ?? nombreTipo(m) ?? m.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+}
 
 export interface PagoCaptura {
   metodo: MetodoPago;
@@ -238,7 +246,7 @@ export function validarPagos(total: number, capturados: PagoCaptura[]): Resultad
   if (!pagos.length) return { ok: false, error: 'Agrega al menos un pago.' };
   for (const p of pagos) {
     if (llevaReferencia(p.metodo) && !normalizarReferencia(p.referencia)) {
-      return { ok: false, error: `Falta el número de referencia del pago con ${NOMBRE_METODO[p.metodo].toLowerCase()}.` };
+      return { ok: false, error: `Falta el número de referencia del pago con ${nombreMetodo(p.metodo).toLowerCase()}.` };
     }
   }
   const refs = pagos.filter(p => llevaReferencia(p.metodo)).map(p => `${p.metodo}_${normalizarReferencia(p.referencia)}`);

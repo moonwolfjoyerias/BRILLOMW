@@ -11,8 +11,7 @@ import { TarjetaCaja } from './Caja';
 import { Corte } from './Corte';
 import { HistorialVentas } from './HistorialVentas';
 import {
-  NOMBRE_METODO,
-  METODOS_CAPTURABLES,
+  nombreMetodo,
   llevaReferencia,
   PUBLICO_GENERAL,
   agregarLinea,
@@ -42,6 +41,7 @@ import { PILOTO } from '../piloto';
 import { BotonCamara } from '../escaner/EscanerQR';
 import { limpiarCodigo } from '../pagina/codigoProducto';
 import { garantiaParaCliente } from '../venta/garantias';
+import { metodosCapturables } from '../pagos/tipos';
 import { SaldoAFavorModal } from './SaldoAFavor';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
@@ -786,8 +786,8 @@ function Cobro({
         {total > 0 && filas.map((f, i) => (
           <div key={i} className="fila-pago">
             <select value={f.metodo} onChange={e => cambiarFila(i, { metodo: e.target.value as MetodoPago })} aria-label="Método de pago">
-              {METODOS_CAPTURABLES.map(m => (
-                <option key={m} value={m}>{NOMBRE_METODO[m]}</option>
+              {metodosCapturables().map(m => (
+                <option key={m} value={m}>{nombreMetodo(m)}</option>
               ))}
             </select>
             <input inputMode="decimal" value={f.monto} onChange={e => cambiarFila(i, { monto: e.target.value })} aria-label="Monto" placeholder="Monto" />

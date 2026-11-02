@@ -10,7 +10,7 @@ import { CAJAS, fechaLocal, leerMonto, nombreCaja, type IdCaja, type TurnoCaja }
 import { cerrarCaja, registrarMovimiento, useTurnosDelDia, useVentasDelDia } from '../caja/turnos';
 import { metodosDelCorte, calcularCorte, diferenciaCierre, sumarCortes, textoDiferencia, type ResumenCorte } from '../caja/corte';
 import { TicketCorte } from '../caja/TicketCorte';
-import { NOMBRE_METODO } from '../venta/carrito';
+import { nombreMetodo } from '../venta/carrito';
 import type { VentaRegistrada } from '../venta/registrarVenta';
 import type { AnchoTicket } from '../venta/Ticket';
 import { anchoGuardado, guardarAncho, imprimirTicket } from '../venta/imprimir';
@@ -118,7 +118,7 @@ export function Corte({ perfil }: { perfil: PerfilUsuario }) {
             <ul className="historial">
               {general.referencias.map((r, i) => (
                 <li key={i}>
-                  <strong>{NOMBRE_METODO[r.metodo]} {r.referencia}</strong> · {$(r.monto)}
+                  <strong>{nombreMetodo(r.metodo)} {r.referencia}</strong> · {$(r.monto)}
                   <span className="muted small bloque">Recibo {r.folio}</span>
                 </li>
               ))}
@@ -177,7 +177,7 @@ function Resumen({ r }: { r: ResumenCorte }) {
       <dd className="total">{$(r.total)}</dd>
       {metodosDelCorte(r).map(m => (
         <div key={m} className="contenido-par">
-          <dt>{NOMBRE_METODO[m]} ({r.porMetodo[m].pagos})</dt>
+          <dt>{nombreMetodo(m)} ({r.porMetodo[m].pagos})</dt>
           <dd>{$(r.porMetodo[m].monto)}</dd>
         </div>
       ))}
