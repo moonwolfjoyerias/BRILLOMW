@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { normalizarProducto } from '../pagina/producto';
 import { calcularTotales, PUBLICO_GENERAL, validarPagos, type ClienteVenta } from './carrito';
 import * as C from './cambios';
+import { certificadosAEntregar } from './cambios';
 import * as G from './garantias';
 import * as H from './historial';
 import { lineasVendidas } from './registrarVenta';
@@ -94,5 +95,32 @@ describe('Historial por persona', () => {
     expect(H.filtrarTickets(lista, '2026-10-01', '2026-10-31', 'anillo').map(x => x.folio)).toEqual(['26-200-1']);
     expect(H.filtrarTickets(lista, '2026-10-01', '2026-10-31', 'pulx').map(x => x.folio)).toEqual(['26-200-2']);
     expect(H.filtrarTickets(lista, '2026-10-10', '2026-10-31', 'anillo')).toEqual([]);
+  });
+});
+
+describe('certificados de garantía a entregar', () => {
+  const l = (material: string, cantidad = 1, extra = {}) => ({ esServicio: false, material, cantidad, ...extra });
+  it('uno por pieza de oro laminado, menos las de oro laminado que regresó en cambio físico', () => {
+    const r = certificadosAEntregar([l('oro-laminado', 10)], Array.from({ length: 6 }, () => ({ material: 'oro-laminado', descuento: 60 })));
+    expect(r).toEqual({ oro: 10, regresadas: 6, certificados: 4 });
+  });
+  it('no cuentan acero, servicios ni piezas de garantía; nunca negativo', () => {
+    const r = certificadosAEntregar([l('acero-inoxidable', 3), l('oro-laminado', 1, { esServicio: true }), l('oro-laminado', 1, { garantia: {} })], [{ material: 'oro-laminado', descuento: 60 }]);
+    expect(r).toEqual({ oro: 0, regresadas: 1, certificados: 0 });
+  });
+  it('piezas de cambio guardadas sin material: 60% cuenta como oro laminado', () => {
+    expect(certificadosAEntregar([l('oro-laminado', 2)], [{ material: undefined, descuento: 60 }, { material: undefined, descuento: 40 }]).regresadas).toBe(1);
+  });
+});
+
+describe('garantía capturada con Público general y después se elige a la e/l', () => {
+  const ana: ClienteVenta = { tipo: 'emprendedora', personaId: 'ana', nombre: 'Ana', membresia: 'MW0001' };
+  it('se recalcula con su descuento de mayoreo', () => {
+    const regresada = G.piezaGarantia(anillo, 'v1', PUBLICO_GENERAL);
+    const l = G.lineaDeGarantia(pulsera, 'v1', 'CERT-9', 1, regresada, regresada.valor, PUBLICO_GENERAL);
+    expect(l.garantia!.diferencia).toBe(400); // 900 - 500 a precio etiqueta
+    const conAna = G.garantiaParaCliente(l, ana, [anillo, pulsera]);
+    expect(conAna.garantia).toMatchObject({ valorOriginal: 200, valorNueva: 360, diferencia: 160 }); // 60% de descuento
+    expect(G.garantiaParaCliente(conAna, PUBLICO_GENERAL, [anillo, pulsera]).garantia!.diferencia).toBe(400);
   });
 });

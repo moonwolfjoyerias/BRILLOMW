@@ -982,3 +982,7 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
 .donde-lista li > div { display: flex; flex-direction: column; min-width: 0; }
 .btn.descancelar { color: #23704a; border-color: #9fd2b4; margin-top: 6px; align-self: flex-start; }
 @media screen { :root[data-tema='oscuro'] .btn.descancelar { color: #8fd7ad; border-color: #2f6b49; } }
+.t-comentarios { white-space: pre-wrap; word-break: break-word; }
+.saldo-grande { font-size: 1.8rem; font-weight: 700; color: var(--mw-purple-dark); margin: 0 0 12px; }
+.formulario-saldo { border-top: 1px solid var(--mw-border); margin-top: 12px; padding-top: 12px; }
+.formulario-saldo h3 { margin: 0 0 8px; font-size: 1rem; }

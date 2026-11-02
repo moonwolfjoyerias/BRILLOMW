@@ -41,6 +41,8 @@ import { nombrePestana, tieneAlgo, useVentasAbiertas, type VentaAbierta } from '
 import { PILOTO } from '../piloto';
 import { BotonCamara } from '../escaner/EscanerQR';
 import { limpiarCodigo } from '../pagina/codigoProducto';
+import { garantiaParaCliente } from '../venta/garantias';
+import { SaldoAFavorModal } from './SaldoAFavor';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 const dinero = (n: number) => MXN.format(n);
@@ -75,7 +77,7 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
   const [cobrando, setCobrando] = useState(false);
   const [ticket, setTicket] = useState<VentaRegistrada | null>(null);
   // Venta de la que salió el ticket: al terminar se cierra esa pestaña.
-  const [extra, setExtra] = useState<null | 'cambio' | 'abiertos' | 'garantia'>(null);
+  const [extra, setExtra] = useState<null | 'cambio' | 'abiertos' | 'garantia' | 'saldo'>(null);
   const cambiosAbiertos = useCambiosAbiertos(db);
   const saldo = useSaldoAFavor(db, cliente.tipo !== 'publico' ? cliente.personaId : null) ?? 0;
   // Presupuesto, preticket y verificación se imprimen sin salir de la venta.
@@ -103,11 +105,14 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
   /** El cambio físico es de una persona: si cambia la clienta, se suelta (sigue abierto, se retoma después). */
   function cambiarCliente(c: ClienteVenta) {
     if (cambio && c.personaId !== cliente.personaId) setCambio(null);
-    if (carrito.some(l => l.garantia) && c.personaId !== cliente.personaId) {
-      setAviso('Hay una garantía en la venta: quítala antes de cambiar de cliente.');
+    // Un segundo cambio es de la clienta del certificado; un primer cambio
+    // toma los precios del cliente que se elija (con su descuento si es e/l).
+    if (carrito.some(l => l.garantia?.numero === 2) && c.personaId !== cliente.personaId) {
+      setAviso('Hay un segundo cambio de garantía en la venta: es de la clienta del certificado. Quítalo antes de cambiar de cliente.');
       return;
     }
     setCliente(c);
+    if (carrito.some(l => l.garantia)) setCarrito(cs => cs.map(l => garantiaParaCliente(l, c, productos)));
   }
   const productos = catalogo.estado === 'listo' ? catalogo.productos : [];
 
@@ -192,8 +197,11 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
               </button>
               <button className="btn" onClick={() => setExtra('abiertos')}>Cambios abiertos{cambiosAbiertos?.length ? ` (${cambiosAbiertos.length})` : ''}</button>
               <button className="btn" onClick={() => setExtra('garantia')}>Garantía</button>
+              {cliente.tipo !== 'publico' && (
+                <button className="btn" onClick={() => setExtra('saldo')}>Saldo a favor{saldo > 0 ? ` (${dinero(saldo)})` : ''}</button>
+              )}
               <button className="btn" disabled={!hayVenta} onClick={() => setParaImprimir(<TicketPresupuesto cliente={cliente} carrito={carrito} cambio={cambio?.piezas ?? []} saldo={saldo} ancho={anchoGuardado()} />)}>
-                Ticket falso / presupuesto
+                Ticket falso
               </button>
             </div>
             {aviso && <p className="error" role="alert">{aviso}</p>}
@@ -359,10 +367,10 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
           total={totales.total}
           aFavor={aFavor}
           saldo={cliente.tipo !== 'publico' ? saldo : 0}
-          onVerificacion={() => setParaImprimir(<TicketVerificacion cliente={cliente} carrito={carrito} ancho={anchoGuardado()} />)}
+          onVerificacion={() => setParaImprimir(<TicketVerificacion cliente={cliente} carrito={carrito} cambio={cambio?.piezas ?? []} ancho={anchoGuardado()} />)}
           onCancelar={() => setCobrando(false)}
-          onConfirmar={async (pagos, recibido, cambioEfectivo) => {
-            const r = await registrarVenta(db, { caja, fechaDia: hoy, cliente, carrito, pagos, recibido, cambio: cambioEfectivo, perfil, equipo: equipoActual(), cambioId: cambio?.id ?? null });
+          onConfirmar={async (pagos, recibido, cambioEfectivo, comentarios) => {
+            const r = await registrarVenta(db, { caja, fechaDia: hoy, cliente, carrito, pagos, recibido, cambio: cambioEfectivo, perfil, equipo: equipoActual(), cambioId: cambio?.id ?? null, comentarios });
             if (!r.ok) return r.error;
             setCobrando(false);
             // La venta ya quedó guardada: su pestaña se cierra en ese momento,
@@ -418,6 +426,9 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
             return null;
           }}
         />
+      )}
+      {extra === 'saldo' && cliente.personaId && (
+        <SaldoAFavorModal cliente={cliente} saldo={saldo} perfil={perfil} onImprimir={t => setParaImprimir(t)} onCerrar={() => setExtra(null)} />
       )}
       <div className="ticket-impresion" aria-hidden="true">{paraImprimir}</div>
     </section>
@@ -701,8 +712,9 @@ function Cobro({
   saldo: number;
   onVerificacion: () => void;
   onCancelar: () => void;
-  onConfirmar: (pagos: PagoRegistrado[], recibido: number, cambio: number) => Promise<string | null>;
+  onConfirmar: (pagos: PagoRegistrado[], recibido: number, cambio: number, comentarios: string) => Promise<string | null>;
 }) {
+  const [comentarios, setComentarios] = useState('');
   const [usarSaldo, setUsarSaldo] = useState(saldo > 0);
   const creditos = aplicarCreditos(totalVenta, aFavor, saldo, usarSaldo);
   // Lo que falta después del cambio físico y el saldo: es lo que se cobra en dinero.
@@ -735,7 +747,7 @@ function Cobro({
     setEnviando(true);
     const creditosPagados = pagosDeCreditos(creditos);
     const recibido = Math.round((r.recibido + creditos.usarCambio + creditos.usarSaldo) * 100) / 100;
-    const err = await onConfirmar([...creditosPagados, ...r.pagos], recibido, r.cambio);
+    const err = await onConfirmar([...creditosPagados, ...r.pagos], recibido, r.cambio, comentarios);
     setEnviando(false);
     if (err) setError(err);
   }
@@ -801,6 +813,10 @@ function Cobro({
         <p className={diferencia < 0 ? 'resumen-cobro falta' : 'resumen-cobro'}>
           {!montosValidos ? 'Revisa los montos.' : diferencia < 0 ? `Faltan ${dinero(-diferencia)}` : diferencia > 0 ? `Cambio: ${dinero(diferencia)}` : 'Pago exacto'}
         </p>
+        <label className="campo">
+          <span>Comentarios (salen en el ticket)</span>
+          <textarea rows={2} maxLength={300} value={comentarios} onChange={e => setComentarios(e.target.value)} placeholder="Opcional" />
+        </label>
         {error && <p className="error" role="alert">{error}</p>}
         <div className="acciones">
           <button type="submit" className="btn primario cobrar" disabled={enviando}>

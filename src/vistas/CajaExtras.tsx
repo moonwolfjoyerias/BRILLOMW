@@ -9,7 +9,7 @@ import type { Producto } from '../pagina/producto';
 import { etiquetaVariante } from '../pagina/producto';
 import { leerMonto } from '../caja/turno';
 import { calcularTotales, precioUnitario, type ClienteVenta, type LineaCarrito } from '../venta/carrito';
-import { piezaDeCambio, piezaManual, valorCambio, type CambioFisico, type PiezaCambio } from '../venta/cambios';
+import { certificadosAEntregar, piezaDeCambio, piezaManual, valorCambio, type CambioFisico, type PiezaCambio } from '../venta/cambios';
 import { COL_GARANTIAS, lineaDeGarantia, normalizarFolio, piezaGarantia, validarCambio, valorPara, type Garantia, type PiezaGarantia } from '../venta/garantias';
 import { descartarCambio, guardarCambio } from '../venta/accionesVenta';
 import { EncabezadoTienda, Fila, type AnchoTicket } from '../venta/Ticket';
@@ -108,7 +108,7 @@ export function CambioFisicoModal({ cliente, inicial, productos, perfil, onGuard
 }) {
   const [piezas, setPiezas] = useState<PiezaCambio[]>(inicial.piezas);
   const [manual, setManual] = useState(false);
-  const [m, setM] = useState({ nombre: '', precio: '', descuento: '60' });
+  const [m, setM] = useState({ nombre: '', precio: '', descuento: '60' , material: 'oro-laminado' });
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const total = valorCambio(piezas);
@@ -141,13 +141,18 @@ export function CambioFisicoModal({ cliente, inicial, productos, perfil, onGuard
             const desc = Number(m.descuento);
             if (!m.nombre.trim() || precio === null || precio <= 0) return setError('Escribe el nombre y el precio etiqueta de la pieza.');
             if (!Number.isFinite(desc) || desc < 0 || desc > 100) return setError('El descuento va de 0 a 100.');
-            setPiezas(x => [...x, piezaManual(m.nombre, precio, desc)]);
-            setM({ nombre: '', precio: '', descuento: m.descuento });
+            setPiezas(x => [...x, piezaManual(m.nombre, precio, desc, m.material || null)]);
+            setM({ nombre: '', precio: '', descuento: m.descuento, material: m.material });
             setError(null);
           }}>
             <input placeholder="Nombre de la pieza" value={m.nombre} onChange={e => setM({ ...m, nombre: e.target.value })} />
             <input placeholder="Precio etiqueta" inputMode="decimal" value={m.precio} onChange={e => setM({ ...m, precio: e.target.value })} />
             <input placeholder="% desc." inputMode="numeric" value={m.descuento} onChange={e => setM({ ...m, descuento: e.target.value })} aria-label="Descuento" />
+            <select value={m.material} onChange={e => setM({ ...m, material: e.target.value })} aria-label="Material">
+              <option value="oro-laminado">Oro laminado</option>
+              <option value="acero-inoxidable">Acero</option>
+              <option value="">Otro</option>
+            </select>
             <button className="btn" type="submit">Agregar</button>
           </form>
         )}
@@ -275,6 +280,11 @@ export function GarantiaModal({ cliente, productos, onAgregar, onCerrar }: {
           <h2>Garantía</h2>
           <button className="btn" onClick={onCerrar}>Cerrar</button>
         </div>
+        <p className={cliente.tipo === 'publico' ? 'aviso-pendiente' : 'muted small'}>
+          {cliente.tipo === 'publico'
+            ? 'Garantía para Público general (precio etiqueta). Si es una emprendedora o líder, elígela en la venta: se le aplica su descuento.'
+            : `Garantía para ${cliente.nombre} (con su descuento de mayoreo).`}
+        </p>
         <nav className="pestanas" aria-label="Tipo de cambio">
           <button className={numero === 1 ? 'nav-boton activo' : 'nav-boton'} onClick={() => cambiarNumero(1)}>Primer cambio</button>
           <button className={numero === 2 ? 'nav-boton activo' : 'nav-boton'} onClick={() => cambiarNumero(2)}>Segundo cambio</button>
@@ -413,8 +423,9 @@ export function TicketPresupuesto({ cliente, carrito, cambio, saldo, ancho }: {
 }
 
 /** Ticket de verificación: una casilla por cada pieza (no por modelo) y línea para quien verificó. */
-export function TicketVerificacion({ cliente, carrito, ancho }: { cliente: ClienteVenta; carrito: LineaCarrito[]; ancho: AnchoTicket }) {
+export function TicketVerificacion({ cliente, carrito, cambio = [], ancho }: { cliente: ClienteVenta; carrito: LineaCarrito[]; cambio?: PiezaCambio[]; ancho: AnchoTicket }) {
   const piezas = carrito.filter(l => !l.esServicio).flatMap(l => Array.from({ length: l.cantidad }, () => l));
+  const cert = certificadosAEntregar(carrito, cambio);
   return (
     <div className={ancho === 58 ? 'ticket t58' : 'ticket'}>
       <div className="t-centro">
@@ -433,6 +444,10 @@ export function TicketVerificacion({ cliente, carrito, ancho }: { cliente: Clien
       ))}
       <div className="t-linea" />
       <div>Piezas: {piezas.length}</div>
+      <div className="t-linea" />
+      <div className="t-fuerte">CERTIFICADOS DE GARANTIA A ENTREGAR: {cert.certificados}</div>
+      {cert.regresadas > 0 && <div>Oro laminado que se lleva: {cert.oro} - regresó en cambio físico: {cert.regresadas}</div>}
+      <div>Entregados: ____ ☐</div>
     </div>
   );
 }
