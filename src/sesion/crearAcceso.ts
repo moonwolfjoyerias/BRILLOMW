@@ -2,7 +2,7 @@
 // sesión de quien la crea: usa una conexión temporal aparte, como
 // crearUsuarioFirebaseSinPerderSesion() de la página.
 import { deleteApp, initializeApp, type FirebaseApp } from 'firebase/app';
-import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
+import { connectAuthEmulator, createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
 import { usuarioAEmail } from './perfil';
 import { PILOTO } from '../piloto';
 
@@ -18,6 +18,9 @@ export function crearAccesoCon(appPrincipal: FirebaseApp, conectar?: (app: Fireb
     const temporal = initializeApp(appPrincipal.options, `crear-cuenta-${Date.now()}`);
     conectar?.(temporal);
     const auth = getAuth(temporal);
+    // En desarrollo con el emulador, la conexión temporal también va al
+    // emulador (si no, crearía la cuenta en el Firebase real).
+    if (import.meta.env.DEV && import.meta.env.VITE_EMULADOR) connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
     try {
       try {
         const c = await createUserWithEmailAndPassword(auth, usuarioAEmail(usuario), password);

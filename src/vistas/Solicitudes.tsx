@@ -20,7 +20,7 @@ import {
   type SolicitudEvento,
   type SolicitudInscripcion
 } from '../solicitudes/modelo';
-import type { PersonaAdmin } from '../personas/modelo';
+import { nombreCompletoPersona, type PersonaAdmin } from '../personas/modelo';
 
 const crearAcceso = crearAccesoCon(app);
 const fecha = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—');
@@ -176,17 +176,22 @@ function DetalleInscripcion({ s, personas, solicitudes, perfil, onCerrar }: {
   const publica = s.origen === 'publico';
   const revision = revisarInscripcion(s, solicitudes, personas);
 
+  // ¿Debajo de quién queda? Se propone quien la invitó o la líder que indicó.
+  const [liderId, setLiderId] = useState<string>(() => (publica ? liderIndicadaEn(s, personas)?.id ?? '' : s.solicitanteId ?? ''));
+  const [preguntaAscender, setPreguntaAscender] = useState(false);
+  const lider = liderId ? personas.find(p => p.id === liderId) : undefined;
+
   if (creada) return <Credenciales c={creada} s={s} onCerrar={onCerrar} />;
 
-  const aprobar = () => {
+  const aprobar = (ascenderLider = false) => {
+    if (lider && lider.tipo !== 'lider' && !ascenderLider) return setPreguntaAscender(true);
+    setPreguntaAscender(false);
     const pregunta =
-      (publica
-        ? `¿Aprobar? Se creará una cuenta de Emprendedora SIN líder asignada todavía${s.liderIndicado ? ` (indicó a "${s.liderIndicado}": verifícalo y asígnalo desde Emprendedoras/Líderes)` : ''}.`
-        : `¿Aprobar? Se creará una cuenta de Emprendedora y ${s.solicitanteNombre} quedará como su líder directa.`) +
+      `¿Aprobar? Se creará una cuenta de Emprendedora ${lider ? `con ${nombreCompletoPersona(lider)} como su líder directa${ascenderLider ? ' (se convierte en Líder)' : ''}` : 'SIN líder asignada todavía'}.` +
       (s.viveEnSLP === false ? ' Como no vive en San Luis Potosí ni zonas cercanas, la cuenta será foránea.' : '');
     if (!window.confirm(pregunta)) return;
     void enviar(async () => {
-      const r = await aprobarInscripcion(db, s, personas, solicitudes, crearAcceso, perfil, equipoActual());
+      const r = await aprobarInscripcion(db, s, personas, solicitudes, crearAcceso, perfil, equipoActual(), { liderId: liderId || null, ascenderLider });
       if (r.ok) { setCreada(r); return null; }
       return r.error;
     });
@@ -241,14 +246,56 @@ function DetalleInscripcion({ s, personas, solicitudes, perfil, onCerrar }: {
         <Rechazo s={s} perfil={perfil} onListo={onCerrar} />
       ) : (
         <>
+          <ElegirLider personas={personas} valor={liderId} onCambio={id => { setLiderId(id); setPreguntaAscender(false); }} />
+          {preguntaAscender && lider && (
+            <div className="pregunta-ascender" role="alertdialog" aria-label={`${nombreCompletoPersona(lider)} aún no es líder`}>
+              <strong>{nombreCompletoPersona(lider)} aún no es líder</strong>
+              <p className="muted small">¿Deseas ascenderla? Para inscribir a alguien debajo de ella, su cuenta tiene que ser de Líder.</p>
+              <div className="acciones">
+                <button className="btn" onClick={() => { setPreguntaAscender(false); document.getElementById('buscar-lider-solicitud')?.focus(); }}>Poner otra líder</button>
+                <button className="btn primario" onClick={() => aprobar(true)}>Cambiar cuenta a Líder</button>
+              </div>
+            </div>
+          )}
           {error && <p className="error">{error}</p>}
           <div className="acciones">
             <button className="btn peligro" disabled={enviando} onClick={() => { setError(null); setModo('rechazar'); }}>Rechazar</button>
-            <button className="btn primario" disabled={enviando} onClick={aprobar}>{enviando ? 'Creando cuenta…' : 'Aprobar solicitud'}</button>
+            <button className="btn primario" disabled={enviando || preguntaAscender} onClick={() => aprobar()}>{enviando ? 'Creando cuenta…' : 'Aprobar solicitud'}</button>
           </div>
         </>
       ))}
     </MarcoModal>
+  );
+}
+
+const normalLider = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+/** La persona que indicó como líder en el registro público, si coincide con una sola. */
+function liderIndicadaEn(s: SolicitudInscripcion, personas: PersonaAdmin[]): PersonaAdmin | undefined {
+  const t = normalLider(s.liderIndicado ?? '');
+  if (!t) return undefined;
+  const c = personas.filter(p => p.estado !== 'baja' && normalLider(`${nombreCompletoPersona(p)} ${p.usuario}`).includes(t));
+  return c.length === 1 ? c[0] : undefined;
+}
+
+/** Debajo de quién queda: cualquier e/l activa (si es Emprendedora, al aprobar se pregunta si se asciende). */
+function ElegirLider({ personas, valor, onCambio }: { personas: PersonaAdmin[]; valor: string; onCambio: (id: string) => void }) {
+  const [q, setQ] = useState('');
+  const t = normalLider(q);
+  const lista = personas
+    .filter(p => p.estado !== 'baja' && (!t || p.id === valor || normalLider(`${nombreCompletoPersona(p)} ${p.usuario}`).includes(t)))
+    .sort((a, b) => nombreCompletoPersona(a).localeCompare(nombreCompletoPersona(b), 'es'));
+  return (
+    <fieldset className="elegir-lider">
+      <legend>¿Debajo de quién queda?</legend>
+      <input id="buscar-lider-solicitud" type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar por nombre o membresía" aria-label="Buscar líder" />
+      <select value={valor} onChange={e => onCambio(e.target.value)} aria-label="Líder directa">
+        <option value="">— Sin líder por ahora —</option>
+        {lista.map(p => (
+          <option key={p.id} value={p.id}>{nombreCompletoPersona(p)}{p.usuario ? ` · ${p.usuario}` : ''} — {p.tipo === 'lider' ? 'Líder' : 'Emprendedora'}</option>
+        ))}
+      </select>
+    </fieldset>
   );
 }
 
@@ -265,7 +312,7 @@ function Credenciales({ c, s, onCerrar }: { c: Extract<ResultadoAprobar, { ok: t
         <dt>Usuario</dt><dd><strong>{c.usuario}</strong></dd>
         <dt>Contraseña temporal</dt><dd><strong>{c.passwordTemporal}</strong></dd>
         <dt>Rol</dt><dd>Emprendedora</dd>
-        <dt>Líder</dt><dd>{s.origen === 'publico' ? (s.liderIndicado ? `${s.liderIndicado} (sin verificar — asígnala desde Emprendedoras/Líderes)` : 'Sin asignar') : s.solicitanteNombre}</dd>
+        <dt>Líder</dt><dd>{c.liderNombre !== undefined ? (c.liderNombre ?? 'Sin asignar') : s.origen === 'publico' ? (s.liderIndicado ? `${s.liderIndicado} (sin verificar — asígnala desde Emprendedoras/Líderes)` : 'Sin asignar') : s.solicitanteNombre}</dd>
       </dl>
       <div className="acciones">
         <button className="btn" onClick={() => copiar(c.usuario, 'usuario')}>{copiado === 'usuario' ? 'Copiado' : 'Copiar usuario'}</button>

@@ -986,3 +986,7 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
 .saldo-grande { font-size: 1.8rem; font-weight: 700; color: var(--mw-purple-dark); margin: 0 0 12px; }
 .formulario-saldo { border-top: 1px solid var(--mw-border); margin-top: 12px; padding-top: 12px; }
 .formulario-saldo h3 { margin: 0 0 8px; font-size: 1rem; }
+.elegir-lider { border: 1px solid var(--mw-border); border-radius: 12px; padding: 10px 12px; margin: 12px 0; display: grid; gap: 8px; }
+.elegir-lider legend { font-weight: 600; padding: 0 4px; }
+.pregunta-ascender { border: 1px solid var(--mw-gold); background: var(--mw-gold-soft); border-radius: 12px; padding: 12px; margin: 0 0 12px; }
+.pregunta-ascender p { margin: 4px 0 8px; }
