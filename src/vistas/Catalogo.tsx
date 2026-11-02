@@ -7,6 +7,7 @@ import { db } from '../firebase';
 import { equipoActual } from '../plataforma';
 import { eliminarProducto } from '../pagina/guardarProducto';
 import { BotonCamara } from '../escaner/EscanerQR';
+import { DondePieza } from './DondePieza';
 import { limpiarCodigo } from '../pagina/codigoProducto';
 import {
   NOMBRE_MATERIAL,
@@ -34,6 +35,7 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
   /** undefined = formulario cerrado; null = producto nuevo; id = editar ese producto. */
   const [editando, setEditando] = useState<string | null | undefined>(undefined);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [donde, setDonde] = useState(false);
   /** Producto recién creado: se revisa si alguien lo pedía en la Lista de deseos. */
   const [revisar, setRevisar] = useState<{ id: string; nombre: string } | null>(null);
 
@@ -64,9 +66,14 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
             {catalogo.desdeCache && ' · sin conexión, mostrando la última copia'}
           </p>
         </div>
-        <button className="btn primario" onClick={() => setEditando(null)}>
-          + Agregar producto
-        </button>
+        <div className="acciones">
+          <button className="btn" onClick={() => setDonde(true)}>
+            ¿Dónde está la pieza?
+          </button>
+          <button className="btn primario" onClick={() => setEditando(null)}>
+            + Agregar producto
+          </button>
+        </div>
       </div>
       {aviso && (
         <p className="aviso-ok" role="status">
@@ -172,6 +179,7 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
           }}
         />
       )}
+      {donde && <DondePieza productos={productos} perfil={perfil} onCerrar={() => setDonde(false)} />}
     </section>
   );
 }

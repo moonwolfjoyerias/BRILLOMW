@@ -65,6 +65,8 @@ interface Opciones {
   ventanaId: string | null;
   /** Producto/variante cuya existencia se descuenta (apartar una pieza). */
   descontar?: { productoId: string; varianteId: string };
+  /** Mensaje si no hay existencia de lo que se descuenta (por omisión, el de apartar). */
+  sinExistencia?: string;
   /** Referencia de pago a registrar como usada (transferencias). */
   referencia?: { metodo: string; referencia: string; monto: number };
   /** Regla a aplicar sobre la versión ACTUAL del servidor. */
@@ -127,7 +129,7 @@ export async function ejecutarAccion(
         if (!vs) throw new ErrorAccion('Ese producto ya no existe en el catálogo.');
         const v = vs.find(x => x.id === op.descontar!.varianteId);
         if (!v) throw new ErrorAccion('Esa variante ya no existe en el catálogo.');
-        if (!(Number(v.stock) > 0)) throw new ErrorAccion('Ya no hay existencia de esa variante (alguien más la apartó o vendió).');
+        if (!(Number(v.stock) > 0)) throw new ErrorAccion(op.sinExistencia ?? 'Ya no hay existencia de esa variante (alguien más la apartó o vendió).');
         cambios.set(op.descontar.productoId, cambiarExistencia(vs, op.descontar.varianteId, -1));
       }
       for (const p of efectos.restaurarStock ?? []) {
