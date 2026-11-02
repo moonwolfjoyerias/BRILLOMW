@@ -1006,3 +1006,8 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
 .pieza-elegida { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; background: var(--mw-lilac-soft); border-radius: 10px; padding: 10px 12px; }
 .historial-stock .linea-importe { text-align: right; }
 @media (max-width: 900px) { .filtros-productos { grid-template-columns: 1fr 1fr; } .filtros-productos .en-linea { grid-column: 1 / -1; } }
+.filtros-documentos { display: grid; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0 0 12px; }
+.fila-clic { cursor: pointer; }
+.fila-clic:hover td { background: var(--mw-lilac-soft); }
+.chip.bloque-izq { display: block; width: max-content; margin-top: 4px; }
+@media (max-width: 900px) { .filtros-documentos { grid-template-columns: 1fr 1fr; } .filtros-documentos input { grid-column: 1 / -1; } }

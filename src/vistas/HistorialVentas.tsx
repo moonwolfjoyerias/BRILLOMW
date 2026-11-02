@@ -141,7 +141,7 @@ function ElegirPersona({ persona, onElegir }: { persona: Persona | null; onElegi
   );
 }
 
-function DetalleVenta({ venta, perfil, hoy, onCambio, onCerrar }: {
+export function DetalleVenta({ venta, perfil, hoy, onCambio, onCerrar }: {
   venta: VentaRegistrada;
   perfil: PerfilUsuario;
   hoy: string;

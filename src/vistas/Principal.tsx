@@ -3,6 +3,7 @@ import { cerrarSesion } from '../sesion/sesion';
 import { ETIQUETA_ROL, puedeManejarCaja, type PerfilUsuario } from '../sesion/perfil';
 import { Catalogo } from './Catalogo';
 import { Productos } from './Productos';
+import { Documentos } from './Documentos';
 import { Stock } from './Stock';
 import { Vender } from './Vender';
 import { Apartados } from './Apartados';
@@ -22,7 +23,7 @@ import { Estadisticas } from './Estadisticas';
 import { useTema } from '../tema';
 import { PILOTO } from '../piloto';
 
-export type Seccion = 'inicio' | 'vender' | 'catalogo' | 'productos' | 'stock' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'compras' | 'estadisticas' | 'cuenta';
+export type Seccion = 'inicio' | 'vender' | 'documentos' | 'catalogo' | 'productos' | 'stock' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'compras' | 'estadisticas' | 'cuenta';
 
 interface Item { id: Seccion; nombre: string }
 
@@ -35,7 +36,7 @@ function menuPara(perfil: PerfilUsuario): { titulo: string | null; items: Item[]
       titulo: 'Tienda',
       items: [
         // Caja y venta van juntas: abrir la caja del día y cobrar en la misma pestaña (Staff no cobra).
-        ...(cobra ? [{ id: 'vender' as const, nombre: 'Caja' }] : []),
+        ...(cobra ? [{ id: 'vender' as const, nombre: 'Caja' }, { id: 'documentos' as const, nombre: 'Documentos' }] : []),
         { id: 'catalogo', nombre: 'Catálogo' },
         { id: 'productos', nombre: 'Productos' },
         { id: 'stock', nombre: 'Stock' },
@@ -169,6 +170,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
           {seccion === 'cuenta' && <MiCuenta perfil={perfil} />}
           {seccion === 'catalogo' && <Catalogo perfil={perfil} />}
           {seccion === 'productos' && <Productos perfil={perfil} />}
+          {seccion === 'documentos' && <Documentos perfil={perfil} />}
           {seccion === 'stock' && <Stock perfil={perfil} />}
           {seccion === 'apartados' && <Apartados perfil={perfil} />}
           {seccion === 'compras' && <ConfirmarCompras perfil={perfil} />}
