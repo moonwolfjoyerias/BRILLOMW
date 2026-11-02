@@ -142,3 +142,28 @@ export function garantiaDespues(existente: Garantia | null, l: LineaCarrito, cli
     estado: cambios.length >= 2 ? 'terminada' : 'abierta'
   };
 }
+
+/**
+ * La garantía (primer cambio) con los precios del cliente actual: si se
+ * capturó con "Público general" y después se eligió a la e/l, se le aplica
+ * su descuento de mayoreo a la pieza que regresa y a la nueva (y al revés).
+ * Una pieza regresada que ya no está en el catálogo usa 60%.
+ */
+export function garantiaParaCliente(l: LineaCarrito, cliente: ClienteVenta, productos: Pick<Producto, 'id' | 'precioEtiqueta' | 'descuento'>[]): LineaCarrito {
+  const g = l.garantia;
+  if (!g || g.numero !== 1) return l;
+  const descuentoDe = (productoId: string | null | undefined, porOmision: number) => productos.find(p => p.id === productoId)?.descuento ?? porOmision;
+  const valorRegresada = valorPara({ precioEtiqueta: g.regresada.precioEtiqueta, descuento: descuentoDe(g.regresada.productoId, 60) }, cliente);
+  const valorNueva = valorPara({ precioEtiqueta: l.precioEtiqueta, descuento: descuentoDe(l.productoId, 0) }, cliente);
+  return {
+    ...l,
+    garantia: {
+      ...g,
+      regresada: { ...g.regresada, valor: valorRegresada },
+      valorOriginal: valorRegresada,
+      valorNueva,
+      diferencia: diferenciaGarantia(valorNueva, valorRegresada)
+    }
+  };
+}
+

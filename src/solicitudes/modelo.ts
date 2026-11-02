@@ -166,7 +166,8 @@ export function existeCorreoOTelefono(personas: Pick<PersonaAdmin, 'id' | 'corre
  * personas/{id} y personasFinanciero/{id} (constancia y rifa), como los
  * guarda la página.
  */
-export function nuevaPersonaDesdeSolicitud(s: SolicitudInscripcion, cred: { usuario: string; numeroCuenta: string }, firebaseUid: string | null, ahora: Date) {
+/** liderId: la líder elegida al aprobar (undefined = quien la invitó, como antes). */
+export function nuevaPersonaDesdeSolicitud(s: SolicitudInscripcion, cred: { usuario: string; numeroCuenta: string }, firebaseUid: string | null, ahora: Date, liderId?: string | null) {
   const partes = s.nombreCompleto.trim().split(/\s+/);
   const completo: Doc = {
     id: `persona-${ahora.getTime()}`,
@@ -182,8 +183,8 @@ export function nuevaPersonaDesdeSolicitud(s: SolicitudInscripcion, cred: { usua
     usuario: cred.usuario,
     numeroCuenta: cred.numeroCuenta,
     fechaAlta: ahora.toISOString(),
-    liderId: s.solicitanteId,
-    invitadaPor: s.solicitanteId,
+    liderId: liderId !== undefined ? liderId : s.solicitanteId,
+    invitadaPor: s.solicitanteId ?? liderId ?? null,
     rangoActualKey: 'sin_rango',
     stats: { personasActivas: 0, produccionGrupalMes: 0, personasCalificadas: 0, compraPersonalPeriodo1: 0, compraPersonalPeriodo2: 0 },
     ascensoPendiente: null,

@@ -34,6 +34,8 @@ export interface PiezaCambio {
   descuento: number;
   /** Lo que vale a favor (precio de hoy con su descuento). */
   valor: number;
+  /** Material de la pieza (para descontar certificados de garantía). */
+  material?: string | null;
 }
 
 export interface CambioFisico {
@@ -64,7 +66,8 @@ export function piezaDeCambio(p: Producto, varianteId: string, ahora = Date.now(
     variante: [v.color, v.talla].filter(Boolean).join(' · '),
     precioEtiqueta: p.precioEtiqueta,
     descuento: p.descuento,
-    valor: precioMayoreo(p)
+    valor: precioMayoreo(p),
+    material: p.material
   };
 }
 
@@ -73,7 +76,7 @@ export function piezaDeCambio(p: Producto, varianteId: string, ahora = Date.now(
  * Aronium): el cajero escribe su precio etiqueta y el descuento. No puede
  * regresar al inventario porque no hay producto al cual sumarla.
  */
-export function piezaManual(nombre: string, precioEtiqueta: number, descuento: number, ahora = Date.now()): PiezaCambio {
+export function piezaManual(nombre: string, precioEtiqueta: number, descuento: number, material: string | null = 'oro-laminado', ahora = Date.now()): PiezaCambio {
   return {
     clave: `manual|${ahora}`,
     productoId: null,
@@ -85,8 +88,28 @@ export function piezaManual(nombre: string, precioEtiqueta: number, descuento: n
     variante: '',
     precioEtiqueta,
     descuento,
-    valor: Math.round(precioEtiqueta * (1 - descuento / 100))
+    valor: Math.round(precioEtiqueta * (1 - descuento / 100)),
+    material
   };
+}
+
+const esOro = (material: string | null | undefined) => material === 'oro-laminado';
+
+/**
+ * Certificados de garantía que se entregan: uno por cada pieza de oro
+ * laminado que se lleva, menos las de oro laminado que regresó en cambio
+ * físico (esas ya se las llevó con su certificado cuando las compró). Las
+ * piezas que salen por garantía no cuentan: conservan el certificado de su
+ * folio. Piezas de cambio guardadas antes de registrar el material: se
+ * toman como oro laminado si llevan 60% (el descuento del oro laminado).
+ */
+export function certificadosAEntregar(
+  carrito: { esServicio: boolean; material: string | null; cantidad: number; garantia?: unknown }[],
+  cambio: Pick<PiezaCambio, 'material' | 'descuento'>[]
+): { oro: number; regresadas: number; certificados: number } {
+  const oro = carrito.filter(l => !l.esServicio && !l.garantia && esOro(l.material)).reduce((s, l) => s + l.cantidad, 0);
+  const regresadas = cambio.filter(p => (p.material === undefined ? p.descuento === 60 : esOro(p.material))).length;
+  return { oro, regresadas, certificados: Math.max(0, oro - regresadas) };
 }
 
 export const valorCambio = (piezas: PiezaCambio[]) => r2(piezas.reduce((s, p) => s + p.valor, 0));

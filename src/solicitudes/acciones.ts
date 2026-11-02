@@ -9,7 +9,7 @@ import { UsuarioOcupado, type CrearAcceso } from '../sesion/crearAcceso';
 import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';
 import { nuevoAviso, type Aviso } from '../pagina/avisos';
 import { mensajeError } from '../personas/acciones';
-import { perfilUsuarioPersona, type PersonaAdmin } from '../personas/modelo';
+import { convertirEnLider, perfilUsuarioPersona, type PersonaAdmin } from '../personas/modelo';
 import {
   eventoDesdeSolicitud,
   existeCorreoOTelefono,
@@ -51,7 +51,7 @@ function actividad(perfil: PerfilUsuario, equipo: string, accion: string, descri
   return nuevoRegistroActividad(perfil, 'solicitudes', accion, conOrigen(descripcion, equipo), equipo, ahora);
 }
 
-export type ResultadoAprobar = { ok: true; usuario: string; passwordTemporal: string; nombre: string } | { ok: false; error: string };
+export type ResultadoAprobar = { ok: true; usuario: string; passwordTemporal: string; nombre: string; liderNombre?: string | null } | { ok: false; error: string };
 
 /**
  * Aprueba una inscripción: genera usuario MW#### y contraseña temporal, crea
@@ -65,9 +65,19 @@ export async function aprobarInscripcion(
   solicitudes: Solicitud[],
   crearAcceso: CrearAcceso,
   perfil: PerfilUsuario,
-  equipo: string
+  equipo: string,
+  /**
+   * Debajo de quién queda (undefined = quien la invitó). Si es Emprendedora
+   * y se eligió "Cambiar cuenta a Líder", se asciende en la misma transacción.
+   */
+  opciones: { liderId?: string | null; ascenderLider?: boolean } = {}
 ): Promise<ResultadoAprobar> {
   if (sinConexion()) return { ok: false, error: 'Sin conexión a internet. Para aprobar se necesita conexión.' };
+  if (opciones.liderId) {
+    const lider = personas.find(p => p.id === opciones.liderId);
+    if (!lider) return { ok: false, error: 'La líder elegida ya no existe.' };
+    if (lider.tipo !== 'lider' && !opciones.ascenderLider) return { ok: false, error: `${lider.nombre} aún no es líder.` };
+  }
   if (s.estado !== 'pendiente') return { ok: false, error: 'Esta solicitud ya fue resuelta y no puede aprobarse de nuevo.' };
   if (existeCorreoOTelefono(personas, s.correo, s.telefono)) return { ok: false, error: 'Ya existe una cuenta con ese correo o teléfono. No se puede aprobar esta solicitud.' };
   const usuariosPersonas = personas.map(p => p.usuario);
@@ -94,7 +104,17 @@ export async function aprobarInscripcion(
       if (!snap.exists()) throw new ErrorSolicitud('La solicitud no existe.');
       const actual = normalizarInscripcion(snap.id, snap.data());
       if (actual.estado !== 'pendiente') throw new ErrorSolicitud('Esta solicitud ya fue resuelta y no puede aprobarse de nuevo.');
-      const { persona, financiero } = nuevaPersonaDesdeSolicitud(actual, cred, uid, ahora);
+      // Lecturas antes de escribir: la líder que se asciende.
+      const refLider = opciones.liderId && opciones.ascenderLider ? doc(db, 'personas', opciones.liderId) : null;
+      const snapLider = refLider ? await tx.get(refLider) : null;
+      const { persona, financiero } = nuevaPersonaDesdeSolicitud(actual, cred, uid, ahora, opciones.liderId);
+      if (refLider && snapLider?.exists() && snapLider.data().tipo !== 'lider') {
+        const crudo = snapLider.data();
+        const asc = convertirEnLider(crudo);
+        tx.update(refLider, { tipo: asc.tipo, rangoActualKey: asc.rangoActualKey, stats: asc.stats });
+        const ra = actividad(perfil, equipo, 'convertir_lider', `${[crudo.nombre, crudo.apellidos].filter(Boolean).join(' ')} fue convertida de Emprendedora a Líder (para inscribir a ${actual.nombreCompleto} en su equipo)`, ahora);
+        tx.set(doc(db, 'auditoria', ra.id), ra);
+      }
       tx.set(doc(db, 'personas', String(persona.id)), persona);
       tx.set(doc(db, 'personasFinanciero', String(persona.id)), financiero, { merge: true });
       tx.set(doc(db, 'users', uid!), perfilUsuarioPersona(persona), { merge: true });
@@ -115,7 +135,14 @@ export async function aprobarInscripcion(
         tx.set(doc(db, 'notificaciones', n.id), n);
       }
     });
-    return { ok: true, usuario: cred.usuario, passwordTemporal: cred.passwordTemporal, nombre: s.nombreCompleto };
+    const lider = opciones.liderId !== undefined ? personas.find(p => p.id === opciones.liderId) : undefined;
+    return {
+      ok: true,
+      usuario: cred.usuario,
+      passwordTemporal: cred.passwordTemporal,
+      nombre: s.nombreCompleto,
+      ...(opciones.liderId !== undefined ? { liderNombre: lider ? [lider.nombre, lider.apellidos].filter(Boolean).join(' ') : null } : {})
+    };
   } catch (e) {
     if (e instanceof ErrorSolicitud) return { ok: false, error: e.message };
     return { ok: false, error: mensajeError(e) };

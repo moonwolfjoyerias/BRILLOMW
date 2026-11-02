@@ -71,6 +71,12 @@ describe('Compras en la caja de BRILLO', () => {
     expect(C.compraDeVenta(venta([linea(1000)], [{ metodo: 'gala', monto: 1000 }]))).toBeNull();
   });
 
+  it('lo que se paga de una garantía no cuenta para recompensas ni comisiones', () => {
+    const v = venta([linea(400), linea(88, { garantia: { folio: 'C1', numero: 1 } as never })], [{ metodo: 'efectivo', monto: 488 }]);
+    expect(C.compraDeVenta(v)).toEqual({ normal: 400, souvenir: 0 });
+    expect(C.compraDeVenta(venta([linea(88, { garantia: { folio: 'C1', numero: 1 } as never })], [{ metodo: 'efectivo', monto: 88 }]))).toBeNull();
+  });
+
   it('a público en general no cuenta', () => {
     expect(C.compraDeVenta(venta([linea(500)], [{ metodo: 'efectivo', monto: 500 }], { tipo: 'publico', personaId: null, nombre: 'Público general', membresia: null } as never))).toBeNull();
   });

@@ -68,6 +68,8 @@ export interface VentaRegistrada {
   cobradoPor: { uid: string; nombre: string; rol: string };
   equipo: string;
   estado: 'completada' | 'cancelada';
+  /** Comentarios del cajero que salen impresos en el ticket. */
+  comentarios?: string;
   origen: 'pos';
   /** Piezas que dejó como cambio físico (si hubo). */
   cambioFisico?: CambioEnVenta;
@@ -148,6 +150,8 @@ export async function registrarVenta(
     equipo: string;
     /** Cambio físico abierto de esta clienta que se cierra con la venta. */
     cambioId?: string | null;
+    /** Comentarios que salen en el ticket. */
+    comentarios?: string;
   }
 ): Promise<{ ok: true; venta: VentaRegistrada } | { ok: false; error: string }> {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
@@ -245,6 +249,7 @@ export async function registrarVenta(
         equipo: datos.equipo,
         estado: 'completada',
         origen: 'pos',
+        ...(datos.comentarios?.trim() ? { comentarios: datos.comentarios.trim().slice(0, 300) } : {}),
         ...(cambio ? { cambioFisico: { id: cambio.id, piezas: cambio.piezas, valor: valorDelCambio, usado: usoCambio, aSaldo, regresado: null } } : {}),
         ...(personaId && (usoSaldo > 0 || aSaldo > 0) ? { saldoAFavor: { usado: usoSaldo, guardado: aSaldo, saldoFinal } } : {})
       };
@@ -274,7 +279,7 @@ export async function registrarVenta(
       if (saldoRef && (usoSaldo > 0 || aSaldo > 0)) {
         tx.set(saldoRef, { personaId, personaNombre: cliente.nombre, saldo: saldoFinal, actualizadoEn: v.fechaLocal }, { merge: true });
         const mov = (tipo: 'uso' | 'abono', monto: number) =>
-          tx.set(doc(db, COL_SALDO_MOVIMIENTOS, `${folio}__${tipo}`), { personaId, tipo, monto, folio, fecha: v.fechaLocal, por: perfil.nombre });
+          tx.set(doc(db, COL_SALDO_MOVIMIENTOS, `${folio}__${tipo}`), { personaId, tipo, monto, folio, fecha: v.fechaLocal, por: perfil.nombre, ...(tipo === 'abono' ? { origen: 'cambio_fisico' } : {}) });
         if (usoSaldo > 0) mov('uso', usoSaldo);
         if (aSaldo > 0) mov('abono', aSaldo);
       }

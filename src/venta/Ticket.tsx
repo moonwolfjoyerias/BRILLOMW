@@ -149,6 +149,13 @@ export function Ticket({ venta: v, ancho = 80 }: { venta: VentaRegistrada; ancho
           <Fila izq="Ahorraste:" der={MXN.format(ahorro)} fuerte />
         </>
       )}
+      {v.comentarios && (
+        <>
+          <div className="t-linea" />
+          <div className="t-fuerte">Comentarios:</div>
+          <div className="t-comentarios">{v.comentarios}</div>
+        </>
+      )}
       <div className="t-espacio" />
       <div className="t-centro">
         <CodigoBarras texto={v.folio} />
