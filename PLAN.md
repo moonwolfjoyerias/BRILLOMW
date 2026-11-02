@@ -423,6 +423,26 @@ cálculos del Plan MW.
 
 ### Apartados
 
+- **Hecho (nov-2026): ¿Dónde está la pieza?** Botón en el Catálogo (BRILLO
+  y catálogo de Staff/Encargado/Admin en la página). Con el código, el
+  nombre o el QR muestra: disponibles en el local (por variante), quién la
+  tiene apartada, cuántas y si ya están en su bolsita, y a quién se le
+  quitó de un apartado en los últimos 60 días. Los apartados se leen solo
+  al abrirlo.
+- **Hecho (nov-2026): Descancelar.** Solo piezas **quitadas** ("Quitar
+  pieza"), para cuando vuelve a llegar. Primero se suma la pieza en el
+  catálogo; al descancelar se descuenta como cualquier apartado (sin
+  existencia no deja). Si la ventana se había cerrado, se reabre y el
+  crédito que se generó vuelve a ser su depósito (lo disponible; si ya usó
+  parte, se anota). Lo abonado a la pieza vuelve a la pieza. Le llega aviso
+  a la e/l. Desde Apartados (botón en la pieza) y desde ¿Dónde está la
+  pieza? (en la página lleva a Apartados con `?ventana=ID`, porque Staff
+  confirma con usuario y contraseña). Los cancelados completos, por no
+  depositar o por vencimiento no se descancelan.
+- **Hecho (nov-2026, página):** en Mis apartados de la e/l, sección
+  "Canceladas recientemente" (30 días): pieza, foto, fecha, motivo y qué
+  pasó con su depósito. Las que ella misma quitó no salen.
+
 - Las emprendedoras y líderes los **solicitan desde la página**.
 - Staff los **gestiona desde BRILLO**: quién apartó, qué tiene apartado y
   qué ha pagado.

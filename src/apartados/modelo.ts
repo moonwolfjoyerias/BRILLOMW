@@ -29,7 +29,7 @@ export type MetodoApartado = 'transferencia' | 'local';
 
 export interface PagoPieza {
   monto: number;
-  tipo: 'liquidacion' | 'excedente_aplicado';
+  tipo: 'liquidacion' | 'excedente_aplicado' | 'ajuste_descancelar';
   metodo: string | null;
   referencia: string | null;
   fecha: string;
@@ -466,6 +466,8 @@ export function quitarPieza(ventana: Ventana, piezaId: string, motivo: string, u
       const monto = v.depositoApartadoDisponible;
       efectos.credito = { usuarioId: v.usuarioId, monto };
       cerrar(v, 'credito');
+      // Para "Descancelar": si la pieza vuelve, este crédito regresa a la ventana.
+      v.creditoAlQuitarPieza = monto;
       vaciarDeposito(v);
       v.auditoria.push(historial(`Depósito de $${monto} guardado como crédito`, usuario, ahora));
     } else {
@@ -473,6 +475,65 @@ export function quitarPieza(ventana: Ventana, piezaId: string, motivo: string, u
     }
   }
   return { ok: true, ventana: v, efectos };
+}
+
+/**
+ * DESCANCELAR una pieza quitada (quitarPieza) que volvió a llegar. Igual
+ * que la página (descancelarPiezaQuitada): descuenta una pieza de la
+ * existencia (eso lo hace la transacción con `descontar`), y si la ventana
+ * se había cerrado, la reabre y el crédito que se generó al cerrarla
+ * vuelve a ser su depósito (lo que siga disponible). Lo abonado a la pieza
+ * que había regresado al excedente vuelve a la pieza. Avisa a la clienta.
+ */
+export function descancelarPieza(ventana: Ventana, piezaId: string, usuario: string, creditoDisponible: number, ahora = new Date()): Resultado {
+  if (ventana.estado === 'vencida') return { ok: false, error: 'Ese apartado se desapartó por vencimiento; abre uno nuevo.' };
+  const v = copia(ventana);
+  const p = v.apartados.find(x => x.id === piezaId);
+  if (!p || p.estado !== 'cancelada' || !p.retiro) return { ok: false, error: 'Esa pieza no se quitó del apartado (solo se pueden descancelar piezas quitadas).' };
+  const fecha = ahoraISO(ahora);
+  const efectos: Efectos = {
+    avisos: [{ texto: `¡Buenas noticias! "${p.producto}" volvió a tu apartado.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider' }],
+    actividad: { accion: 'descancelar_pieza_apartado', descripcion: `Descanceló ${p.producto} en el apartado de ${v.usuarioNombre}` }
+  };
+  if (v.estado === 'cerrada') {
+    const credito = Number(v.creditoAlQuitarPieza ?? creditoDeCierreEnHistorial(v)) || 0;
+    const regresado = Math.min(credito, Math.max(0, creditoDisponible));
+    if (regresado > 0) {
+      efectos.credito = { usuarioId: v.usuarioId, monto: r2(creditoDisponible - regresado) };
+      fijarDeposito(v, regresado);
+    }
+    v.estado = 'activa';
+    v.resolucionDeposito = null;
+    delete v.creditoAlQuitarPieza;
+    v.auditoria.push(historial(
+      regresado > 0
+        ? `Apartado reabierto — $${regresado} de crédito regresaron como depósito${credito > regresado ? ` (faltan $${r2(credito - regresado)} que ya usó)` : ''}`
+        : 'Apartado reabierto',
+      usuario, ahora
+    ));
+    efectos.actividad.descripcion += ' (apartado reabierto)';
+  }
+  const abonado = sumarPagos(p.pagos);
+  if (abonado > 0) {
+    const devolver = Math.min(abonado, Number(v.depositoExcedente || 0));
+    v.depositoExcedente = r2(Number(v.depositoExcedente || 0) - devolver);
+    v.depositoApartadoDisponible = Number(v.depositoPiso || 0) + v.depositoExcedente;
+    if (devolver < abonado) p.pagos.push({ monto: -r2(abonado - devolver), tipo: 'ajuste_descancelar', metodo: null, referencia: null, fecha });
+    p.saldo = Math.max(0, r2(Number(p.total || 0) - sumarPagos(p.pagos)));
+  }
+  const anteriores = Array.isArray(p.retirosAnteriores) ? (p.retirosAnteriores as unknown[]) : [];
+  p.retirosAnteriores = [...anteriores, { ...p.retiro, descancelada: fecha }];
+  delete p.retiro;
+  p.estado = 'activa';
+  p.descancelada = { fecha, usuario };
+  v.auditoria.push(historial(`Pieza descancelada (volvió al apartado): ${p.producto}`, usuario, ahora));
+  return { ok: true, ventana: v, efectos };
+}
+
+/** Ventanas cerradas antes de guardar creditoAlQuitarPieza: el monto está en su historial. */
+function creditoDeCierreEnHistorial(v: Ventana): number {
+  const e = v.auditoria.slice().reverse().find(a => /^Depósito de \$\d+(\.\d+)? guardado como crédito$/.test(a.texto));
+  return e ? Number(e.texto.match(/\$(\d+(\.\d+)?)/)![1]) : 0;
 }
 
 /** "No depositó": se cancela completa, las piezas regresan al inventario y se avisa. */

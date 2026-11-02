@@ -31,6 +31,7 @@ import {
   marcarRevisado,
   piezasActivas,
   quitarPieza,
+  descancelarPieza,
   referenciaUsada,
   regla,
   registrarPedidoComprobante,
@@ -131,13 +132,32 @@ export function filtrarVentanas(ventanas: Ventana[], filtro: Filtro, busqueda: s
 
 // ------------------------------------------------------------ modales
 
-interface Confirmacion {
+/** Confirmación de "Descancelar" (también la usa ¿Dónde está la pieza? del Catálogo). */
+export function confirmacionDescancelar(v: Ventana, p: Pieza): Confirmacion {
+  return {
+    titulo: 'Descancelar pieza',
+    mensaje: `"${p.producto}" vuelve al apartado de ${v.usuarioNombre} y se descuenta una pieza de la existencia del catálogo (si acaba de llegar, primero súmala en el catálogo).${
+      v.estado === 'cerrada' ? ' El apartado estaba cerrado: se reabre y, si su depósito quedó como crédito, vuelve a ser su depósito.' : ''
+    } Le llegará un aviso.`,
+    textoBoton: 'Sí, descancelar',
+    ventanaId: v.id,
+    descontar: p.productoId && p.varianteId ? { productoId: p.productoId, varianteId: p.varianteId } : undefined,
+    sinExistencia: `No hay existencia de ${p.producto}${p.variante ? ` (${p.variante})` : ''} en el catálogo. Primero suma en el catálogo la pieza que llegó.`,
+    accion: (a, u, creditoDe) => descancelarPieza(a, p.id, u, creditoDe(a.usuarioId)),
+    exito: `"${p.producto}" volvió al apartado de ${v.usuarioNombre} y se le avisó.`
+  };
+}
+
+export interface Confirmacion {
   titulo: string;
   mensaje: ReactNode;
   textoBoton: string;
   peligrosa?: boolean;
   ventanaId: string;
-  accion: (v: Ventana, usuario: string) => Resultado;
+  accion: (v: Ventana, usuario: string, creditoDe: (usuarioId: string) => number) => Resultado;
+  /** Pieza cuya existencia se descuenta al confirmar (descancelar). */
+  descontar?: { productoId: string; varianteId: string };
+  sinExistencia?: string;
   exito: string;
 }
 
@@ -150,7 +170,7 @@ type Modal =
   | { tipo: 'vencida'; v: Ventana }
   | { tipo: 'confirmar'; c: Confirmacion };
 
-type Correr = (
+export type Correr = (
   op: Parameters<typeof ejecutarAccion>[1],
   exito: string
 ) => Promise<string | null>;
@@ -539,6 +559,12 @@ function FilaVentana({
                   </div>
                   {p.enBolsita && <span className="muted small bloque">En bolsita desde {fechaHora(p.enBolsita.fecha)} · {p.enBolsita.usuario}</span>}
                   {p.retiro && <span className="small bloque peligro-texto">Quitada del apartado: {p.retiro.motivo} · {p.retiro.usuario} · {fechaHora(p.retiro.fecha)}</span>}
+                  {p.retiro && p.estado === 'cancelada' && v.estado !== 'vencida' && (
+                    <button className="btn mini descancelar" onClick={() => onConfirmar(confirmacionDescancelar(v, p))}>↺ Descancelar (llegó de nuevo)</button>
+                  )}
+                  {typeof p.descancelada === 'object' && p.descancelada && (
+                    <span className="muted small bloque">Descancelada {fechaHora((p.descancelada as { fecha: string }).fecha)} · {(p.descancelada as { usuario: string }).usuario}</span>
+                  )}
                 </div>
               </div>
             );
@@ -561,7 +587,7 @@ function FilaVentana({
 
 // ------------------------------------------------------------ confirmación genérica
 
-function Confirmar({ c, perfil, correr, onCerrar }: { c: Confirmacion; perfil: PerfilUsuario; correr: Correr; onCerrar: () => void }) {
+export function Confirmar({ c, perfil, correr, onCerrar }: { c: Confirmacion; perfil: PerfilUsuario; correr: Correr; onCerrar: () => void }) {
   const { enviando, error, enviar } = useEnvio();
   return (
     <MarcoModal titulo={c.titulo} onCerrar={onCerrar} enviando={enviando}>
@@ -573,7 +599,7 @@ function Confirmar({ c, perfil, correr, onCerrar }: { c: Confirmacion; perfil: P
           className={c.peligrosa ? 'btn peligro-lleno' : 'btn primario'}
           disabled={enviando}
           autoFocus
-          onClick={() => enviar(() => correr({ ventanaId: c.ventanaId, accion: a => (a ? c.accion(a, perfil.nombre) : { ok: false, error: 'Ese apartado ya no existe.' }) }, c.exito))}
+          onClick={() => enviar(() => correr({ ventanaId: c.ventanaId, descontar: c.descontar, sinExistencia: c.sinExistencia, accion: (a, creditoDe) => (a ? c.accion(a, perfil.nombre, creditoDe) : { ok: false, error: 'Ese apartado ya no existe.' }) }, c.exito))}
         >
           {enviando ? 'Guardando…' : c.textoBoton}
         </button>
