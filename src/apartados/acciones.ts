@@ -15,6 +15,7 @@ import {
   type Firestore
 } from '../datos/firestore';
 import { useEffect, useState } from 'react';
+import { anotarMovimiento } from '../stock/acciones';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';
 import { normalizarReferencia } from '../venta/carrito';
@@ -102,11 +103,11 @@ export async function ejecutarAccion(
       const idsProductos = new Set<string>();
       if (op.descontar?.productoId) idsProductos.add(op.descontar.productoId);
       actual && piezasActivas(actual).forEach(p => p.productoId && idsProductos.add(p.productoId));
-      const productos = new Map<string, { ref: DocumentReference; variantes: Record<string, unknown>[] } | null>();
+      const productos = new Map<string, { ref: DocumentReference; variantes: Record<string, unknown>[]; nombre: string; codigo: string } | null>();
       for (const id of idsProductos) {
         const ref = doc(db, 'productos', id);
         const s = await tx.get(ref);
-        productos.set(id, s.exists() ? { ref, variantes: Array.isArray(s.data().variantes) ? s.data().variantes : [] } : null);
+        productos.set(id, s.exists() ? { ref, variantes: Array.isArray(s.data().variantes) ? s.data().variantes : [], nombre: String(s.data().nombre ?? ''), codigo: String(s.data().codigo ?? '') } : null);
       }
       // Mismo id que las ventas de BRILLO: una transferencia ya usada en caja
       // tampoco se puede usar en un apartado (y al revés).
@@ -153,6 +154,15 @@ export async function ejecutarAccion(
       cambios.forEach((variantes, id) =>
         tx.update(productos.get(id)!.ref, { variantes, disponible: variantes.some(v => (Number(v.stock) || 0) > 0) })
       );
+      // Historial de Stock.
+      if (op.descontar) {
+        const p = productos.get(op.descontar.productoId)!;
+        anotarMovimiento(tx, db, { ...op.descontar, producto: { nombre: p.nombre, codigo: p.codigo, variantes: p.variantes }, tipo: 'apartado', cantidad: -1, referencia: nueva.id, nota: nueva.usuarioNombre, por: perfil.nombre }, ahora);
+      }
+      for (const r of efectos.restaurarStock ?? []) {
+        const p = productos.get(r.productoId);
+        if (p) anotarMovimiento(tx, db, { ...r, producto: { nombre: p.nombre, codigo: p.codigo, variantes: p.variantes }, tipo: 'cancelacion_apartado', cantidad: 1, referencia: nueva.id, nota: nueva.usuarioNombre, por: perfil.nombre }, ahora);
+      }
       const registro = nuevoRegistroActividad(perfil, 'apartados', efectos.actividad.accion, conOrigen(efectos.actividad.descripcion, equipo), equipo, ahora);
       tx.set(doc(db, 'auditoria', registro.id), registro);
       (efectos.avisos ?? []).forEach((a, i) => {

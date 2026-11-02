@@ -53,6 +53,13 @@ export interface Producto {
   /** % de descuento de mayoreo. */
   descuento: number;
   disponible: boolean;
+  /**
+   * Se ve en el Catálogo (BRILLO y página de e/l): las piezas premium. false =
+   * solo de tienda (sale en Productos y en la caja, no en el catálogo).
+   */
+  mostrarEnCatalogo: boolean;
+  /** Existencia mínima antes de avisar "poco stock" (por variante); sin valor = la general. */
+  stockMinimo?: number;
   galeria: FotoProducto[];
   imagen: string;
 }
@@ -121,6 +128,8 @@ export function normalizarProducto(id: string, crudo: Record<string, unknown>): 
     precioEtiqueta: numero(crudo.precioEtiqueta),
     descuento: numero(crudo.descuento),
     disponible: variantes.some(v => v.stock > 0),
+    mostrarEnCatalogo: crudo.mostrarEnCatalogo !== false,
+    ...(crudo.stockMinimo != null && crudo.stockMinimo !== '' ? { stockMinimo: Math.max(0, Math.floor(numero(crudo.stockMinimo))) } : {}),
     galeria,
     imagen: galeria[0]?.src || ''
   };

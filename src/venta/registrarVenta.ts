@@ -21,6 +21,7 @@ import { COL_CAMBIOS, COL_SALDO_MOVIMIENTOS, COL_SALDOS, valorCambio, type Cambi
 import { COL_GARANTIAS, garantiaDespues, validarCambio, type Garantia } from './garantias';
 import { COL_TICKETS_PERSONA, idIndicePersona, resumenTicket, type ResumenTicket } from './historial';
 
+import { anotarMovimiento } from '../stock/acciones';
 import { COL_COMPRAS, compraDeVenta, idCompraVenta, type CompraVenta } from '../compras/modelo';
 
 export const COLECCION_VENTAS = 'brilloVentas';
@@ -256,6 +257,19 @@ export async function registrarVenta(
       r.cambios.forEach((variantes, id) =>
         tx.update(doc(db, 'productos', id), { variantes, disponible: variantes.some(x => (Number(x.stock) || 0) > 0) })
       );
+      // Historial de Stock: un movimiento por pieza vendida (con su existencia antes y después).
+      {
+        const corriendo = new Map<string, number>();
+        for (const l of lineas) {
+          if (l.esServicio || !l.productoId || !l.varianteId) continue;
+          const crudo = actuales.get(l.productoId) ?? null;
+          const clave = `${l.productoId}|${l.varianteId}`;
+          const inicial = Number(((crudo?.variantes as Record<string, unknown>[] | undefined) ?? []).find(x => x.id === l.varianteId)?.stock) || 0;
+          const antes = corriendo.get(clave) ?? inicial;
+          corriendo.set(clave, antes - l.cantidad);
+          anotarMovimiento(tx, db, { productoId: l.productoId, varianteId: l.varianteId, producto: crudo, tipo: 'venta', cantidad: -l.cantidad, antes, despues: antes - l.cantidad, referencia: folio, nota: l.garantia ? `Garantía ${l.garantia.folio}` : undefined, por: perfil.nombre }, new Date(v.fechaLocal));
+        }
+      }
       // Cuenta de ventas del turno: al cerrar la caja sirve para saber que el
       // corte incluye todas.
       tx.update(doc(db, COLECCION_TURNOS, turnoId), { numVentas: (Number(turno.data().numVentas) || 0) + 1 });

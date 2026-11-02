@@ -990,3 +990,19 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
 .elegir-lider legend { font-weight: 600; padding: 0 4px; }
 .pregunta-ascender { border: 1px solid var(--mw-gold); background: var(--mw-gold-soft); border-radius: 12px; padding: 12px; margin: 0 0 12px; }
 .pregunta-ascender p { margin: 4px 0 8px; }
+.check.check-catalogo { white-space: normal; align-items: flex-start; }
+
+/* ---------- Productos y Stock ---------- */
+.tabla-scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--mw-border); border-radius: var(--radius); }
+.tabla-scroll .tabla td { vertical-align: middle; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82rem; color: var(--mw-text-muted); white-space: nowrap; }
+.miniatura { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; display: block; }
+.miniatura.sin-foto { background: var(--mw-lilac-soft); }
+.filtros-productos { display: grid; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; align-items: center; }
+.filtros-stock { margin: 12px 0 14px; }
+.interruptor { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; font-size: 0.85rem; }
+.interruptor input { width: 18px; height: 18px; accent-color: var(--mw-purple); }
+.chip.bloque { display: block; width: max-content; margin: 4px 0 0 auto; }
+.pieza-elegida { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; background: var(--mw-lilac-soft); border-radius: 10px; padding: 10px 12px; }
+.historial-stock .linea-importe { text-align: right; }
+@media (max-width: 900px) { .filtros-productos { grid-template-columns: 1fr 1fr; } .filtros-productos .en-linea { grid-column: 1 / -1; } }

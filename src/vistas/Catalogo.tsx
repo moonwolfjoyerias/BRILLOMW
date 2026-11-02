@@ -44,6 +44,8 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
     const q = normal(busqueda);
     return productos.filter(
       p =>
+        // El Catálogo es solo lo premium; lo demás está en Productos.
+        p.mostrarEnCatalogo &&
         (!material || p.material === material) &&
         (!soloConExistencias || stockTotal(p) > 0) &&
         (!q || normal(`${p.nombre} ${p.codigo} ${p.categoria}`).includes(q))
@@ -62,7 +64,7 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
         <div>
           <h1>Catálogo</h1>
           <p className="muted">
-            {filtrados.length} de {productos.length} modelos
+            {filtrados.length} de {productos.filter(p => p.mostrarEnCatalogo).length} modelos del catálogo
             {catalogo.desdeCache && ' · sin conexión, mostrando la última copia'}
           </p>
         </div>

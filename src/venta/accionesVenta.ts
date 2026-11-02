@@ -1,5 +1,6 @@
 // Lo que se hace sobre ventas ya cobradas y sobre los cambios físicos
 // abiertos. Cada acción es UNA transacción con su registro en Actividad.
+import { anotarMovimiento } from '../stock/acciones';
 import { FirebaseError } from 'firebase/app';
 import { collection, doc, getDoc, onSnapshot, query, runTransaction, where, type Firestore } from '../datos/firestore';
 import { useEffect, useState } from 'react';
@@ -132,6 +133,9 @@ export function regresarAlInventario(db: Firestore, folio: string, perfil: Perfi
     if (!r.ok) throw new ErrorAccion(r.error);
     r.cambios.forEach((variantes, id) => tx.update(doc(db, 'productos', id), { variantes, disponible: variantes.some(x => (Number(x.stock) || 0) > 0) }));
     const ahora = new Date().toISOString();
+    for (const p of piezas) {
+      anotarMovimiento(tx, db, { productoId: p.productoId!, varianteId: p.varianteId!, producto: { nombre: p.nombre, codigo: p.codigo, variantes: actuales.get(p.productoId!) ?? [] }, tipo: 'regreso_cambio', cantidad: 1, referencia: folio, nota: `Cambio físico de ${v.cliente.nombre}`, por: perfil.nombre }, new Date(ahora));
+    }
     tx.update(ref, { cambioFisico: { ...v.cambioFisico, regresado: { por: perfil.nombre, en: ahora } } });
     const reg = nuevoRegistroActividad(perfil, 'catalogo', 'regresar_inventario_cambio', conOrigen(`${piezas.length} pieza(s) del cambio físico de ${v.cliente.nombre} (ticket ${folio}) regresaron al inventario`, equipo), equipo);
     tx.set(doc(db, 'auditoria', reg.id), reg);
@@ -192,6 +196,15 @@ export function cancelarVenta(db: Firestore, folio: string, motivo: string, hoy:
       cambios = new Map([...cambios, ...r2x.cambios]);
     }
     cambios.forEach((variantes, id) => tx.update(doc(db, 'productos', id), { variantes, disponible: variantes.some(x => (Number(x.stock) || 0) > 0) }));
+    {
+      const cuando = new Date();
+      for (const l of vendidas) {
+        anotarMovimiento(tx, db, { productoId: l.productoId!, varianteId: l.varianteId!, producto: { nombre: l.nombre, codigo: l.codigo, variantes: actuales.get(l.productoId!) ?? [] }, tipo: 'cancelacion_venta', cantidad: l.cantidad, referencia: folio, por: perfil.nombre }, cuando);
+      }
+      for (const p of delCambio) {
+        anotarMovimiento(tx, db, { productoId: p.productoId!, varianteId: p.varianteId!, producto: { nombre: p.nombre, codigo: p.codigo, variantes: actuales.get(p.productoId!) ?? [] }, tipo: 'ajuste', cantidad: -1, referencia: folio, motivo: 'Venta cancelada: la pieza del cambio físico vuelve a quedar en el cambio', por: perfil.nombre }, cuando);
+      }
+    }
 
     // 2) Saldo a favor: regresa lo usado y se quita lo que se le guardó.
     if (saldoRef && v.saldoAFavor) {

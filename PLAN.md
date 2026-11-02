@@ -230,6 +230,15 @@ cálculos del Plan MW.
 
 ### Inventario y etiquetas
 
+- **Hecho (nov-2026): Productos y Stock.** Productos = todo lo que está a la
+  venta; Catálogo = solo lo marcado "Mostrar en catálogo" (premium; también
+  en la página de e/l, catálogo público, colecciones y Novedades). Productos
+  viejos se muestran. Stock: existencias por variante, poco stock (mínimo
+  general configurable), entradas de mercancía, ajustes con motivo y
+  historial por pieza (brilloMovimientosStock, inmutable): entradas, ajustes,
+  ventas, ventas canceladas, regresos de cambio físico y apartados (BRILLO y
+  página). El historial empieza desde que se agregó Stock.
+
 - BRILLO pasa a ser la **fuente de verdad del inventario**.
 - Las etiquetas llevan un **código QR con el código del producto**.
 - Formato actual (foto recibida): etiqueta de joyería de dos partes en

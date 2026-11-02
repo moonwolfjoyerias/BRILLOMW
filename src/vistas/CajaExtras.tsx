@@ -29,7 +29,7 @@ export const porCodigo = (productos: Producto[], codigo: string) => {
 };
 
 /** Campo "código de la pieza": escanear o escribir, y elegir variante si tiene varias. */
-function CampoPieza({ etiqueta, productos, soloConExistencias, onPieza, autoFocus }: {
+export function CampoPieza({ etiqueta, productos, soloConExistencias, onPieza, autoFocus }: {
   etiqueta: string;
   productos: Producto[];
   soloConExistencias?: boolean;
