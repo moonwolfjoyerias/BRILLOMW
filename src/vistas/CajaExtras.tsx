@@ -17,6 +17,7 @@ import { fechaTicket, renglonPieza } from '../venta/ticketFormato';
 import { doc, getDoc } from '../datos/firestore';
 import { BotonCamara } from '../escaner/EscanerQR';
 import { limpiarCodigo } from '../pagina/codigoProducto';
+import type { ResultadoPromos } from '../promociones/modelo';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 const dinero = (n: number) => MXN.format(n);
@@ -366,14 +367,16 @@ export function GarantiaModal({ cliente, productos, onAgregar, onCerrar }: {
 // ------------------------------------------------------------ tickets para imprimir
 
 /** Ticket falso / presupuesto: piezas del cambio físico, artículos y cuánto queda a favor o por pagar. */
-export function TicketPresupuesto({ cliente, carrito, cambio, saldo, ancho }: {
+export function TicketPresupuesto({ cliente, carrito, cambio, saldo, ancho, promos }: {
   cliente: ClienteVenta;
   carrito: LineaCarrito[];
   cambio: PiezaCambio[];
   saldo: number;
   ancho: AnchoTicket;
+  /** Promociones que se ven en la caja. */
+  promos?: ResultadoPromos;
 }) {
-  const totales = calcularTotales(carrito, cliente);
+  const totales = calcularTotales(carrito, cliente, promos);
   const aFavor = valorCambio(cambio);
   const diferencia = Math.round((totales.total - aFavor) * 100) / 100;
   return (
@@ -410,6 +413,7 @@ export function TicketPresupuesto({ cliente, carrito, cambio, saldo, ancho }: {
               <Fila izq={`${l.cantidad} PZ x ${MXN.format(precioUnitario(l, cliente))}`} der={MXN.format(precioUnitario(l, cliente) * l.cantidad)} />
             </div>
           ))}
+          {(promos?.aplicadas ?? []).map(a => <Fila key={a.id} izq={`${a.cupon ? `Cupón ${a.cupon}` : 'Promoción'}: ${a.nombre}`} der={`-${MXN.format(a.monto)}`} />)}
           <Fila izq="Total:" der={MXN.format(totales.total)} fuerte />
         </>
       )}

@@ -10,6 +10,7 @@ import { COLECCION_TURNOS } from '../caja/turno';
 import { COL_COMPRAS, idCompraVenta } from '../compras/modelo';
 import { COL_CAMBIOS, COL_SALDO_MOVIMIENTOS, COL_SALDOS, piezasRegresables, sumarExistencias, type CambioFisico, type PiezaCambio } from './cambios';
 import { COL_GARANTIAS, type Garantia } from './garantias';
+import { COL_PROMOCIONES, COL_USOS_PROMOCION } from '../promociones/modelo';
 import { COL_TICKETS_PERSONA, idIndicePersona, type ResumenTicket } from './historial';
 import { COLECCION_REFERENCIAS, COLECCION_VENTAS, type VentaRegistrada } from './registrarVenta';
 import type { ClienteVenta } from './carrito';
@@ -184,6 +185,17 @@ export function cancelarVenta(db: Firestore, folio: string, motivo: string, hoy:
     }
     const indiceRef = personaId ? doc(db, COL_TICKETS_PERSONA, idIndicePersona(personaId, v.fechaDia)) : null;
     const indiceSnap = indiceRef ? await tx.get(indiceRef) : null;
+    // Promociones usadas en la venta: se les regresa el uso.
+    const promosUsadas: { id: string; usos: number; unUso: boolean }[] = [];
+    for (const a of v.promociones ?? []) {
+      const sp = await tx.get(doc(db, COL_PROMOCIONES, a.id));
+      if (sp.exists()) promosUsadas.push({ id: a.id, usos: Number(sp.data().usos) || 0, unUso: !!sp.data().unUsoPorPersona });
+    }
+
+    for (const pu of promosUsadas) {
+      tx.update(doc(db, COL_PROMOCIONES, pu.id), { usos: Math.max(0, pu.usos - 1) });
+      if (pu.unUso && personaId) tx.delete(doc(db, COL_USOS_PROMOCION, `${pu.id}__${personaId}`));
+    }
 
     // 1) Existencias.
     const devueltas = vendidas.flatMap(l => Array.from({ length: l.cantidad }, () => ({ productoId: l.productoId, varianteId: l.varianteId })));

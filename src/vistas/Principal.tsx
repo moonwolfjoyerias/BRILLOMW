@@ -6,6 +6,7 @@ import { Productos } from './Productos';
 import { Documentos } from './Documentos';
 import { Clientes } from './Clientes';
 import { TiposPago } from './TiposPago';
+import { Promociones } from './Promociones';
 import { useTiposPago } from '../pagos/acciones';
 import { db } from '../firebase';
 import { Stock } from './Stock';
@@ -27,7 +28,7 @@ import { Estadisticas } from './Estadisticas';
 import { useTema } from '../tema';
 import { PILOTO } from '../piloto';
 
-export type Seccion = 'inicio' | 'vender' | 'documentos' | 'clientes' | 'tiposPago' | 'catalogo' | 'productos' | 'stock' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'compras' | 'estadisticas' | 'cuenta';
+export type Seccion = 'inicio' | 'vender' | 'documentos' | 'clientes' | 'tiposPago' | 'promociones' | 'catalogo' | 'productos' | 'stock' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'compras' | 'estadisticas' | 'cuenta';
 
 interface Item { id: Seccion; nombre: string }
 
@@ -46,6 +47,7 @@ function menuPara(perfil: PerfilUsuario): { titulo: string | null; items: Item[]
         { id: 'stock', nombre: 'Stock' },
         { id: 'apartados', nombre: 'Apartados' },
         { id: 'clientes', nombre: 'Clientes' },
+        ...(perfil.rol !== 'staff' ? [{ id: 'promociones' as const, nombre: 'Promociones' }] : []),
         // Lo liquidado en la página cuenta para el Plan MW hasta que se confirma aquí.
         { id: 'compras', nombre: 'Compras por confirmar' },
         { id: 'deseos', nombre: 'Lista de deseos' }
@@ -181,6 +183,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
           {seccion === 'documentos' && <Documentos perfil={perfil} />}
           {seccion === 'clientes' && <Clientes perfil={perfil} />}
           {seccion === 'tiposPago' && <TiposPago perfil={perfil} />}
+          {seccion === 'promociones' && <Promociones perfil={perfil} />}
           {seccion === 'stock' && <Stock perfil={perfil} />}
           {seccion === 'apartados' && <Apartados perfil={perfil} />}
           {seccion === 'compras' && <ConfirmarCompras perfil={perfil} />}

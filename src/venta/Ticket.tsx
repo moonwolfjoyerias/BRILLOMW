@@ -120,6 +120,9 @@ export function Ticket({ venta: v, ancho = 80 }: { venta: VentaRegistrada; ancho
       <div className="t-linea" />
       <Fila izq="Subtotal" der={MXN.format(v.totales.baseSinIva)} />
       <Fila izq="Impuestos 16%:" der={MXN.format(v.totales.iva)} />
+      {(v.promociones ?? []).map(a => (
+        <Fila key={a.id} izq={`${a.cupon ? `CUPON ${a.cupon}` : 'PROMOCION'}: ${a.nombre.toUpperCase()}`} der={`-${MXN.format(a.monto)}`} />
+      ))}
       <Fila izq="TOTAL:" der={MXN.format(v.totales.total)} fuerte />
       <div className="t-linea" />
       {v.pagos.map((p, i) => (

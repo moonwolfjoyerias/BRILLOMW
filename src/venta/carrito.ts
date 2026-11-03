@@ -157,24 +157,29 @@ export interface Totales {
   iva: number;
   /** Parte del total que es Souvenirs (no cuenta para comisiones; requisitos 4.2). */
   totalSouvenirs: number;
+  /** Descuento de promociones (ya restado del total). */
+  descuentoPromociones?: number;
 }
 
-export function calcularTotales(carrito: LineaCarrito[], cliente: ClienteVenta): Totales {
-  const total = r2(carrito.reduce((s, l) => s + precioUnitario(l, cliente) * l.cantidad, 0));
+/** promos: descuento de promociones por renglón (ver promociones/modelo.ts). */
+export function calcularTotales(carrito: LineaCarrito[], cliente: ClienteVenta, promos?: { porLinea: Record<string, number>; total: number }): Totales {
+  const descPromo = (l: LineaCarrito) => promos?.porLinea[l.clave] ?? 0;
+  const total = r2(carrito.reduce((s, l) => s + precioUnitario(l, cliente) * l.cantidad - descPromo(l), 0));
   // Una garantía no es "ahorro": cuenta a precio etiqueta solo lo que se paga de diferencia.
   const totalEtiqueta = r2(carrito.reduce((s, l) => s + (l.garantia ? l.garantia.diferencia : l.precioEtiqueta) * l.cantidad, 0));
   const baseSinIva = r2(total / (1 + IVA_TASA));
   const totalSouvenirs = r2(
-    carrito.filter(l => l.material === 'souvenirs').reduce((s, l) => s + precioUnitario(l, cliente) * l.cantidad, 0)
+    carrito.filter(l => l.material === 'souvenirs').reduce((s, l) => s + precioUnitario(l, cliente) * l.cantidad - descPromo(l), 0)
   );
   return {
     piezas: carrito.reduce((s, l) => s + l.cantidad, 0),
     totalEtiqueta,
     total,
-    descuentoMayoreo: r2(totalEtiqueta - total),
+    descuentoMayoreo: r2(totalEtiqueta - total - (promos?.total ?? 0)),
     baseSinIva,
     iva: r2(total - baseSinIva),
-    totalSouvenirs
+    totalSouvenirs,
+    ...(promos && promos.total > 0 ? { descuentoPromociones: r2(promos.total) } : {})
   };
 }
 
