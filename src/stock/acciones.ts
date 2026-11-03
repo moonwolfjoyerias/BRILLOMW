@@ -1,5 +1,6 @@
 // Guardar entradas y ajustes de existencia (una transacción cada uno: el
 // producto, su movimiento y la Actividad) y leer el historial de una pieza.
+import { puede } from '../sesion/permisos';
 import { useEffect, useState } from 'react';
 import { collection, doc, getDocs, onSnapshot, query, runTransaction, setDoc, where, type Firestore, type Transaction } from '../datos/firestore';
 import type { PerfilUsuario } from '../sesion/perfil';
@@ -16,7 +17,7 @@ import {
   type TipoMovimiento
 } from './modelo';
 
-export const puedeMoverStock = (rol: string) => rol === 'admin' || rol === 'encargado';
+export const puedeMoverStock = (p: Pick<PerfilUsuario, 'rol' | 'permisosBrillo'>) => puede(p, 'moverStock');
 
 type VarianteCruda = Record<string, unknown>;
 
@@ -77,7 +78,7 @@ export interface CambioStock {
 }
 
 export async function moverStock(db: Firestore, c: CambioStock, perfil: PerfilUsuario, equipo: string, ahora = new Date()): Promise<string | null> {
-  if (!puedeMoverStock(perfil.rol)) return 'Solo Encargado y Administración pueden cambiar existencias.';
+  if (!puedeMoverStock(perfil)) return 'Solo Encargado y Administración pueden cambiar existencias.';
   if (c.tipo === 'entrada' && !('sumar' in c.cambio && Number.isInteger(c.cambio.sumar) && c.cambio.sumar > 0)) return 'Escribe cuántas piezas llegaron (número entero mayor a 0).';
   if (c.tipo === 'ajuste' && !c.motivo) return 'Elige el motivo del ajuste.';
   if (c.tipo === 'ajuste' && c.motivo === 'Otro' && !c.nota?.trim()) return 'Escribe el motivo del ajuste.';

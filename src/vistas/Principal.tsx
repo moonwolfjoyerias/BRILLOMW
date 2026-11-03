@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { cerrarSesion } from '../sesion/sesion';
-import { ETIQUETA_ROL, puedeManejarCaja, type PerfilUsuario } from '../sesion/perfil';
+import { ETIQUETA_ROL, type PerfilUsuario } from '../sesion/perfil';
 import { Catalogo } from './Catalogo';
 import { Productos } from './Productos';
 import { Documentos } from './Documentos';
 import { Clientes } from './Clientes';
 import { TiposPago } from './TiposPago';
+import { Usuarios } from './Usuarios';
 import { Promociones } from './Promociones';
 import { useTiposPago } from '../pagos/acciones';
+import { puede, veModulo } from '../sesion/permisos';
 import { db } from '../firebase';
 import { Stock } from './Stock';
 import { Vender } from './Vender';
@@ -28,13 +30,13 @@ import { Estadisticas } from './Estadisticas';
 import { useTema } from '../tema';
 import { PILOTO } from '../piloto';
 
-export type Seccion = 'inicio' | 'vender' | 'documentos' | 'clientes' | 'tiposPago' | 'promociones' | 'catalogo' | 'productos' | 'stock' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'compras' | 'estadisticas' | 'cuenta';
+export type Seccion = 'inicio' | 'vender' | 'documentos' | 'clientes' | 'tiposPago' | 'promociones' | 'usuarios' | 'catalogo' | 'productos' | 'stock' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'compras' | 'estadisticas' | 'cuenta';
 
 interface Item { id: Seccion; nombre: string }
 
 /** El menú agrupado por área; cada rol ve solo lo que puede usar (igual que en la página). */
 function menuPara(perfil: PerfilUsuario): { titulo: string | null; items: Item[] }[] {
-  const cobra = puedeManejarCaja(perfil.rol);
+  const cobra = puede(perfil, 'cobrar');
   const grupos: { titulo: string | null; items: Item[] }[] = [
     { titulo: null, items: [{ id: 'inicio', nombre: 'Inicio' }] },
     {
@@ -77,9 +79,10 @@ function menuPara(perfil: PerfilUsuario): { titulo: string | null; items: Item[]
         { id: 'planmw', nombre: 'Plan MW' }
       ]
     });
-    grupos.push({ titulo: 'Configuración', items: [{ id: 'tiposPago', nombre: 'Tipos de pago' }] });
+    grupos.push({ titulo: 'Configuración', items: [{ id: 'usuarios', nombre: 'Usuarios y seguridad' }, { id: 'tiposPago', nombre: 'Tipos de pago' }] });
   }
-  return grupos;
+  // Módulos que Administración le ocultó a esta persona (Usuarios y seguridad).
+  return grupos.map(g => ({ ...g, items: g.items.filter(it => veModulo(perfil, it.id)) })).filter(g => g.items.length);
 }
 
 const IconoLuna = () => (
@@ -183,6 +186,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
           {seccion === 'documentos' && <Documentos perfil={perfil} />}
           {seccion === 'clientes' && <Clientes perfil={perfil} />}
           {seccion === 'tiposPago' && <TiposPago perfil={perfil} />}
+          {seccion === 'usuarios' && <Usuarios perfil={perfil} />}
           {seccion === 'promociones' && <Promociones perfil={perfil} />}
           {seccion === 'stock' && <Stock perfil={perfil} />}
           {seccion === 'apartados' && <Apartados perfil={perfil} />}

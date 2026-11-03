@@ -2,6 +2,7 @@
 // solo lo premium, marcado "Mostrar en catálogo"). Aquí se ve cada pieza con
 // su existencia, se prende o apaga si va al catálogo, se edita y se ve su
 // historial de existencia.
+import { puede } from '../sesion/permisos';
 import { useMemo, useState } from 'react';
 import { db } from '../firebase';
 import { equipoActual } from '../plataforma';
@@ -60,7 +61,7 @@ export function Productos({ perfil }: { perfil: PerfilUsuario }) {
           <h1>Productos</h1>
           <p className="muted">{productos.length} productos a la venta · {enCat} en el catálogo · {productos.length - enCat} solo en tienda</p>
         </div>
-        <button className="btn primario" onClick={() => setEditando(null)}>+ Agregar producto</button>
+        {puede(perfil, 'editarProductos') && <button className="btn primario" onClick={() => setEditando(null)}>+ Agregar producto</button>}
       </div>
       {aviso && <p className="aviso-ok" role="status">{aviso}</p>}
       <div className="filtros-productos">
@@ -112,12 +113,12 @@ export function Productos({ perfil }: { perfil: PerfilUsuario }) {
                     </td>
                     <td>
                       <label className="interruptor" title="Mostrar en el catálogo (premium)">
-                        <input type="checkbox" checked={p.mostrarEnCatalogo} disabled={guardando === p.id} onChange={() => void alternar(p)} />
+                        <input type="checkbox" checked={p.mostrarEnCatalogo} disabled={guardando === p.id || !puede(perfil, 'editarProductos')} onChange={() => void alternar(p)} />
                         <span>{p.mostrarEnCatalogo ? 'En catálogo' : 'Solo tienda'}</span>
                       </label>
                     </td>
                     <td><div className="acciones-fila">
-                      <button className="btn mini" onClick={() => setEditando(p.id)}>Editar</button>
+                      {puede(perfil, 'editarProductos') && <button className="btn mini" onClick={() => setEditando(p.id)}>Editar</button>}
                       <button className="btn mini" onClick={() => setHistorial(p)}>Historial</button>
                     </div></td>
                   </tr>

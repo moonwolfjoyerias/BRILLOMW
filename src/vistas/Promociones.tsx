@@ -36,7 +36,7 @@ export function Promociones({ perfil }: { perfil: PerfilUsuario }) {
   const hoy = fechaLocal();
   const [editando, setEditando] = useState<Promocion | null | undefined>(undefined);
   const [aviso, setAviso] = useState<string | null>(null);
-  const puede = puedeEditarPromociones(perfil.rol);
+  const puede = puedeEditarPromociones(perfil);
 
   async function pausar(p: Promocion) {
     const { id, usos: _u, ...datos } = p;

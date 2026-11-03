@@ -1,10 +1,11 @@
 // Inicio: el resumen de cada portal de la página (Staff, Encargado y
 // Admin), con los mismos números, más lo propio de BRILLO (cajas y
 // ventas del día). Cada tarjeta lleva a su pestaña.
+import { puede } from '../sesion/permisos';
 import { useEffect, useState } from 'react';
 import { collection, limit, onSnapshot, orderBy, query, where } from '../datos/firestore';
 import { db } from '../firebase';
-import { puedeManejarCaja, type PerfilUsuario } from '../sesion/perfil';
+import { type PerfilUsuario } from '../sesion/perfil';
 import type { Seccion } from './Principal';
 import { useApartados } from '../apartados/acciones';
 import { estaVencida } from '../apartados/modelo';
@@ -44,7 +45,7 @@ export function Inicio({ perfil, onIr }: { perfil: PerfilUsuario; onIr: Ir }) {
         <h1>{saludo}, {perfil.nombre.split(' ')[0]}</h1>
         <p className="muted">{new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
       </div>
-      {puedeManejarCaja(perfil.rol) && <ResumenCaja onIr={onIr} />}
+      {puede(perfil, 'cobrar') && <ResumenCaja onIr={onIr} />}
       <ResumenOperativo perfil={perfil} onIr={onIr} />
       {perfil.rol === 'staff' && <MisPendientes perfil={perfil} onIr={onIr} />}
       {perfil.rol === 'admin' && <ResumenAdmin onIr={onIr} />}

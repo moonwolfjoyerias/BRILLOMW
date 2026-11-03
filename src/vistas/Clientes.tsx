@@ -2,6 +2,7 @@
 // (editables por Encargado y Administración), su membresía, categoría y
 // saldo a favor. Líder, estado de la cuenta, categoría y tipo se cambian
 // en Emprendedoras y Líderes (Administración), donde están sus reglas.
+import { puede } from '../sesion/permisos';
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { collection, getDocs } from '../datos/firestore';
 import { db } from '../firebase';
@@ -19,7 +20,7 @@ const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' 
 const normal = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 const soloDigitos = (s: string) => s.replace(/\D/g, '');
 
-export const puedeEditarClientes = (rol: string) => rol === 'admin' || rol === 'encargado';
+export const puedeEditarClientes = (p: Pick<PerfilUsuario, 'rol' | 'permisosBrillo'>) => puede(p, 'editarClientes');
 
 export interface DatosContacto { nombre: string; apellidos: string; telefono: string; correo: string }
 
@@ -45,7 +46,7 @@ export function Clientes({ perfil }: { perfil: PerfilUsuario }) {
   const [saldoDe, setSaldoDe] = useState<PersonaAdmin | null>(null);
   const [paraImprimir, setParaImprimir] = useState<ReactNode>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-  const puede = puedeEditarClientes(perfil.rol);
+  const puede = puedeEditarClientes(perfil);
 
   // Un solo vistazo a los saldos (una lectura por persona con saldo).
   const leerSaldos = () =>

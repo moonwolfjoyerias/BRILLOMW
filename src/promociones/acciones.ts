@@ -1,11 +1,12 @@
 // Promociones en Firestore: leer en vivo y guardar (Encargado y Administración).
+import { puede } from '../sesion/permisos';
 import { useEffect, useState } from 'react';
 import { collection, doc, onSnapshot, query, runTransaction, where, type Firestore } from '../datos/firestore';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';
 import { COL_PROMOCIONES, normalizarCupon, validarPromocion, type Promocion } from './modelo';
 
-export const puedeEditarPromociones = (rol: string) => rol === 'admin' || rol === 'encargado';
+export const puedeEditarPromociones = (p: Pick<PerfilUsuario, 'rol' | 'permisosBrillo'>) => puede(p, 'editarPromociones');
 
 /** solo activas = las que usa la caja; todas = la pantalla de Promociones. */
 export function usePromociones(db: Firestore, soloActivas: boolean): Promocion[] | null {
@@ -29,7 +30,7 @@ export async function guardarPromocion(
   equipo: string,
   ahora = new Date()
 ): Promise<string | null> {
-  if (!puedeEditarPromociones(perfil.rol)) return 'Solo Encargado y Administración pueden crear o cambiar promociones.';
+  if (!puedeEditarPromociones(perfil)) return 'Solo Encargado y Administración pueden crear o cambiar promociones.';
   const err = validarPromocion(datos);
   if (err) return err;
   const cupon = datos.cupon ? normalizarCupon(datos.cupon) : '';

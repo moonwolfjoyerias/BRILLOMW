@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { puede } from '../sesion/permisos';
 import { useCatalogo } from '../pagina/useCatalogo';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { ProductoForm } from './ProductoForm';
@@ -72,9 +73,11 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
           <button className="btn" onClick={() => setDonde(true)}>
             ¿Dónde está la pieza?
           </button>
+          {puede(perfil, 'editarProductos') && (
           <button className="btn primario" onClick={() => setEditando(null)}>
             + Agregar producto
           </button>
+          )}
         </div>
       </div>
       {aviso && (
@@ -246,12 +249,16 @@ function Detalle({
         <div className="modal-cabeza">
           <h2>{p.nombre || 'Sin nombre'}</h2>
           <div className="acciones">
-            <button className="btn peligro" onClick={() => setConfirmarEliminar(true)} disabled={eliminando}>
-              Eliminar
-            </button>
-            <button className="btn primario" onClick={onEditar}>
-              Editar
-            </button>
+            {puede(perfil, 'editarProductos') && (
+              <>
+                <button className="btn peligro" onClick={() => setConfirmarEliminar(true)} disabled={eliminando}>
+                  Eliminar
+                </button>
+                <button className="btn primario" onClick={onEditar}>
+                  Editar
+                </button>
+              </>
+            )}
             <button className="btn" onClick={onCerrar} autoFocus>
               Cerrar
             </button>

@@ -1022,3 +1022,11 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
 .campo-cupon { margin: 8px 0; display: grid; gap: 6px; }
 .chips-cupon { display: flex; flex-wrap: wrap; gap: 6px; }
 .promo-aplicada { color: var(--ok); font-weight: 600; }
+/* ---------- Usuarios y seguridad ---------- */
+.lista-usuarios { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.lista-usuarios > li { background: var(--surface); border: 1px solid var(--mw-border); border-radius: var(--radius); }
+.fila-usuario { width: 100%; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; align-items: center; padding: 12px 14px; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.detalle-usuario { padding: 0 14px 14px; border-top: 1px solid var(--mw-border); }
+.detalle-usuario h3 { font-size: 0.95rem; margin: 12px 0 6px; }
+.rejilla-permisos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 2px 12px; }
+.rejilla-permisos .check { white-space: normal; }

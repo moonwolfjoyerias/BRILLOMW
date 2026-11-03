@@ -31,7 +31,7 @@ export function Stock({ perfil, productoInicial }: { perfil: PerfilUsuario; prod
   const [vista, setVista] = useState<'todo' | 'poco' | 'agotado'>('todo');
   const [modal, setModal] = useState<Modal | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-  const puede = puedeMoverStock(perfil.rol);
+  const puede = puedeMoverStock(perfil);
 
   const productos = catalogo.estado === 'listo' ? catalogo.productos : [];
   const filas = useMemo(() => filasStock(productos, minimo), [productos, minimo]);
