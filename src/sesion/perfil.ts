@@ -1,3 +1,4 @@
+import { leerPermisos, type PermisosBrillo } from './permisos';
 // Perfil `users/{uid}` de la PÁGINA WEB (js/auth-service.js). BRILLO usa las
 // mismas cuentas reales que la página: mismo usuario y misma contraseña.
 
@@ -15,6 +16,8 @@ export interface PerfilUsuario {
   empleadoNominaId?: string | null;
   /** Encargado con permiso de Nómina (`permisos.nomina`, lo asigna Admin en la página). */
   permisoNomina?: boolean;
+  /** Permisos por persona (Usuarios y seguridad); sin esto, los de su rol. */
+  permisosBrillo?: PermisosBrillo;
 }
 
 /** Roles que trabajan en BRILLO (caja y tablets). Emprendedoras y líderes siguen en la página. */
@@ -60,7 +63,8 @@ export function validarPerfil(uid: string, datos: Record<string, unknown> | unde
   const empleadoNominaId = typeof datos.empleadoNominaId === 'string' && datos.empleadoNominaId ? datos.empleadoNominaId : null;
   const permisos = datos.permisos as Record<string, unknown> | undefined;
   const permisoNomina = permisos?.nomina === true;
-  return { ok: true, perfil: { uid, usuario, nombre, rol, ...(cuentaId ? { cuentaId } : {}), empleadoNominaId, permisoNomina } };
+  const permisosBrillo = leerPermisos(datos.permisosBrillo);
+  return { ok: true, perfil: { uid, usuario, nombre, rol, ...(cuentaId ? { cuentaId } : {}), empleadoNominaId, permisoNomina, ...(permisosBrillo ? { permisosBrillo } : {}) } };
 }
 
 /** Abrir y cerrar la caja del día: Encargado y Administrativo. */

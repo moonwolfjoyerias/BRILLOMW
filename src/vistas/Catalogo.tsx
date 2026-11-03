@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { puede } from '../sesion/permisos';
 import { useCatalogo } from '../pagina/useCatalogo';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { ProductoForm } from './ProductoForm';
@@ -8,6 +9,7 @@ import { equipoActual } from '../plataforma';
 import { eliminarProducto } from '../pagina/guardarProducto';
 import { BotonCamara } from '../escaner/EscanerQR';
 import { DondePieza } from './DondePieza';
+import { descargarProductos } from '../exportar/productos';
 import { limpiarCodigo } from '../pagina/codigoProducto';
 import {
   NOMBRE_MATERIAL,
@@ -44,6 +46,8 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
     const q = normal(busqueda);
     return productos.filter(
       p =>
+        // El Catálogo es solo lo premium; lo demás está en Productos.
+        p.mostrarEnCatalogo &&
         (!material || p.material === material) &&
         (!soloConExistencias || stockTotal(p) > 0) &&
         (!q || normal(`${p.nombre} ${p.codigo} ${p.categoria}`).includes(q))
@@ -62,7 +66,7 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
         <div>
           <h1>Catálogo</h1>
           <p className="muted">
-            {filtrados.length} de {productos.length} modelos
+            {filtrados.length} de {productos.filter(p => p.mostrarEnCatalogo).length} modelos del catálogo
             {catalogo.desdeCache && ' · sin conexión, mostrando la última copia'}
           </p>
         </div>
@@ -70,9 +74,14 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
           <button className="btn" onClick={() => setDonde(true)}>
             ¿Dónde está la pieza?
           </button>
+          <button className="btn" disabled={!productos.length} onClick={() => descargarProductos(productos.filter(p => p.mostrarEnCatalogo), 'Catálogo', 'catalogo-mw')}>
+            Descargar Excel
+          </button>
+          {puede(perfil, 'editarProductos') && (
           <button className="btn primario" onClick={() => setEditando(null)}>
             + Agregar producto
           </button>
+          )}
         </div>
       </div>
       {aviso && (
@@ -244,12 +253,16 @@ function Detalle({
         <div className="modal-cabeza">
           <h2>{p.nombre || 'Sin nombre'}</h2>
           <div className="acciones">
-            <button className="btn peligro" onClick={() => setConfirmarEliminar(true)} disabled={eliminando}>
-              Eliminar
-            </button>
-            <button className="btn primario" onClick={onEditar}>
-              Editar
-            </button>
+            {puede(perfil, 'editarProductos') && (
+              <>
+                <button className="btn peligro" onClick={() => setConfirmarEliminar(true)} disabled={eliminando}>
+                  Eliminar
+                </button>
+                <button className="btn primario" onClick={onEditar}>
+                  Editar
+                </button>
+              </>
+            )}
             <button className="btn" onClick={onCerrar} autoFocus>
               Cerrar
             </button>

@@ -10,6 +10,7 @@
 //   pz__<ventanaId>__<piezaId>  confirmación (o rechazo) de una pieza liquidada
 //   vt__<folio>                 compra en la caja de BRILLO
 // `fechaCuenta` es la fecha en que la compra suma (quincena y mes).
+import { metodosQueCuentan } from '../pagos/tipos';
 import type { Pieza, Ventana } from '../apartados/modelo';
 import type { LineaVendida } from '../venta/registrarVenta';
 import type { ClienteVenta, PagoRegistrado, Totales } from '../venta/carrito';
@@ -193,7 +194,9 @@ export function compraDeVenta(v: { cliente: ClienteVenta; lineas: LineaVendida[]
     if (l.material === 'souvenirs') souvenir += l.importe;
     else normal += l.importe;
   });
-  const pagado = v.pagos.filter(p => (METODOS_QUE_CUENTAN as readonly string[]).includes(p.metodo)).reduce((s, p) => s + p.monto, 0); // el efectivo ya viene neto (sin el cambio)
+  // Cuentan los tipos de pago marcados así en Tipos de pago (por omisión efectivo, tarjeta y transferencia).
+  const cuentan = metodosQueCuentan();
+  const pagado = v.pagos.filter(p => cuentan.includes(p.metodo)).reduce((s, p) => s + p.monto, 0); // el efectivo ya viene neto (sin el cambio)
   const factor = v.totales.total > 0 ? Math.max(0, Math.min(1, pagado / v.totales.total)) : 0;
   normal = r2(normal * factor);
   souvenir = r2(souvenir * factor);

@@ -237,6 +237,10 @@ export function ProductoForm({
               ))}
             </select>
           </label>
+          <label className="check ancho-3 check-catalogo">
+            <input type="checkbox" checked={b.mostrarEnCatalogo} onChange={e => set('mostrarEnCatalogo', e.target.checked)} />
+            <span>Mostrar en el catálogo (pieza premium). Si no, queda solo a la venta en la tienda: Productos y caja.</span>
+          </label>
           <label className="campo">
             <span>Precio etiqueta *</span>
             <input inputMode="decimal" value={b.precioEtiqueta} onChange={e => set('precioEtiqueta', e.target.value)} placeholder="0" />

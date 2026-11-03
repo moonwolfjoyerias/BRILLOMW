@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type SetStateAction } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type SetStateAction } from 'react';
 import { db } from '../firebase';
 import { equipoActual } from '../plataforma';
 import type { PerfilUsuario } from '../sesion/perfil';
@@ -11,8 +11,7 @@ import { TarjetaCaja } from './Caja';
 import { Corte } from './Corte';
 import { HistorialVentas } from './HistorialVentas';
 import {
-  NOMBRE_METODO,
-  METODOS_CAPTURABLES,
+  nombreMetodo,
   llevaReferencia,
   PUBLICO_GENERAL,
   agregarLinea,
@@ -42,6 +41,9 @@ import { PILOTO } from '../piloto';
 import { BotonCamara } from '../escaner/EscanerQR';
 import { limpiarCodigo } from '../pagina/codigoProducto';
 import { garantiaParaCliente } from '../venta/garantias';
+import { calcularPromociones, SIN_PROMOCIONES } from '../promociones/modelo';
+import { usePromociones } from '../promociones/acciones';
+import { metodosCapturables } from '../pagos/tipos';
 import { SaldoAFavorModal } from './SaldoAFavor';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
@@ -67,12 +69,14 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
   // Varias compras abiertas a la vez (pestañas); todo lo de abajo es de la activa.
   const ventas = useVentasAbiertas(caja);
   const { carrito, cliente, cambio } = ventas.actual;
+  const cupones = ventas.actual.cupones ?? [];
   const cambiarVenta = <K extends keyof VentaAbierta>(k: K) => (x: SetStateAction<VentaAbierta[K]>) =>
     ventas.actualizar(v => ({ ...v, [k]: typeof x === 'function' ? (x as (p: VentaAbierta[K]) => VentaAbierta[K])(v[k]) : x }));
   const setCarrito = cambiarVenta('carrito');
   const setCliente = cambiarVenta('cliente');
   // Cambio físico de esta e/l (abierto hasta que se cierre la venta).
   const setCambio = cambiarVenta('cambio');
+  const setCupones = cambiarVenta('cupones');
   const [aviso, setAviso] = useState<string | null>(null);
   const [cobrando, setCobrando] = useState(false);
   const [ticket, setTicket] = useState<VentaRegistrada | null>(null);
@@ -98,7 +102,13 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
   useEffect(() => {
     if (cajaAbierta) setCompleta(true);
   }, [cajaAbierta]);
-  const totales = calcularTotales(carrito, cliente);
+  // Promociones vigentes: se aplican solas (y las de cupón, si se escribió el código).
+  const promosActivas = usePromociones(db, true);
+  const promos = useMemo(
+    () => (promosActivas?.length && carrito.length ? calcularPromociones(carrito, cliente, promosActivas, { hoy, cupones }) : SIN_PROMOCIONES),
+    [promosActivas, carrito, cliente, hoy, cupones]
+  );
+  const totales = calcularTotales(carrito, cliente, promos);
   const aFavor = cambio ? valorCambio(cambio.piezas) : 0;
   const hayVenta = carrito.length > 0 || !!cambio;
 
@@ -200,7 +210,7 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
               {cliente.tipo !== 'publico' && (
                 <button className="btn" onClick={() => setExtra('saldo')}>Saldo a favor{saldo > 0 ? ` (${dinero(saldo)})` : ''}</button>
               )}
-              <button className="btn" disabled={!hayVenta} onClick={() => setParaImprimir(<TicketPresupuesto cliente={cliente} carrito={carrito} cambio={cambio?.piezas ?? []} saldo={saldo} ancho={anchoGuardado()} />)}>
+              <button className="btn" disabled={!hayVenta} onClick={() => setParaImprimir(<TicketPresupuesto promos={promos} cliente={cliente} carrito={carrito} cambio={cambio?.piezas ?? []} saldo={saldo} ancho={anchoGuardado()} />)}>
                 Ticket falso
               </button>
             </div>
@@ -248,6 +258,7 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
                 })}
               </ul>
             )}
+            {carrito.length > 0 && <CampoCupon cupones={cupones} onCambio={setCupones} avisos={promos.avisos} />}
             <dl className="totales">
               <dt>Artículos</dt>
               <dd>{totales.piezas}</dd>
@@ -259,6 +270,12 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
                   <dd>−{dinero(totales.descuentoMayoreo)}</dd>
                 </>
               )}
+              {promos.aplicadas.map(a => (
+                <Fragment key={a.id}>
+                  <dt className="promo-aplicada">{a.cupon ? `Cupón ${a.cupon}` : 'Promoción'}: {a.nombre}</dt>
+                  <dd className="promo-aplicada">−{dinero(a.monto)}</dd>
+                </Fragment>
+              ))}
               <dt className="muted small">IVA incluido (16%)</dt>
               <dd className="muted small">{dinero(totales.iva)}</dd>
               <dt className="total">Total</dt>
@@ -370,7 +387,7 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
           onVerificacion={() => setParaImprimir(<TicketVerificacion cliente={cliente} carrito={carrito} cambio={cambio?.piezas ?? []} ancho={anchoGuardado()} />)}
           onCancelar={() => setCobrando(false)}
           onConfirmar={async (pagos, recibido, cambioEfectivo, comentarios) => {
-            const r = await registrarVenta(db, { caja, fechaDia: hoy, cliente, carrito, pagos, recibido, cambio: cambioEfectivo, perfil, equipo: equipoActual(), cambioId: cambio?.id ?? null, comentarios });
+            const r = await registrarVenta(db, { caja, fechaDia: hoy, cliente, carrito, pagos, recibido, cambio: cambioEfectivo, perfil, equipo: equipoActual(), cambioId: cambio?.id ?? null, comentarios, promociones: promos.total > 0 ? { resultado: promos, cupones } : undefined });
             if (!r.ok) return r.error;
             setCobrando(false);
             // La venta ya quedó guardada: su pestaña se cierra en ese momento,
@@ -390,7 +407,7 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
           perfil={perfil}
           onCerrar={() => setExtra(null)}
           onGuardado={c => { setCambio(c); setExtra(null); }}
-          onImprimir={piezas => setParaImprimir(<TicketPresupuesto cliente={cliente} carrito={carrito} cambio={piezas} saldo={saldo} ancho={anchoGuardado()} />)}
+          onImprimir={piezas => setParaImprimir(<TicketPresupuesto promos={promos} cliente={cliente} carrito={carrito} cambio={piezas} saldo={saldo} ancho={anchoGuardado()} />)}
         />
       )}
       {extra === 'abiertos' && (
@@ -786,8 +803,8 @@ function Cobro({
         {total > 0 && filas.map((f, i) => (
           <div key={i} className="fila-pago">
             <select value={f.metodo} onChange={e => cambiarFila(i, { metodo: e.target.value as MetodoPago })} aria-label="Método de pago">
-              {METODOS_CAPTURABLES.map(m => (
-                <option key={m} value={m}>{NOMBRE_METODO[m]}</option>
+              {metodosCapturables().map(m => (
+                <option key={m} value={m}>{nombreMetodo(m)}</option>
               ))}
             </select>
             <input inputMode="decimal" value={f.monto} onChange={e => cambiarFila(i, { monto: e.target.value })} aria-label="Monto" placeholder="Monto" />
@@ -885,6 +902,32 @@ function VentaTerminada({ venta: inicial, perfil, onNueva }: { venta: VentaRegis
       <div className="ticket-impresion" aria-hidden="true">
         <Ticket venta={venta} ancho={ancho} />
       </div>
+    </div>
+  );
+}
+
+/** Cupones de promoción de la venta: escribir un código y quitarlo. */
+function CampoCupon({ cupones, onCambio, avisos }: { cupones: string[]; onCambio: (c: string[]) => void; avisos: string[] }) {
+  const [texto, setTexto] = useState('');
+  const agregar = () => {
+    const c = texto.trim().toUpperCase().replace(/\s+/g, '');
+    if (c && !cupones.includes(c)) onCambio([...cupones, c]);
+    setTexto('');
+  };
+  return (
+    <div className="campo-cupon">
+      <span className="en-linea">
+        <input value={texto} onChange={e => setTexto(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); agregar(); } }} placeholder="Cupón de promoción" aria-label="Cupón de promoción" />
+        <button type="button" className="btn mini" onClick={agregar}>Aplicar</button>
+      </span>
+      {cupones.length > 0 && (
+        <span className="chips-cupon">
+          {cupones.map(c => (
+            <span key={c} className="chip neutro con-boton">{c}<button type="button" aria-label={`Quitar cupón ${c}`} onClick={() => onCambio(cupones.filter(x => x !== c))}>×</button></span>
+          ))}
+        </span>
+      )}
+      {avisos.map(a => <p key={a} className="aviso-pendiente small">{a}</p>)}
     </div>
   );
 }

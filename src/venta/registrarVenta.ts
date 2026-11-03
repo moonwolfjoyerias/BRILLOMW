@@ -21,6 +21,8 @@ import { COL_CAMBIOS, COL_SALDO_MOVIMIENTOS, COL_SALDOS, valorCambio, type Cambi
 import { COL_GARANTIAS, garantiaDespues, validarCambio, type Garantia } from './garantias';
 import { COL_TICKETS_PERSONA, idIndicePersona, resumenTicket, type ResumenTicket } from './historial';
 
+import { anotarMovimiento } from '../stock/acciones';
+import { calcularPromociones, COL_PROMOCIONES, COL_USOS_PROMOCION, mismoResultado, type PromoAplicada, type Promocion, type ResultadoPromos } from '../promociones/modelo';
 import { COL_COMPRAS, compraDeVenta, idCompraVenta, type CompraVenta } from '../compras/modelo';
 
 export const COLECCION_VENTAS = 'brilloVentas';
@@ -43,6 +45,8 @@ export interface LineaVendida {
   descuentoAplicado: number;
   precioUnitario: number;
   importe: number;
+  /** Descuento de promociones en este renglón (ya restado del importe). */
+  descuentoPromocion?: number;
   esServicio: boolean;
   tipoServicio?: TipoServicio;
   garantia?: LineaGarantia;
@@ -70,6 +74,8 @@ export interface VentaRegistrada {
   estado: 'completada' | 'cancelada';
   /** Comentarios del cajero que salen impresos en el ticket. */
   comentarios?: string;
+  /** Promociones aplicadas (ya restadas del total). */
+  promociones?: PromoAplicada[];
   origen: 'pos';
   /** Piezas que dejó como cambio físico (si hubo). */
   cambioFisico?: CambioEnVenta;
@@ -78,9 +84,10 @@ export interface VentaRegistrada {
   cancelada?: { por: string; en: string; motivo: string };
 }
 
-export function lineasVendidas(carrito: LineaCarrito[], cliente: ClienteVenta): LineaVendida[] {
+export function lineasVendidas(carrito: LineaCarrito[], cliente: ClienteVenta, promos?: { porLinea: Record<string, number> }): LineaVendida[] {
   return carrito.map(l => {
     const pu = precioUnitario(l, cliente);
+    const promo = promos?.porLinea[l.clave] ?? 0;
     return {
       productoId: l.productoId,
       varianteId: l.varianteId,
@@ -95,7 +102,9 @@ export function lineasVendidas(carrito: LineaCarrito[], cliente: ClienteVenta): 
       precioEtiqueta: l.precioEtiqueta,
       descuentoAplicado: pu === l.precioEtiqueta ? 0 : l.descuentoMayoreo,
       precioUnitario: pu,
-      importe: Math.round(pu * l.cantidad * 100) / 100,
+      // Lo que realmente se paga del renglón (con promociones): es lo que cuenta para comisiones.
+      importe: Math.round((pu * l.cantidad - promo) * 100) / 100,
+      ...(promo > 0 ? { descuentoPromocion: promo } : {}),
       esServicio: l.esServicio,
       ...(l.esServicio ? { tipoServicio: l.tipoServicio ?? 'articulo' } : {}),
       ...(l.garantia ? { garantia: l.garantia, descuentoAplicado: 0 } : {})
@@ -152,6 +161,8 @@ export async function registrarVenta(
     cambioId?: string | null;
     /** Comentarios que salen en el ticket. */
     comentarios?: string;
+    /** Promociones que se ven en la caja (se vuelven a revisar con el servidor). */
+    promociones?: { resultado: ResultadoPromos; cupones: string[] };
   }
 ): Promise<{ ok: true; venta: VentaRegistrada } | { ok: false; error: string }> {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
@@ -164,8 +175,9 @@ export async function registrarVenta(
   const usoSaldo = pagos.filter(p => p.metodo === 'saldo_favor').reduce((s, p) => s + p.monto, 0);
   if ((datos.cambioId || usoSaldo > 0) && !personaId) return { ok: false, error: 'El cambio físico y el saldo a favor son solo de emprendedoras y líderes.' };
   const lineasGarantia = carrito.filter(l => l.garantia);
-  const lineas = lineasVendidas(carrito, cliente);
-  const totales = calcularTotales(carrito, cliente);
+  const promos = datos.promociones?.resultado.total ? datos.promociones.resultado : undefined;
+  const lineas = lineasVendidas(carrito, cliente, promos);
+  const totales = calcularTotales(carrito, cliente, promos);
   const turnoId = idTurno(fechaDia, caja);
   const productoIds = [...new Set(lineas.filter(l => !l.esServicio && l.productoId).map(l => l.productoId!))];
   const refsPago = pagos.filter(p => p.referencia).map(p => ({ p, ref: doc(db, COLECCION_REFERENCIAS, `${p.metodo}_${p.referencia}`) }));
@@ -201,8 +213,25 @@ export async function registrarVenta(
       }
       const indiceRef = personaId ? doc(db, COL_TICKETS_PERSONA, idIndicePersona(personaId, fechaDia)) : null;
       const indiceSnap = indiceRef ? await tx.get(indiceRef) : null;
+      // Promociones aplicadas: su versión actual (fechas, usos) y si esta e/l ya usó las de un solo uso.
+      const promosServidor: Promocion[] = [];
+      const yaUsadas: string[] = [];
+      for (const a of promos?.aplicadas ?? []) {
+        const sp = await tx.get(doc(db, COL_PROMOCIONES, a.id));
+        if (sp.exists()) promosServidor.push({ ...(sp.data() as Promocion), id: sp.id });
+        if (personaId) {
+          const su = await tx.get(doc(db, COL_USOS_PROMOCION, `${a.id}__${personaId}`));
+          if (su.exists()) yaUsadas.push(a.id);
+        }
+      }
 
       // 2) Validaciones con datos del servidor.
+      if (promos) {
+        const deNuevo = calcularPromociones(carrito, cliente, promosServidor, { hoy: fechaDia, cupones: datos.promociones!.cupones, yaUsadas });
+        if (!mismoResultado(deNuevo, promos)) {
+          throw new ErrorVenta(`Las promociones cambiaron (${[...deNuevo.avisos, 'alguna terminó, se pausó o llegó a su límite'].join(' ')}). Revisa el total y vuelve a cobrar.`);
+        }
+      }
       if (!turno.exists() || turno.data().estado !== 'abierta') {
         throw new ErrorVenta('Esta caja no está abierta. Si ya se hizo el corte de hoy, ya no se puede cobrar en ella.');
       }
@@ -250,12 +279,31 @@ export async function registrarVenta(
         estado: 'completada',
         origen: 'pos',
         ...(datos.comentarios?.trim() ? { comentarios: datos.comentarios.trim().slice(0, 300) } : {}),
+        ...(promos ? { promociones: promos.aplicadas } : {}),
         ...(cambio ? { cambioFisico: { id: cambio.id, piezas: cambio.piezas, valor: valorDelCambio, usado: usoCambio, aSaldo, regresado: null } } : {}),
         ...(personaId && (usoSaldo > 0 || aSaldo > 0) ? { saldoAFavor: { usado: usoSaldo, guardado: aSaldo, saldoFinal } } : {})
       };
       r.cambios.forEach((variantes, id) =>
         tx.update(doc(db, 'productos', id), { variantes, disponible: variantes.some(x => (Number(x.stock) || 0) > 0) })
       );
+      for (const a of promos?.aplicadas ?? []) {
+        const p = promosServidor.find(x => x.id === a.id)!;
+        tx.update(doc(db, COL_PROMOCIONES, a.id), { usos: (Number(p.usos) || 0) + 1 });
+        if (personaId && p.unUsoPorPersona) tx.set(doc(db, COL_USOS_PROMOCION, `${a.id}__${personaId}`), { promocionId: a.id, personaId, folio, fecha: v.fechaLocal });
+      }
+      // Historial de Stock: un movimiento por pieza vendida (con su existencia antes y después).
+      {
+        const corriendo = new Map<string, number>();
+        for (const l of lineas) {
+          if (l.esServicio || !l.productoId || !l.varianteId) continue;
+          const crudo = actuales.get(l.productoId) ?? null;
+          const clave = `${l.productoId}|${l.varianteId}`;
+          const inicial = Number(((crudo?.variantes as Record<string, unknown>[] | undefined) ?? []).find(x => x.id === l.varianteId)?.stock) || 0;
+          const antes = corriendo.get(clave) ?? inicial;
+          corriendo.set(clave, antes - l.cantidad);
+          anotarMovimiento(tx, db, { productoId: l.productoId, varianteId: l.varianteId, producto: crudo, tipo: 'venta', cantidad: -l.cantidad, antes, despues: antes - l.cantidad, referencia: folio, nota: l.garantia ? `Garantía ${l.garantia.folio}` : undefined, por: perfil.nombre }, new Date(v.fechaLocal));
+        }
+      }
       // Cuenta de ventas del turno: al cerrar la caja sirve para saber que el
       // corte incluye todas.
       tx.update(doc(db, COLECCION_TURNOS, turnoId), { numVentas: (Number(turno.data().numVentas) || 0) + 1 });

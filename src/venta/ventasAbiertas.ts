@@ -20,6 +20,8 @@ export interface VentaAbierta {
   cliente: ClienteVenta;
   /** Cambio físico de esta venta (abierto hasta cerrarla). */
   cambio: { id: string | null; piezas: PiezaCambio[] } | null;
+  /** Cupones de promoción escritos en esta venta. */
+  cupones?: string[];
   creada: string;
 }
 

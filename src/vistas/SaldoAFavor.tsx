@@ -114,7 +114,7 @@ export function SaldoAFavorModal({ cliente, saldo, perfil, onImprimir, onCerrar 
         <AgregarSaldo cliente={cliente} perfil={perfil} onListo={() => setAgregando(false)} />
       ) : (
         <div className="acciones">
-          {puedeAbonarSaldo(perfil.rol) && <button className="btn" onClick={() => setAgregando(true)}>+ Agregar saldo a favor</button>}
+          {puedeAbonarSaldo(perfil) && <button className="btn" onClick={() => setAgregando(true)}>+ Agregar saldo a favor</button>}
           <button
             className="btn primario"
             disabled={!movs}

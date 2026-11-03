@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react';
 import { cerrarSesion } from '../sesion/sesion';
-import { ETIQUETA_ROL, puedeManejarCaja, type PerfilUsuario } from '../sesion/perfil';
+import { ETIQUETA_ROL, type PerfilUsuario } from '../sesion/perfil';
 import { Catalogo } from './Catalogo';
+import { Productos } from './Productos';
+import { Documentos } from './Documentos';
+import { Clientes } from './Clientes';
+import { TiposPago } from './TiposPago';
+import { Usuarios } from './Usuarios';
+import { Promociones } from './Promociones';
+import { useTiposPago } from '../pagos/acciones';
+import { puede, veModulo } from '../sesion/permisos';
+import { db } from '../firebase';
+import { Stock } from './Stock';
 import { Vender } from './Vender';
 import { Apartados } from './Apartados';
 import { ListaDeseos } from './ListaDeseos';
@@ -20,22 +30,26 @@ import { Estadisticas } from './Estadisticas';
 import { useTema } from '../tema';
 import { PILOTO } from '../piloto';
 
-export type Seccion = 'inicio' | 'vender' | 'catalogo' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'compras' | 'estadisticas' | 'cuenta';
+export type Seccion = 'inicio' | 'vender' | 'documentos' | 'clientes' | 'tiposPago' | 'promociones' | 'usuarios' | 'catalogo' | 'productos' | 'stock' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'compras' | 'estadisticas' | 'cuenta';
 
 interface Item { id: Seccion; nombre: string }
 
 /** El menú agrupado por área; cada rol ve solo lo que puede usar (igual que en la página). */
 function menuPara(perfil: PerfilUsuario): { titulo: string | null; items: Item[] }[] {
-  const cobra = puedeManejarCaja(perfil.rol);
+  const cobra = puede(perfil, 'cobrar');
   const grupos: { titulo: string | null; items: Item[] }[] = [
     { titulo: null, items: [{ id: 'inicio', nombre: 'Inicio' }] },
     {
       titulo: 'Tienda',
       items: [
         // Caja y venta van juntas: abrir la caja del día y cobrar en la misma pestaña (Staff no cobra).
-        ...(cobra ? [{ id: 'vender' as const, nombre: 'Caja' }] : []),
+        ...(cobra ? [{ id: 'vender' as const, nombre: 'Caja' }, { id: 'documentos' as const, nombre: 'Documentos' }] : []),
         { id: 'catalogo', nombre: 'Catálogo' },
+        { id: 'productos', nombre: 'Productos' },
+        { id: 'stock', nombre: 'Stock' },
         { id: 'apartados', nombre: 'Apartados' },
+        { id: 'clientes', nombre: 'Clientes' },
+        ...(perfil.rol !== 'staff' ? [{ id: 'promociones' as const, nombre: 'Promociones' }] : []),
         // Lo liquidado en la página cuenta para el Plan MW hasta que se confirma aquí.
         { id: 'compras', nombre: 'Compras por confirmar' },
         { id: 'deseos', nombre: 'Lista de deseos' }
@@ -65,8 +79,10 @@ function menuPara(perfil: PerfilUsuario): { titulo: string | null; items: Item[]
         { id: 'planmw', nombre: 'Plan MW' }
       ]
     });
+    grupos.push({ titulo: 'Configuración', items: [{ id: 'usuarios', nombre: 'Usuarios y seguridad' }, { id: 'tiposPago', nombre: 'Tipos de pago' }] });
   }
-  return grupos;
+  // Módulos que Administración le ocultó a esta persona (Usuarios y seguridad).
+  return grupos.map(g => ({ ...g, items: g.items.filter(it => veModulo(perfil, it.id)) })).filter(g => g.items.length);
 }
 
 const IconoLuna = () => (
@@ -85,6 +101,8 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
   const [saliendo, setSaliendo] = useState(false);
   const [tema, alternarTema] = useTema();
   const [seccion, setSeccion] = useState<Seccion>('inicio');
+  // Tipos de pago configurados: los usa la caja, el corte y las comisiones.
+  useTiposPago(db);
   // En pantallas angostas el menú se abre y cierra con el botón ☰.
   const [menuAbierto, setMenuAbierto] = useState(false);
   useEffect(() => {
@@ -164,6 +182,13 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
           {seccion === 'vender' && <Vender perfil={perfil} />}
           {seccion === 'cuenta' && <MiCuenta perfil={perfil} />}
           {seccion === 'catalogo' && <Catalogo perfil={perfil} />}
+          {seccion === 'productos' && <Productos perfil={perfil} />}
+          {seccion === 'documentos' && <Documentos perfil={perfil} />}
+          {seccion === 'clientes' && <Clientes perfil={perfil} />}
+          {seccion === 'tiposPago' && <TiposPago perfil={perfil} />}
+          {seccion === 'usuarios' && <Usuarios perfil={perfil} />}
+          {seccion === 'promociones' && <Promociones perfil={perfil} />}
+          {seccion === 'stock' && <Stock perfil={perfil} />}
           {seccion === 'apartados' && <Apartados perfil={perfil} />}
           {seccion === 'compras' && <ConfirmarCompras perfil={perfil} />}
           {seccion === 'deseos' && <ListaDeseos perfil={perfil} />}

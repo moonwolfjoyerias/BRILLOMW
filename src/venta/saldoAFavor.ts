@@ -2,6 +2,7 @@
 // cambio físico, transferencia u otro), quién lo confirmó y cuánto tiene.
 // El saldo vive en brilloSaldos/{personaId} y cada movimiento en
 // brilloSaldoMovimientos (los de las ventas los escribe registrarVenta).
+import { puede } from '../sesion/permisos';
 import { collection, doc, getDocs, query, runTransaction, where, type Firestore } from '../datos/firestore';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';
@@ -46,7 +47,7 @@ export async function leerMovimientosSaldo(db: Firestore, personaId: string): Pr
   return s.docs.map(d => ({ id: d.id, ...(d.data() as Omit<MovimientoSaldo, 'id'>) }));
 }
 
-export const puedeAbonarSaldo = (rol: string) => rol === 'admin' || rol === 'encargado';
+export const puedeAbonarSaldo = (p: Pick<PerfilUsuario, 'rol' | 'permisosBrillo'>) => puede(p, 'abonarSaldo');
 
 /** Registra saldo a favor que no viene de una venta (por ejemplo, una transferencia). */
 export async function abonarSaldo(
@@ -56,7 +57,7 @@ export async function abonarSaldo(
   equipo: string,
   ahora = new Date()
 ): Promise<string | null> {
-  if (!puedeAbonarSaldo(perfil.rol)) return 'Solo Encargado y Administración pueden agregar saldo a favor.';
+  if (!puedeAbonarSaldo(perfil)) return 'Solo Encargado y Administración pueden agregar saldo a favor.';
   const monto = Math.round(datos.monto * 100) / 100;
   if (!(monto > 0)) return 'Escribe un monto mayor a 0.';
   if (datos.origen === 'transferencia' && !datos.referencia?.trim()) return 'Escribe la referencia de la transferencia.';

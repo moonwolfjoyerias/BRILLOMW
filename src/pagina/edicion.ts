@@ -18,6 +18,7 @@ export interface BorradorProducto {
   descuento: string;
   variantes: { id: string; color: string; talla: string; stock: string; fotoId: string | null }[];
   galeria: FotoProducto[];
+  mostrarEnCatalogo: boolean;
 }
 
 /** Los datos del producto tal como los guarda la página (sin id ni ultimaAccion). */
@@ -33,6 +34,7 @@ export interface DatosProducto {
   precioEtiqueta: number;
   descuento: number;
   disponible: boolean;
+  mostrarEnCatalogo: boolean;
   galeria: FotoProducto[];
   imagen: string;
 }
@@ -58,7 +60,8 @@ export function borradorVacio(): BorradorProducto {
     precioEtiqueta: '',
     descuento: '',
     variantes: [{ id: nuevoIdVariante(), color: '', talla: '', stock: '1', fotoId: null }],
-    galeria: []
+    galeria: [],
+    mostrarEnCatalogo: true
   };
 }
 
@@ -75,7 +78,8 @@ export function borradorDesde(p: Producto): BorradorProducto {
     precioEtiqueta: String(p.precioEtiqueta),
     descuento: String(p.descuento),
     variantes: p.variantes.map(v => ({ ...v, stock: String(v.stock) })),
-    galeria: p.galeria.map(f => ({ ...f }))
+    galeria: p.galeria.map(f => ({ ...f })),
+    mostrarEnCatalogo: p.mostrarEnCatalogo
   };
 }
 
@@ -148,6 +152,7 @@ export function validarBorrador(
       precioEtiqueta: Number(b.precioEtiqueta.trim()),
       descuento: Number(b.descuento.trim()),
       disponible: variantes.some(v => v.stock > 0),
+      mostrarEnCatalogo: b.mostrarEnCatalogo !== false,
       galeria: b.galeria,
       imagen: b.galeria[0]?.src || ''
     }
@@ -184,6 +189,7 @@ const NOMBRES_CAMPOS: [keyof DatosProducto, string][] = [
   ['colorOro', 'color de oro'],
   ['precioEtiqueta', 'precio'],
   ['descuento', 'descuento'],
+  ['mostrarEnCatalogo', 'mostrar en catálogo'],
   ['galeria', 'fotos']
 ];
 

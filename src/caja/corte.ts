@@ -10,8 +10,11 @@ export const METODOS: MetodoPago[] = ['efectivo', 'tarjeta', 'transferencia', 'g
 /** Las que siempre se muestran en el corte; las demás solo si se usaron. */
 export const METODOS_BASE: MetodoPago[] = ['efectivo', 'tarjeta', 'transferencia'];
 /** Formas de pago que se muestran en un corte (también sirve para cortes guardados antes de Gala/Regalo/Souvenir). */
-export const metodosDelCorte = (c: Pick<ResumenCorte, 'porMetodo'>) =>
-  METODOS.filter(m => METODOS_BASE.includes(m) || (c.porMetodo[m]?.pagos ?? 0) > 0).filter(m => c.porMetodo[m]);
+export const metodosDelCorte = (c: Pick<ResumenCorte, 'porMetodo'>): MetodoPago[] => [
+  ...METODOS.filter(m => METODOS_BASE.includes(m) || (c.porMetodo[m]?.pagos ?? 0) > 0).filter(m => c.porMetodo[m]),
+  // Tipos de pago agregados en Configuración que se usaron.
+  ...Object.keys(c.porMetodo).filter(m => !METODOS.includes(m) && (c.porMetodo[m]?.pagos ?? 0) > 0).sort()
+];
 
 export interface ReferenciaCorte {
   metodo: MetodoPago;
@@ -92,8 +95,7 @@ export function calcularCorte(
     else c.totalMayoreo += v.totales.total;
     c.cambioEntregado += v.cambio;
     for (const p of v.pagos) {
-      const m = c.porMetodo[p.metodo];
-      if (!m) continue;
+      const m = (c.porMetodo[p.metodo] ??= { monto: 0, pagos: 0 });
       m.monto += p.monto;
       m.pagos++;
       if (p.referencia) c.referencias.push({ metodo: p.metodo, referencia: p.referencia, monto: p.monto, folio: v.folio });
@@ -114,7 +116,7 @@ function sumaMovimientos(movs: MovimientoEfectivo[], tipo: MovimientoEfectivo['t
 function redondear(c: ResumenCorte): ResumenCorte {
   const n = (k: keyof ResumenCorte) => ((c[k] as number) = r2(c[k] as number));
   (['total', 'totalEtiqueta', 'descuentoMayoreo', 'baseSinIva', 'iva', 'souvenirs', 'totalMayoreo', 'totalPublico', 'cambioEntregado', 'fondoInicial', 'ingresos', 'retiros'] as const).forEach(n);
-  METODOS.forEach(m => (c.porMetodo[m].monto = r2(c.porMetodo[m].monto)));
+  Object.keys(c.porMetodo).forEach(m => (c.porMetodo[m].monto = r2(c.porMetodo[m].monto)));
   c.efectivoEsperado = r2(c.fondoInicial + c.porMetodo.efectivo.monto + c.ingresos - c.retiros);
   return c;
 }
@@ -126,9 +128,10 @@ export function sumarCortes(cortes: ResumenCorte[]): ResumenCorte {
     for (const k of ['ventas', 'piezas', 'total', 'totalEtiqueta', 'descuentoMayoreo', 'baseSinIva', 'iva', 'souvenirs', 'totalMayoreo', 'totalPublico', 'cambioEntregado', 'fondoInicial', 'ingresos', 'retiros'] as const) {
       g[k] += c[k];
     }
-    METODOS.forEach(m => {
-      g.porMetodo[m].monto += c.porMetodo[m]?.monto ?? 0;
-      g.porMetodo[m].pagos += c.porMetodo[m]?.pagos ?? 0;
+    new Set([...METODOS, ...Object.keys(c.porMetodo)]).forEach(m => {
+      const t = (g.porMetodo[m] ??= { monto: 0, pagos: 0 });
+      t.monto += c.porMetodo[m]?.monto ?? 0;
+      t.pagos += c.porMetodo[m]?.pagos ?? 0;
     });
     g.referencias.push(...c.referencias);
     if (c.primerFolio && (!g.primerFolio || c.primerFolio < g.primerFolio)) g.primerFolio = c.primerFolio;
