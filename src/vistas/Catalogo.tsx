@@ -9,6 +9,7 @@ import { equipoActual } from '../plataforma';
 import { eliminarProducto } from '../pagina/guardarProducto';
 import { BotonCamara } from '../escaner/EscanerQR';
 import { DondePieza } from './DondePieza';
+import { descargarProductos } from '../exportar/productos';
 import { limpiarCodigo } from '../pagina/codigoProducto';
 import {
   NOMBRE_MATERIAL,
@@ -72,6 +73,9 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
         <div className="acciones">
           <button className="btn" onClick={() => setDonde(true)}>
             ¿Dónde está la pieza?
+          </button>
+          <button className="btn" disabled={!productos.length} onClick={() => descargarProductos(productos.filter(p => p.mostrarEnCatalogo), 'Catálogo', 'catalogo-mw')}>
+            Descargar Excel
           </button>
           {puede(perfil, 'editarProductos') && (
           <button className="btn primario" onClick={() => setEditando(null)}>

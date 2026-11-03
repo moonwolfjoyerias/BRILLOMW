@@ -16,6 +16,7 @@ import { ProductoForm } from './ProductoForm';
 import { HistorialModal } from './Stock';
 import { BotonCamara } from '../escaner/EscanerQR';
 import { limpiarCodigo } from '../pagina/codigoProducto';
+import { descargarProductos } from '../exportar/productos';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 const normal = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
@@ -61,7 +62,10 @@ export function Productos({ perfil }: { perfil: PerfilUsuario }) {
           <h1>Productos</h1>
           <p className="muted">{productos.length} productos a la venta · {enCat} en el catálogo · {productos.length - enCat} solo en tienda</p>
         </div>
-        {puede(perfil, 'editarProductos') && <button className="btn primario" onClick={() => setEditando(null)}>+ Agregar producto</button>}
+        <div className="acciones">
+          <button className="btn" disabled={!productos.length} onClick={() => descargarProductos(productos, 'Productos', 'productos-mw')}>Descargar Excel</button>
+          {puede(perfil, 'editarProductos') && <button className="btn primario" onClick={() => setEditando(null)}>+ Agregar producto</button>}
+        </div>
       </div>
       {aviso && <p className="aviso-ok" role="status">{aviso}</p>}
       <div className="filtros-productos">
