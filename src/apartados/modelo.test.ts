@@ -24,7 +24,8 @@ describe('abrir ventana', () => {
   });
   it('con crédito previo: activa de inmediato y consume el crédito', () => {
     const r = ok(abrirVentana({ usuarioId: 'ana', usuarioNombre: 'Ana', telefono: '', categoria: 'foranea' }, pieza(200), 70, 'V', T0));
-    expect(r.ventana).toMatchObject({ estado: 'activa', metodoDeposito: 'credito_anterior', depositoPiso: 50, depositoExcedente: 20, depositoApartadoDisponible: 70 });
+    // Foránea: su piso es $200 (como la página), así que los $70 son piso, sin excedente.
+    expect(r.ventana).toMatchObject({ estado: 'activa', metodoDeposito: 'credito_anterior', depositoPiso: 70, depositoExcedente: 0, depositoApartadoDisponible: 70 });
     expect(r.ventana.fechaVencimiento).toBe('2026-10-27T15:00:00.000Z');
     expect(r.efectos.credito).toEqual({ usuarioId: 'ana', monto: 0 });
   });

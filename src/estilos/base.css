@@ -1035,3 +1035,14 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
 .chips-variantes { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .vista-compartir { min-height: 160px; display: flex; align-items: center; justify-content: center; background: var(--mw-lilac-soft, #F1EBFA); border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
 .vista-compartir img { display: block; width: 100%; height: auto; max-height: 60vh; object-fit: contain; }
+
+/* Apartados: fechas del apartado (clic en Vencimiento) */
+.boton-fechas { border: 0; background: transparent; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.boton-fechas .enlace { text-decoration: underline; text-underline-offset: 2px; }
+.fechas-ventana { display: grid; gap: 8px; margin: 10px 0 14px; }
+.fechas-fila { display: grid; grid-template-columns: minmax(120px, 40%) 1fr; gap: 2px 12px; align-items: baseline; }
+.fechas-fila > .small { grid-column: 2; }
+.fechas-piezas { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.fechas-pieza { border: 1px solid var(--mw-border); border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; }
+.fechas-pieza-cabeza { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+@media (max-width: 480px) { .fechas-fila { grid-template-columns: 1fr; } .fechas-fila > .small { grid-column: 1; } }
