@@ -1030,3 +1030,8 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
 .detalle-usuario h3 { font-size: 0.95rem; margin: 12px 0 6px; }
 .rejilla-permisos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 2px 12px; }
 .rejilla-permisos .check { white-space: normal; }
+
+/* Compartir por WhatsApp (Catálogo) */
+.chips-variantes { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.vista-compartir { min-height: 160px; display: flex; align-items: center; justify-content: center; background: var(--mw-lilac-soft, #F1EBFA); border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
+.vista-compartir img { display: block; width: 100%; height: auto; max-height: 60vh; object-fit: contain; }
