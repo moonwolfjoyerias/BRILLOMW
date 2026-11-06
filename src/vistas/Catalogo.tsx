@@ -9,6 +9,7 @@ import { equipoActual } from '../plataforma';
 import { eliminarProducto } from '../pagina/guardarProducto';
 import { BotonCamara } from '../escaner/EscanerQR';
 import { DondePieza } from './DondePieza';
+import { CompartirPieza } from './CompartirPieza';
 import { descargarProductos } from '../exportar/productos';
 import { limpiarCodigo } from '../pagina/codigoProducto';
 import {
@@ -29,6 +30,7 @@ const normal = (s: string) =>
   s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
 export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
+  const [compartir, setCompartir] = useState<Producto | null>(null);
   const catalogo = useCatalogo();
   const [busqueda, setBusqueda] = useState('');
   const [material, setMaterial] = useState('');
@@ -148,6 +150,10 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
           producto={productos.find(p => p.id === abierto.id) ?? abierto}
           perfil={perfil}
           onCerrar={() => setAbierto(null)}
+          onCompartir={() => {
+            setCompartir(productos.find(x => x.id === abierto.id) ?? abierto);
+            setAbierto(null);
+          }}
           onEditar={() => {
             setEditando(abierto.id);
             setAbierto(null);
@@ -159,6 +165,7 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
           }}
         />
       )}
+      {compartir && <CompartirPieza producto={compartir} onCerrar={() => setCompartir(null)} />}
       {editando !== undefined && (
         <ProductoForm
           // Siempre la versión más reciente del producto al abrir el formulario.
@@ -212,12 +219,14 @@ function Detalle({
   producto: p,
   perfil,
   onCerrar,
+  onCompartir,
   onEditar,
   onEliminado
 }: {
   producto: Producto;
   perfil: PerfilUsuario;
   onCerrar: () => void;
+  onCompartir: () => void;
   onEditar: () => void;
   onEliminado: (nombre: string) => void;
 }) {
@@ -253,6 +262,9 @@ function Detalle({
         <div className="modal-cabeza">
           <h2>{p.nombre || 'Sin nombre'}</h2>
           <div className="acciones">
+            <button className="btn" onClick={onCompartir}>
+              Compartir por WhatsApp
+            </button>
             {puede(perfil, 'editarProductos') && (
               <>
                 <button className="btn peligro" onClick={() => setConfirmarEliminar(true)} disabled={eliminando}>
