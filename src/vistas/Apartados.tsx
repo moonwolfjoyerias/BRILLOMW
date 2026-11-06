@@ -13,9 +13,11 @@ import { ejecutarAccion, guardarSinActividad, useApartados } from '../apartados/
 import { MarcoModal, useEnvio } from './Modal';
 import {
   CATEGORIAS,
-  DEPOSITO_BASE,
   abrirVentana,
+  agregarExcedente,
   agregarPieza,
+  depositoFaltante,
+  fechasVentana,
   alternarBolsita,
   alternarOculta,
   aplicarExcedente,
@@ -58,9 +60,9 @@ export function numeroWhatsapp(telefono: string): string {
   return d.length > 10 ? d : '';
 }
 
-export function mensajeComprobanteDeposito(v: Pick<Ventana, 'usuarioNombre'>): string {
+export function mensajeComprobanteDeposito(v: Ventana): string {
   const nombre = String(v.usuarioNombre || '').trim().split(/\s+/)[0];
-  return `¡Hola${nombre ? `, ${nombre}` : ''}! Vimos que apartaste piezas en la página, pero todavía no recibimos tu comprobante de depósito. Te recordamos que, para asegurar tus piezas, es necesario un depósito mínimo de $${DEPOSITO_BASE}. Cuando lo tengas, envíanos tu comprobante por aquí. ¡Quedamos al pendiente!`;
+  return `¡Hola${nombre ? `, ${nombre}` : ''}! Vimos que apartaste piezas en la página, pero todavía no recibimos tu comprobante de depósito. Te recordamos que, para asegurar tus piezas, es necesario un depósito mínimo de $${depositoFaltante(v)}. Cuando lo tengas, envíanos tu comprobante por aquí. ¡Quedamos al pendiente!`;
 }
 
 const ESTADO_VENTANA: Record<string, { texto: string; clase: string }> = {
@@ -168,6 +170,8 @@ type Modal =
   | { tipo: 'quitar'; v: Ventana; pieza: Pieza }
   | { tipo: 'comprobante'; v: Ventana }
   | { tipo: 'vencida'; v: Ventana }
+  | { tipo: 'fechas'; v: Ventana }
+  | { tipo: 'excedente'; v: Ventana }
   | { tipo: 'confirmar'; c: Confirmacion };
 
 export type Correr = (
@@ -321,6 +325,8 @@ export function Apartados({ perfil }: { perfil: PerfilUsuario }) {
       {modal?.tipo === 'quitar' && <QuitarPieza v={modal.v} pieza={modal.pieza} perfil={perfil} correr={correr} onCerrar={() => setModal(null)} />}
       {modal?.tipo === 'comprobante' && <PedirComprobante v={modal.v} perfil={perfil} correr={correr} onCerrar={() => setModal(null)} />}
       {modal?.tipo === 'vencida' && <ContactoVencida v={modal.v} onCerrar={() => setModal(null)} />}
+      {modal?.tipo === 'fechas' && <FechasApartado v={ventanas.find(x => x.id === modal.v.id) ?? modal.v} onCerrar={() => setModal(null)} />}
+      {modal?.tipo === 'excedente' && <AgregarExcedente v={modal.v} ventanas={ventanas} perfil={perfil} correr={correr} onCerrar={() => setModal(null)} />}
       {modal?.tipo === 'confirmar' && <Confirmar c={modal.c} perfil={perfil} correr={correr} onCerrar={() => setModal(null)} />}
     </section>
   );
@@ -439,6 +445,13 @@ function FilaVentana({
         );
       }
     }
+    if (cat.requiereDeposito) {
+      acciones.push(
+        <button key="agrexc" className="btn mini" onClick={() => onModal({ tipo: 'excedente', v })}>
+          + Agregar excedente
+        </button>
+      );
+    }
     if (vencida) {
       acciones.push(
         <button key="wav" className="btn mini" onClick={() => onModal({ tipo: 'vencida', v })}>Contactar por WhatsApp</button>,
@@ -512,7 +525,10 @@ function FilaVentana({
             {v.resolucionDeposito && <span className="muted small bloque">{RESOLUCION[v.resolucionDeposito] ?? ''}</span>}
             {vencida && <span className="small bloque peligro-texto">Vencida — pendiente de gestionar</span>}
           </div>
-          <span className="small">{textoVencimiento(v)}</span>
+          <button type="button" className="boton-fechas small" onClick={() => onModal({ tipo: 'fechas', v })} title="Ver las fechas del apartado">
+            {textoVencimiento(v)}
+            <span className="enlace bloque">Ver fechas</span>
+          </button>
         </div>
         {acciones.length > 0 && <div className="ventana-acciones">{acciones}</div>}
       </div>
@@ -815,7 +831,10 @@ function CamposPago({ metodo, setMetodo, referencia, setReferencia }: {
 }
 
 function ConfirmarDeposito({ v, ventanas, perfil, correr, onCerrar }: { v: Ventana; ventanas: Ventana[]; perfil: PerfilUsuario; correr: Correr; onCerrar: () => void }) {
-  const [monto, setMonto] = useState(String(DEPOSITO_BASE));
+  // $50 normal, $200 foránea, menos el crédito previo que ya trae aplicado.
+  const minimo = depositoFaltante(v);
+  const credito = Number(v.depositoApartadoDisponible || 0);
+  const [monto, setMonto] = useState(String(minimo || ''));
   const [metodo, setMetodo] = useState<MetodoApartado>('transferencia');
   const [referencia, setReferencia] = useState('');
   const { enviando, error, setError, enviar } = useEnvio();
@@ -823,7 +842,7 @@ function ConfirmarDeposito({ v, ventanas, perfil, correr, onCerrar }: { v: Venta
   function guardar(e: FormEvent) {
     e.preventDefault();
     const m = leerMonto(monto);
-    if (m === null || m < DEPOSITO_BASE) return setError(`El monto mínimo del depósito es $${DEPOSITO_BASE} MXN.`);
+    if (m === null || m <= 0 || m < minimo) return setError(`El monto mínimo del depósito es $${minimo} MXN.`);
     const ref = metodo === 'transferencia' ? referencia.trim() : '';
     if (metodo === 'transferencia' && !ref) return setError('La referencia es obligatoria para una transferencia.');
     if (ref && referenciaUsada(ventanas, ref)) return setError('Ese número de referencia ya se usó en otro apartado.');
@@ -841,7 +860,12 @@ function ConfirmarDeposito({ v, ventanas, perfil, correr, onCerrar }: { v: Venta
 
   return (
     <MarcoModal titulo="Confirmar depósito" onCerrar={onCerrar} enviando={enviando} onEnviar={guardar}>
-      <p className="muted">{v.usuarioNombre} · mínimo {dinero(DEPOSITO_BASE)}</p>
+      <p className="muted">
+        {v.usuarioNombre} · mínimo {dinero(minimo)}
+        {v.categoria === 'foranea' ? ' (foránea)' : ''}
+        {credito > 0 ? ` · ya trae ${dinero(credito)} de crédito previo` : ''}
+      </p>
+      <p className="muted small">Si transfirió más del mínimo, anota el monto exacto recibido: lo demás queda como excedente.</p>
       <label className="campo">
         <span>Monto del depósito</span>
         <input value={monto} onChange={e => setMonto(e.target.value)} inputMode="decimal" autoFocus />
@@ -851,6 +875,110 @@ function ConfirmarDeposito({ v, ventanas, perfil, correr, onCerrar }: { v: Venta
       <div className="acciones">
         <button type="submit" className="btn primario" disabled={enviando}>{enviando ? 'Guardando…' : 'Confirmar depósito'}</button>
       </div>
+    </MarcoModal>
+  );
+}
+
+/** La e/l ya tiene su apartado activo y manda más dinero: se suma como excedente. */
+function AgregarExcedente({ v, ventanas, perfil, correr, onCerrar }: { v: Ventana; ventanas: Ventana[]; perfil: PerfilUsuario; correr: Correr; onCerrar: () => void }) {
+  const [monto, setMonto] = useState('');
+  const [metodo, setMetodo] = useState<MetodoApartado>('transferencia');
+  const [referencia, setReferencia] = useState('');
+  const { enviando, error, setError, enviar } = useEnvio();
+
+  function guardar(e: FormEvent) {
+    e.preventDefault();
+    const m = leerMonto(monto);
+    if (m === null || m <= 0) return setError('Escribe el monto recibido.');
+    const ref = metodo === 'transferencia' ? referencia.trim() : '';
+    if (metodo === 'transferencia' && !ref) return setError('La referencia es obligatoria para una transferencia.');
+    if (ref && referenciaUsada(ventanas, ref)) return setError('Ese número de referencia ya se usó en otro apartado.');
+    void enviar(() =>
+      correr(
+        {
+          ventanaId: v.id,
+          referencia: ref ? { metodo: 'transferencia', referencia: ref, monto: m } : undefined,
+          accion: a => (a ? agregarExcedente(a, { monto: m, metodo, referencia: ref || null }, perfil.nombre) : { ok: false, error: 'Ese apartado ya no existe.' })
+        },
+        `Excedente de ${dinero(m)} agregado.`
+      )
+    );
+  }
+
+  return (
+    <MarcoModal titulo="Agregar excedente" onCerrar={onCerrar} enviando={enviando} onEnviar={guardar}>
+      <p className="muted">{v.usuarioNombre} · depósito actual {dinero(Number(v.depositoApartadoDisponible || 0))}</p>
+      <p className="muted small">Anota el dinero que mandó de más: se suma a su depósito como excedente y después lo puedes aplicar a sus piezas con "Aplicar excedente". El vencimiento no cambia.</p>
+      <label className="campo">
+        <span>Monto recibido</span>
+        <input value={monto} onChange={e => setMonto(e.target.value)} inputMode="decimal" placeholder="Ej. 300" autoFocus />
+      </label>
+      <CamposPago metodo={metodo} setMetodo={setMetodo} referencia={referencia} setReferencia={setReferencia} />
+      {error && <p className="error" role="alert">{error}</p>}
+      <div className="acciones">
+        <button type="submit" className="btn primario" disabled={enviando}>{enviando ? 'Guardando…' : 'Agregar excedente'}</button>
+      </div>
+    </MarcoModal>
+  );
+}
+
+// ------------------------------------------------------------ fechas
+
+const NOMBRE_PAGO: Record<string, string> = { liquidacion: 'Liquidación', excedente_aplicado: 'Excedente aplicado', ajuste_descancelar: 'Ajuste al descancelar' };
+
+function FechasApartado({ v, onCerrar }: { v: Ventana; onCerrar: () => void }) {
+  const f = fechasVentana(v);
+  const cuando = (iso: string | null) => (iso ? fechaHora(iso) : '—');
+  const Fila = ({ titulo, valor, extra }: { titulo: string; valor: string; extra?: string }) => (
+    <div className="fechas-fila">
+      <span className="muted">{titulo}</span>
+      <strong>{valor}</strong>
+      {extra && <span className="muted small">{extra}</span>}
+    </div>
+  );
+  return (
+    <MarcoModal titulo="Fechas del apartado" onCerrar={onCerrar}>
+      <p className="muted">{v.usuarioNombre} · {regla(v.categoria).etiqueta}</p>
+      <div className="fechas-ventana">
+        <Fila titulo="Abrió su ventana" valor={cuando(f.apertura)} />
+        {f.requiereDeposito && (
+          <Fila
+            titulo="Depósito confirmado"
+            valor={v.estado === 'pendiente_deposito' ? 'Pendiente' : cuando(f.depositoConfirmado)}
+            extra={f.depositoConfirmado && f.depositoUsuario ? `por ${f.depositoUsuario}` : undefined}
+          />
+        )}
+        {f.excedentes.map((x, i) => (
+          <Fila key={i} titulo="Excedente agregado" valor={cuando(x.fecha)} extra={`${x.texto.replace(/^Excedente de depósito agregado: /, '')}${x.usuario ? ` · por ${x.usuario}` : ''}`} />
+        ))}
+        <Fila titulo="Vencimiento" valor={f.vencimiento ? cuando(f.vencimiento) : 'Sin vencimiento'} />
+      </div>
+      <h3>Piezas ({f.piezas.length})</h3>
+      <ul className="fechas-piezas">
+        {!f.piezas.length && <li className="muted">Sin piezas</li>}
+        {f.piezas.map(p => {
+          const ep = ESTADO_PIEZA[p.estado] ?? { texto: p.estado, clase: 'neutro' };
+          return (
+            <li key={p.id} className="fechas-pieza">
+              <div className="fechas-pieza-cabeza">
+                <strong>{p.producto || 'Pieza'}</strong>
+                <span className={`chip ${ep.clase}`}>{ep.texto}</span>
+              </div>
+              <Fila titulo="Se apartó" valor={cuando(p.apartada)} />
+              {p.pagos.map((x, i) => (
+                <Fila
+                  key={i}
+                  titulo={NOMBRE_PAGO[x.tipo] ?? 'Pago'}
+                  valor={cuando(x.fecha)}
+                  extra={`${dinero(Number(x.monto))}${x.metodo ? ` · ${x.metodo === 'transferencia' ? 'transferencia' : x.metodo === 'local' ? 'en local' : x.metodo}` : ''}${x.referencia ? ` · ref. ${x.referencia}` : ''}`}
+                />
+              ))}
+              {p.estado === 'activa' && !p.liquidada && <Fila titulo="Pago" valor="Pendiente" />}
+              {p.quitada && <Fila titulo="Se quitó" valor={cuando(p.quitada)} />}
+            </li>
+          );
+        })}
+      </ul>
     </MarcoModal>
   );
 }

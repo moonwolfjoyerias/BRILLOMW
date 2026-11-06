@@ -9,6 +9,8 @@ import type { Aviso } from '../pagina/avisos';
 export type { Aviso };
 
 export const DEPOSITO_BASE = 50;
+/** Foráneas depositan más (igual que DEPOSITO_FORANEA de la página). */
+export const DEPOSITO_FORANEA = 200;
 
 export type Categoria = 'normal' | 'foranea' | 'vip';
 
@@ -126,10 +128,22 @@ function historial(texto: string, usuario: string, ahora: Date): EntradaHistoria
   return { texto, usuario, fecha: ahoraISO(ahora) };
 }
 
+/** Depósito mínimo según la etiqueta: $50 normal, $200 foránea (depositoMinimoVentana de la página). */
+export function depositoMinimo(v: Pick<Ventana, 'categoria'>): number {
+  return v.categoria === 'foranea' ? DEPOSITO_FORANEA : DEPOSITO_BASE;
+}
+
+/** Lo que falta depositar para activar: el mínimo menos el crédito previo ya aplicado (depositoFaltanteVentana). */
+export function depositoFaltante(v: Ventana): number {
+  const ya = v.estado === 'pendiente_deposito' ? Number(v.depositoApartadoDisponible || 0) : 0;
+  return Math.max(0, depositoMinimo(v) - ya);
+}
+
 export function fijarDeposito(v: Ventana, montoTotal: number) {
   const total = Number(montoTotal) || 0;
-  v.depositoPiso = Math.min(total, DEPOSITO_BASE);
-  v.depositoExcedente = Math.max(0, total - DEPOSITO_BASE);
+  const minimo = depositoMinimo(v);
+  v.depositoPiso = Math.min(total, minimo);
+  v.depositoExcedente = Math.max(0, total - minimo);
   v.depositoApartadoDisponible = v.depositoPiso + v.depositoExcedente;
 }
 
@@ -267,11 +281,13 @@ export function confirmarDeposito(
   ahora = new Date()
 ): Resultado {
   if (ventana.estado !== 'pendiente_deposito') return { ok: false, error: 'Esta ventana ya no está esperando depósito.' };
-  if (!Number.isFinite(d.monto) || d.monto < DEPOSITO_BASE) return { ok: false, error: `El monto mínimo del depósito es $${DEPOSITO_BASE} MXN.` };
+  const faltante = depositoFaltante(ventana);
+  if (!Number.isFinite(d.monto) || d.monto <= 0 || d.monto < faltante) return { ok: false, error: `El monto mínimo del depósito es $${faltante} MXN.` };
   if (d.metodo === 'transferencia' && !d.referencia) return { ok: false, error: 'La referencia es obligatoria para una transferencia.' };
   const v = copia(ventana);
   const r = regla(v.categoria);
-  fijarDeposito(v, d.monto);
+  // Como la página: el crédito previo que ya traía aplicado se suma.
+  fijarDeposito(v, Number(ventana.depositoApartadoDisponible || 0) + d.monto);
   v.metodoDeposito = d.metodo;
   v.referenciaDeposito = d.referencia || null;
   v.estado = 'activa';
@@ -285,6 +301,70 @@ export function confirmarDeposito(
       avisos: [{ texto: `Confirmamos tu depósito de $${d.monto}: tus piezas ya quedaron apartadas.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider' }],
       actividad: { accion: 'confirmar_deposito', descripcion: `Depósito de $${d.monto} confirmado para ${v.usuarioNombre}` }
     }
+  };
+}
+
+/**
+ * La e/l ya tiene la ventana activa y manda más dinero: se suma a su
+ * depósito como excedente (agregarExcedenteDeposito de la página). Luego
+ * se aplica a sus piezas con "Aplicar excedente". No cambia el vencimiento.
+ */
+export function agregarExcedente(
+  ventana: Ventana,
+  d: { monto: number; metodo: MetodoApartado; referencia: string | null },
+  usuario: string,
+  ahora = new Date()
+): Resultado {
+  if (ventana.estado !== 'activa') return { ok: false, error: 'Solo se puede agregar excedente a un apartado activo.' };
+  const m = Math.round((Number(d.monto) || 0) * 100) / 100;
+  if (!(m > 0)) return { ok: false, error: 'Escribe el monto recibido.' };
+  if (d.metodo === 'transferencia' && !d.referencia) return { ok: false, error: 'La referencia es obligatoria para una transferencia.' };
+  const v = copia(ventana);
+  fijarDeposito(v, Number(v.depositoApartadoDisponible || 0) + m);
+  v.auditoria.push(historial(`Excedente de depósito agregado: $${m} (${d.metodo === 'transferencia' ? 'transferencia' : 'pago en local'}${d.referencia ? ` — referencia ${d.referencia}` : ''})`, usuario, ahora));
+  return {
+    ok: true,
+    ventana: v,
+    efectos: {
+      avisos: [{ texto: `Recibimos $${m} más para tu apartado: ya quedaron en tu depósito.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider' }],
+      actividad: { accion: 'agregar_excedente_deposito', descripcion: `Excedente de $${m} agregado al depósito de ${v.usuarioNombre}` }
+    }
+  };
+}
+
+export interface FechasPieza {
+  id: string;
+  producto: string;
+  estado: EstadoPieza;
+  apartada: string | null;
+  pagos: PagoPieza[];
+  liquidada: string | null;
+  quitada: string | null;
+}
+
+/** Fechas para "Fechas del apartado" (fechasVentana de la página). */
+export function fechasVentana(v: Ventana) {
+  const aud = v.auditoria;
+  const creada = aud.find(a => /^Ventana (creada|abierta)|^Apartado VIP/.test(a.texto || ''));
+  const primeraPieza = v.apartados.map(p => p.fechaSolicitud).filter(Boolean).sort()[0];
+  const apertura = creada?.fecha || aud[0]?.fecha || primeraPieza || v.fechaInicio || null;
+  const depositos = aud.filter(a => /^Depósito de \$[\d.,]+ confirmado/.test(a.texto || ''));
+  const ultimo = depositos[depositos.length - 1];
+  const requiereDeposito = regla(v.categoria).requiereDeposito;
+  const depositoConfirmado = ultimo ? ultimo.fecha : requiereDeposito && v.estado !== 'pendiente_deposito' && v.metodoDeposito ? v.fechaInicio : null;
+  const piezas: FechasPieza[] = v.apartados.map(p => {
+    const pagos = p.pagos.filter(x => x && x.fecha && Number(x.monto) > 0).slice().sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
+    const liq = p.estado === 'liquidada' ? (pagos.filter(x => x.tipo === 'liquidacion').pop() ?? pagos[pagos.length - 1] ?? null) : null;
+    return { id: p.id, producto: p.producto, estado: p.estado, apartada: p.fechaSolicitud || null, pagos, liquidada: liq?.fecha ?? null, quitada: p.estado === 'cancelada' && p.retiro ? p.retiro.fecha : null };
+  });
+  return {
+    apertura,
+    requiereDeposito,
+    depositoConfirmado,
+    depositoUsuario: ultimo?.usuario ?? null,
+    excedentes: aud.filter(a => /^Excedente de depósito agregado/.test(a.texto || '')).map(a => ({ fecha: a.fecha, texto: a.texto, usuario: a.usuario })),
+    vencimiento: v.fechaVencimiento || null,
+    piezas
   };
 }
 
@@ -554,7 +634,7 @@ export function cancelarSinDeposito(ventana: Ventana, usuario: string, ahora = n
     efectos: {
       restaurarStock: activas.map(p => ({ productoId: p.productoId, varianteId: p.varianteId })),
       avisos: [{
-        texto: `Cancelamos tu apartado porque no recibimos tu depósito mínimo de $${DEPOSITO_BASE}. Tus piezas quedaron liberadas; si todavía las quieres, puedes volver a apartarlas desde el catálogo.`,
+        texto: `Cancelamos tu apartado porque no recibimos tu depósito mínimo de $${depositoMinimo(v)}. Tus piezas quedaron liberadas; si todavía las quieres, puedes volver a apartarlas desde el catálogo.`,
         link: 'apartados',
         paraId: v.usuarioId,
         rolDestino: 'emprendedora_lider'
@@ -697,8 +777,8 @@ export function normalizarVentana(id: string, d: Record<string, unknown>): Venta
   v.telefono = String(v.telefono ?? '');
   v.categoria = String(v.categoria ?? 'normal');
   v.estado = (v.estado ?? 'activa') as EstadoVentana;
-  v.depositoPiso = Number(v.depositoPiso ?? Math.min(Number(v.depositoApartadoDisponible) || 0, DEPOSITO_BASE));
-  v.depositoExcedente = Number(v.depositoExcedente ?? Math.max(0, (Number(v.depositoApartadoDisponible) || 0) - DEPOSITO_BASE));
+  v.depositoPiso = Number(v.depositoPiso ?? Math.min(Number(v.depositoApartadoDisponible) || 0, depositoMinimo(v)));
+  v.depositoExcedente = Number(v.depositoExcedente ?? Math.max(0, (Number(v.depositoApartadoDisponible) || 0) - depositoMinimo(v)));
   v.depositoApartadoDisponible = Number(v.depositoApartadoDisponible ?? 0);
   v.apartados = (Array.isArray(v.apartados) ? v.apartados : []).map(p => ({ ...p, pagos: Array.isArray(p.pagos) ? p.pagos : [] }));
   v.auditoria = Array.isArray(v.auditoria) ? v.auditoria : [];
