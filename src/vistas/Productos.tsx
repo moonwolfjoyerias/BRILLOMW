@@ -9,6 +9,8 @@ import { equipoActual } from '../plataforma';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { useCatalogo } from '../pagina/useCatalogo';
 import { fotoMostrable, NOMBRE_MATERIAL, nombreMaterial, stockTotal, type Producto } from '../pagina/producto';
+import { CATEGORIAS } from '../pagina/opciones';
+import { enCategoriaFiltro, etiquetaCategoria, opcionesFiltroCategoria } from '../pagina/subcategoria';
 import { cambiarMostrarEnCatalogo } from '../pagina/mostrarEnCatalogo';
 import { estadoStock, minimoDe } from '../stock/modelo';
 import { useStockMinimo } from '../stock/acciones';
@@ -26,6 +28,7 @@ export function Productos({ perfil }: { perfil: PerfilUsuario }) {
   const minimo = useStockMinimo(db);
   const [q, setQ] = useState('');
   const [material, setMaterial] = useState('');
+  const [categoria, setCategoria] = useState('');
   const [enCatalogo, setEnCatalogo] = useState<'' | 'si' | 'no'>('');
   const [existencia, setExistencia] = useState<'' | 'con' | 'sin'>('');
   const [editando, setEditando] = useState<string | null | undefined>(undefined);
@@ -37,12 +40,13 @@ export function Productos({ perfil }: { perfil: PerfilUsuario }) {
   const filtrados = useMemo(() => {
     const t = normal(q);
     return productos.filter(p =>
-      (!t || normal(`${p.nombre} ${p.codigo} ${p.categoria}`).includes(t)) &&
+      (!t || normal(`${p.nombre} ${p.codigo} ${p.categoria} ${etiquetaCategoria(p)}`).includes(t)) &&
       (!material || p.material === material) &&
+      enCategoriaFiltro(p, categoria) &&
       (!enCatalogo || (enCatalogo === 'si') === p.mostrarEnCatalogo) &&
       (!existencia || (existencia === 'con') === stockTotal(p) > 0)
     );
-  }, [productos, q, material, enCatalogo, existencia]);
+  }, [productos, q, material, categoria, enCatalogo, existencia]);
 
   async function alternar(p: Producto) {
     setGuardando(p.id);
@@ -77,6 +81,10 @@ export function Productos({ perfil }: { perfil: PerfilUsuario }) {
           <option value="">Todos los materiales</option>
           {Object.entries(NOMBRE_MATERIAL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
+        <select value={categoria} onChange={e => setCategoria(e.target.value)} aria-label="Categoría">
+          <option value="">Todas las categorías</option>
+          {opcionesFiltroCategoria(CATEGORIAS).map(o => <option key={o.valor} value={o.valor}>{o.texto}</option>)}
+        </select>
         <select value={enCatalogo} onChange={e => setEnCatalogo(e.target.value as '' | 'si' | 'no')} aria-label="Catálogo">
           <option value="">Catálogo y solo tienda</option>
           <option value="si">En el catálogo (premium)</option>
@@ -108,7 +116,7 @@ export function Productos({ perfil }: { perfil: PerfilUsuario }) {
                     <td className="mono">{p.codigo}</td>
                     <td>
                       <strong>{p.nombre}</strong>
-                      <span className="muted small bloque">{nombreMaterial(p.material)}{p.categoria ? ` · ${p.categoria}` : ''} · {p.variantes.length} {p.variantes.length === 1 ? 'variante' : 'variantes'}</span>
+                      <span className="muted small bloque">{nombreMaterial(p.material)}{p.categoria ? ` · ${etiquetaCategoria(p)}` : ''} · {p.variantes.length} {p.variantes.length === 1 ? 'variante' : 'variantes'}</span>
                     </td>
                     <td className="num">{MXN.format(p.precioEtiqueta)}</td>
                     <td className="num">
