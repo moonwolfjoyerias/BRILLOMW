@@ -153,7 +153,8 @@ export function validarBorrador(
       subcategoria: subcategoriaParaGuardar(b.categoria, b.subcategoria),
       calidad: 'premium',
       codigo: b.codigo.trim(),
-      colorOro: b.colorOro,
+      // Exhibidores no llevan color de oro (igual que la página).
+      colorOro: b.material === 'exhibidores' ? '' : b.colorOro,
       variantes,
       precioEtiqueta: Number(b.precioEtiqueta.trim()),
       descuento: Number(b.descuento.trim()),
