@@ -21,6 +21,8 @@ import {
   stockTotal,
   type Producto
 } from '../pagina/producto';
+import { CATEGORIAS } from '../pagina/opciones';
+import { enCategoriaFiltro, etiquetaCategoria, opcionesFiltroCategoria } from '../pagina/subcategoria';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 const dinero = (n: number) => MXN.format(n);
@@ -35,6 +37,7 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
   const [busqueda, setBusqueda] = useState('');
   const [material, setMaterial] = useState('');
   const [soloConExistencias, setSoloConExistencias] = useState(false);
+  const [categoria, setCategoria] = useState('');
   const [abierto, setAbierto] = useState<Producto | null>(null);
   /** undefined = formulario cerrado; null = producto nuevo; id = editar ese producto. */
   const [editando, setEditando] = useState<string | null | undefined>(undefined);
@@ -51,13 +54,14 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
         // El Catálogo es solo lo premium; lo demás está en Productos.
         p.mostrarEnCatalogo &&
         (!material || p.material === material) &&
+        enCategoriaFiltro(p, categoria) &&
         (!soloConExistencias || stockTotal(p) > 0) &&
-        (!q || normal(`${p.nombre} ${p.codigo} ${p.categoria}`).includes(q))
+        (!q || normal(`${p.nombre} ${p.codigo} ${p.categoria} ${etiquetaCategoria(p)}`).includes(q))
     )
       // Agotados o no disponibles al final, como en la página (el orden de
       // "lo más nuevo arriba" se conserva dentro de cada grupo).
       .sort((a, b) => Number(!a.disponible || stockTotal(a) <= 0) - Number(!b.disponible || stockTotal(b) <= 0));
-  }, [productos, busqueda, material, soloConExistencias]);
+  }, [productos, busqueda, material, categoria, soloConExistencias]);
 
   if (catalogo.estado === 'cargando') return <p className="muted">Cargando catálogo…</p>;
   if (catalogo.estado === 'error') return <p className="error">{catalogo.mensaje}</p>;
@@ -109,6 +113,12 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
             <option key={k} value={k}>
               {v}
             </option>
+          ))}
+        </select>
+        <select value={categoria} onChange={e => setCategoria(e.target.value)} aria-label="Categoría">
+          <option value="">Todas las categorías</option>
+          {opcionesFiltroCategoria(CATEGORIAS).map(o => (
+            <option key={o.valor} value={o.valor}>{o.texto}</option>
           ))}
         </select>
         <label className="check">
@@ -324,7 +334,7 @@ function Detalle({
           {p.categoria && (
             <>
               <dt>Categoría</dt>
-              <dd>{p.categoria}</dd>
+              <dd>{etiquetaCategoria(p)}</dd>
             </>
           )}
           <dt>Precio etiqueta</dt>

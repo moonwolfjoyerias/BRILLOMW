@@ -42,6 +42,8 @@ export interface Producto {
   descripcion: string;
   material: Material | string;
   categoria: string;
+  /** Solo en Dijes: "religiosos" o "cruces"; vacío = dije normal (ver subcategoria.ts). */
+  subcategoria?: string;
   calidad: string;
   /** Fecha de alta (ISO); la página la llena para los productos viejos. */
   fechaAlta?: string;
@@ -120,6 +122,7 @@ export function normalizarProducto(id: string, crudo: Record<string, unknown>): 
     descripcion: texto(crudo.descripcion),
     material: texto(crudo.material),
     categoria: texto(crudo.categoria),
+    ...(crudo.subcategoria ? { subcategoria: texto(crudo.subcategoria) } : {}),
     calidad: texto(crudo.calidad),
     ...(crudo.fechaAlta ? { fechaAlta: texto(crudo.fechaAlta) } : {}),
     codigo: texto(crudo.codigo),

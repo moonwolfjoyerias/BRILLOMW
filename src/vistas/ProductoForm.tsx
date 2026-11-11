@@ -23,6 +23,7 @@ import {
   MATERIALES
 } from '../pagina/opciones';
 import { precioMayoreo, type Material, type Producto } from '../pagina/producto';
+import { SUBCATEGORIAS_DIJES } from '../pagina/subcategoria';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 
@@ -228,6 +229,24 @@ export function ProductoForm({
               ))}
             </select>
           </label>
+          {b.categoria === 'Dijes' && (
+            <div className="campo ancho-3">
+              <span>Tipo de dije</span>
+              <div className="en-linea">
+                {SUBCATEGORIAS_DIJES.filter(s => s.casilla).map(s => (
+                  <label key={s.key} className="check">
+                    <input
+                      type="checkbox"
+                      checked={b.subcategoria === s.key}
+                      onChange={e => set('subcategoria', e.target.checked ? s.key : '')}
+                    />
+                    {s.casilla}
+                  </label>
+                ))}
+              </div>
+              <span className="muted small">Marca solo una. Si no marcas ninguna, se queda como dije normal.</span>
+            </div>
+          )}
           <label className="campo">
             <span>Color de oro</span>
             <select value={b.colorOro} onChange={e => set('colorOro', e.target.value)}>

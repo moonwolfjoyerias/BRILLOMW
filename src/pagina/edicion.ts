@@ -4,6 +4,7 @@
 // tocan Firebase, para poder probarlas.
 import type { FotoProducto, Material, Producto, VarianteProducto } from './producto';
 import { GALERIA_MAX_FOTOS, GALERIA_TAMANO_MAX } from './opciones';
+import { subcategoriaParaGuardar } from './subcategoria';
 
 /** Lo que se captura en el formulario. */
 export interface BorradorProducto {
@@ -11,6 +12,7 @@ export interface BorradorProducto {
   descripcion: string;
   material: Material | '';
   categoria: string;
+  subcategoria: string;
   calidad: string;
   codigo: string;
   colorOro: string;
@@ -27,6 +29,7 @@ export interface DatosProducto {
   descripcion: string;
   material: Material | '';
   categoria: string;
+  subcategoria: string;
   calidad: string;
   codigo: string;
   colorOro: string;
@@ -53,6 +56,7 @@ export function borradorVacio(): BorradorProducto {
     descripcion: '',
     material: '',
     categoria: '',
+    subcategoria: '',
     // La página ya no maneja calidad estándar: todo se guarda como premium.
     calidad: 'premium',
     codigo: '',
@@ -71,6 +75,7 @@ export function borradorDesde(p: Producto): BorradorProducto {
     descripcion: p.descripcion,
     material: (p.material as Material) || '',
     categoria: p.categoria,
+    subcategoria: p.subcategoria ?? '',
     // Se respeta tal cual (incluso vacío): no inventar cambios al editar.
     calidad: p.calidad,
     codigo: p.codigo,
@@ -145,6 +150,7 @@ export function validarBorrador(
       descripcion,
       material: b.material,
       categoria: b.categoria,
+      subcategoria: subcategoriaParaGuardar(b.categoria, b.subcategoria),
       calidad: 'premium',
       codigo: b.codigo.trim(),
       colorOro: b.colorOro,
@@ -198,6 +204,7 @@ export function describirCambios(antes: Producto, despues: DatosProducto): strin
   const cambios = NOMBRES_CAMPOS.filter(
     ([k]) => textoEstable(antes[k as keyof Producto]) !== textoEstable(despues[k])
   ).map(([, nombre]) => nombre);
+  if ((antes.subcategoria ?? '') !== despues.subcategoria) cambios.push('tipo de dije');
 
   const estructura = (vs: VarianteProducto[]) => vs.map(v => [v.id, v.color, v.talla, v.fotoId]);
   if (textoEstable(estructura(antes.variantes)) !== textoEstable(estructura(despues.variantes))) {

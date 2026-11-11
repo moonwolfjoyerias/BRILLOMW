@@ -998,7 +998,7 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82rem; color: var(--mw-text-muted); white-space: nowrap; }
 .miniatura { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; display: block; }
 .miniatura.sin-foto { background: var(--mw-lilac-soft); }
-.filtros-productos { display: grid; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; align-items: center; }
+.filtros-productos { display: grid; grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; align-items: center; }
 .filtros-stock { margin: 12px 0 14px; }
 .interruptor { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; font-size: 0.85rem; }
 .interruptor input { width: 18px; height: 18px; accent-color: var(--mw-purple); }
