@@ -247,6 +247,7 @@ export function ProductoForm({
               <span className="muted small">Marca solo una. Si no marcas ninguna, se queda como dije normal.</span>
             </div>
           )}
+          {b.material !== 'exhibidores' && (
           <label className="campo">
             <span>Color de oro</span>
             <select value={b.colorOro} onChange={e => set('colorOro', e.target.value)}>
@@ -256,6 +257,7 @@ export function ProductoForm({
               ))}
             </select>
           </label>
+          )}
           <label className="check ancho-3 check-catalogo">
             <input type="checkbox" checked={b.mostrarEnCatalogo} onChange={e => set('mostrarEnCatalogo', e.target.checked)} />
             <span>Mostrar en el catálogo (pieza premium). Si no, queda solo a la venta en la tienda: Productos y caja.</span>
