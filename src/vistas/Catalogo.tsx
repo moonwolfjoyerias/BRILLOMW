@@ -1,3 +1,4 @@
+import { useGaleria, useMiniatura } from '../pagina/fotosProducto';
 import { useEffect, useMemo, useState } from 'react';
 import { puede } from '../sesion/permisos';
 import { useCatalogo } from '../pagina/useCatalogo';
@@ -140,7 +141,7 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
           {filtrados.map(p => (
             <li key={p.id}>
               <button className="tarjeta" onClick={() => setAbierto(p)}>
-                <Foto src={p.imagen} alt={p.nombre} />
+                <Foto producto={p} alt={p.nombre} />
                 <div className="tarjeta-cuerpo">
                   <strong className="tarjeta-nombre">{p.nombre || 'Sin nombre'}</strong>
                   <span className="muted small">
@@ -210,8 +211,8 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
   );
 }
 
-function Foto({ src: original, alt }: { src: string; alt: string }) {
-  const src = fotoMostrable(original);
+function Foto({ producto, alt }: { producto: Producto; alt: string }) {
+  const src = fotoMostrable(useMiniatura(producto));
   return src ? (
     <img className="foto" src={src} alt={alt} loading="lazy" />
   ) : (
@@ -241,6 +242,7 @@ function Detalle({
   onEliminado: (nombre: string) => void;
 }) {
   const [confirmarEliminar, setConfirmarEliminar] = useState(false);
+  const galeria = useGaleria(p);
   const [eliminando, setEliminando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -311,9 +313,10 @@ function Detalle({
             </div>
           </div>
         )}
-        {p.galeria.some(f => fotoMostrable(f.src)) && (
+        {galeria === null && <p className="muted small">Cargando fotos…</p>}
+        {galeria && galeria.some(f => fotoMostrable(f.src)) && (
           <div className="galeria">
-            {p.galeria
+            {galeria
               .filter(f => fotoMostrable(f.src))
               .map(f => (
                 <img key={f.id} src={f.src} alt="" />

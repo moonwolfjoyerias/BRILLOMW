@@ -2,13 +2,14 @@
 // solo lo premium, marcado "Mostrar en catálogo"). Aquí se ve cada pieza con
 // su existencia, se prende o apaga si va al catálogo, se edita y se ve su
 // historial de existencia.
+import { Miniatura } from './Miniatura';
 import { puede } from '../sesion/permisos';
 import { useMemo, useState } from 'react';
 import { db } from '../firebase';
 import { equipoActual } from '../plataforma';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { useCatalogo } from '../pagina/useCatalogo';
-import { fotoMostrable, NOMBRE_MATERIAL, nombreMaterial, stockTotal, type Producto } from '../pagina/producto';
+import { NOMBRE_MATERIAL, nombreMaterial, stockTotal, type Producto } from '../pagina/producto';
 import { CATEGORIAS } from '../pagina/opciones';
 import { enCategoriaFiltro, etiquetaCategoria, opcionesFiltroCategoria } from '../pagina/subcategoria';
 import { cambiarMostrarEnCatalogo } from '../pagina/mostrarEnCatalogo';
@@ -109,10 +110,9 @@ export function Productos({ perfil }: { perfil: PerfilUsuario }) {
                 const total = stockTotal(p);
                 // Agotado si no queda nada; poco si alguna variante llegó al mínimo.
                 const est = total <= 0 ? 'agotado' : p.variantes.some(v => estadoStock(v.stock, minimoDe(p, minimo)) !== 'ok') ? 'poco' : 'ok';
-                const foto = fotoMostrable(p.imagen);
                 return (
                   <tr key={p.id}>
-                    <td>{foto ? <img className="miniatura" src={foto} alt="" /> : <span className="miniatura sin-foto" />}</td>
+                    <td><Miniatura producto={p} className="miniatura" /></td>
                     <td className="mono">{p.codigo}</td>
                     <td>
                       <strong>{p.nombre}</strong>

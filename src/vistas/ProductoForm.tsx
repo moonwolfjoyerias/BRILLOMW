@@ -1,3 +1,4 @@
+import { useGaleria } from '../pagina/fotosProducto';
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { db } from '../firebase';
 import { equipoActual } from '../plataforma';
@@ -46,6 +47,13 @@ export function ProductoForm({
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [procesandoFotos, setProcesandoFotos] = useState(false);
+  // Fotos que la página guardó aparte (productosFotos): se cargan antes de
+  // dejar guardar, para no escribir la galería vacía por error.
+  const galeriaGuardada = useGaleria(producto && !producto.galeria.length ? producto : null);
+  const cargandoFotos = Boolean(producto && !producto.galeria.length && galeriaGuardada === null);
+  useEffect(() => {
+    if (galeriaGuardada?.length) setB(prev => (prev.galeria.length ? prev : { ...prev, galeria: galeriaGuardada.map(x => ({ ...x })) }));
+  }, [galeriaGuardada]);
   const archivoRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -154,6 +162,7 @@ export function ProductoForm({
         </div>
 
         <h3>Fotos</h3>
+        {cargandoFotos && <p className="muted small">Cargando las fotos guardadas…</p>}
         <div className="fotos-form">
           {b.galeria.map((f, i) => (
             <figure key={f.id} className="foto-form">
@@ -333,7 +342,7 @@ export function ProductoForm({
           <button type="button" className="btn" onClick={() => onCerrar(false)} disabled={guardando}>
             Cancelar
           </button>
-          <button type="submit" className="btn primario" disabled={guardando || procesandoFotos}>
+          <button type="submit" className="btn primario" disabled={guardando || procesandoFotos || cargandoFotos}>
             {guardando ? 'Guardando…' : producto ? 'Guardar cambios' : 'Agregar al catálogo'}
           </button>
         </div>

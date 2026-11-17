@@ -1,9 +1,10 @@
+import { Miniatura } from './Miniatura';
 import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type SetStateAction } from 'react';
 import { db } from '../firebase';
 import { equipoActual } from '../plataforma';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { useCatalogo } from '../pagina/useCatalogo';
-import { etiquetaVariante, fotoMostrable, stockTotal, type Producto } from '../pagina/producto';
+import { etiquetaVariante, stockTotal, type Producto } from '../pagina/producto';
 import { buscarPersonas, nombreCompleto, usePersonas } from '../pagina/persona';
 import { CAJAS, fechaLocal, leerMonto, nombreCaja, type IdCaja } from '../caja/turno';
 import { useTurnosDelDia } from '../caja/turnos';
@@ -533,12 +534,11 @@ function BuscadorProductos({
       ) : (
         <ul className="lista-venta">
           {resultados.map(p => {
-            const foto = fotoMostrable(p.imagen);
             const ya = cantidadEnCarrito(p);
             return (
               <li key={p.id}>
                 <button className="item-venta" onClick={() => tomar(p)}>
-                  {foto ? <img src={foto} alt="" /> : <span className="sin-foto" />}
+                  <Miniatura producto={p} />
                   <span className="item-texto">
                     <strong>{p.nombre}</strong>
                     <span className="muted small">{[p.codigo, p.colorOro].filter(Boolean).join(' · ')}</span>

@@ -63,6 +63,8 @@ export interface Producto {
   /** Existencia mínima antes de avisar "poco stock" (por variante); sin valor = la general. */
   stockMinimo?: number;
   galeria: FotoProducto[];
+  /** Ids de las fotos guardadas aparte por la página (productosFotos); [] = sin fotos. */
+  fotosIds?: string[];
   imagen: string;
 }
 
@@ -134,6 +136,7 @@ export function normalizarProducto(id: string, crudo: Record<string, unknown>): 
     mostrarEnCatalogo: crudo.mostrarEnCatalogo !== false,
     ...(crudo.stockMinimo != null && crudo.stockMinimo !== '' ? { stockMinimo: Math.max(0, Math.floor(numero(crudo.stockMinimo))) } : {}),
     galeria,
+    ...(Array.isArray(crudo.fotosIds) ? { fotosIds: (crudo.fotosIds as unknown[]).map(String) } : {}),
     imagen: galeria[0]?.src || ''
   };
 }

@@ -1,12 +1,13 @@
 // Apartados: el MISMO panel que Staff, Encargado y Admin tienen en la
 // página (portal/*/…-apartados.html), sobre las mismas ventanas en
 // Firestore. Lo que se haga aquí se ve al instante en la página y al revés.
+import { Miniatura } from './Miniatura';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { db } from '../firebase';
 import { equipoActual } from '../plataforma';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { useCatalogo } from '../pagina/useCatalogo';
-import { etiquetaVariante, fotoMostrable, precioMayoreo, stockTotal, type Producto } from '../pagina/producto';
+import { etiquetaVariante, precioMayoreo, stockTotal, type Producto } from '../pagina/producto';
 import { buscarPersonas, nombreCompleto, usePersonas, type Persona } from '../pagina/persona';
 import { leerMonto } from '../caja/turno';
 import { ejecutarAccion, guardarSinActividad, useApartados } from '../apartados/acciones';
@@ -538,11 +539,11 @@ function FilaVentana({
           <h3>Piezas del apartado</h3>
           {!v.apartados.length && <p className="muted small">Sin piezas</p>}
           {v.apartados.map(p => {
-            const foto = fotoMostrable(productos.find(x => x.id === p.productoId)?.imagen ?? '');
+            const producto = productos.find(x => x.id === p.productoId);
             const ep = ESTADO_PIEZA[p.estado] ?? { texto: p.estado, clase: 'neutro' };
             return (
               <div key={p.id} className="pieza">
-                {foto ? <img src={foto} alt="" /> : <span className="sin-foto" />}
+                <Miniatura producto={producto} />
                 <div className="pieza-texto">
                   <strong>{p.producto}</strong>
                   <span className="muted small">{[p.colorOro, p.variante].filter(Boolean).join(' · ')} · {dinero(Number(p.total))}{p.estado === 'activa' && p.saldo !== p.total ? ` · saldo ${dinero(p.saldo)}` : ''}</span>

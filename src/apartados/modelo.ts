@@ -5,6 +5,7 @@
 // guardar junto con ella (crédito, existencias, avisos, Actividad). Así se
 // pueden probar sin Firebase y se aplican en UNA transacción.
 
+import { numeroConfig } from '../config/configuracion';
 import type { Aviso } from '../pagina/avisos';
 export type { Aviso };
 
@@ -20,8 +21,12 @@ export const CATEGORIAS: Record<Categoria, { etiqueta: string; dias: number | nu
   vip: { etiqueta: 'VIP', dias: null, requiereDeposito: false, requiereAprobacion: true }
 };
 
+/** Reglas de la etiqueta, con los días que diga Configuración de Admin (ventana nacional / foránea). */
 export function regla(categoria: string) {
-  return CATEGORIAS[categoria as Categoria] ?? CATEGORIAS.normal;
+  const base = CATEGORIAS[categoria as Categoria] ?? CATEGORIAS.normal;
+  if (base === CATEGORIAS.normal) return { ...base, dias: numeroConfig('apartado', 'ventana_normal_dias', base.dias ?? 3) };
+  if (base === CATEGORIAS.foranea) return { ...base, dias: numeroConfig('apartado', 'ventana_foranea_dias', base.dias ?? 15) };
+  return base;
 }
 
 export type EstadoVentana = 'pendiente_deposito' | 'pendiente_aprobacion' | 'activa' | 'vencida' | 'cerrada';
@@ -130,7 +135,9 @@ function historial(texto: string, usuario: string, ahora: Date): EntradaHistoria
 
 /** Depósito mínimo según la etiqueta: $50 normal, $200 foránea (depositoMinimoVentana de la página). */
 export function depositoMinimo(v: Pick<Ventana, 'categoria'>): number {
-  return v.categoria === 'foranea' ? DEPOSITO_FORANEA : DEPOSITO_BASE;
+  return v.categoria === 'foranea'
+    ? numeroConfig('apartado', 'deposito_foranea', DEPOSITO_FORANEA)
+    : numeroConfig('apartado', 'deposito_base', DEPOSITO_BASE);
 }
 
 /** Lo que falta depositar para activar: el mínimo menos el crédito previo ya aplicado (depositoFaltanteVentana). */
