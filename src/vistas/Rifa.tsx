@@ -4,7 +4,9 @@
 // y la ganadora del sorteo presencial del día 15.
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { db } from '../firebase';
+import { db, dbEquipo } from '../firebase';
+import { useArbol } from '../arbol/acciones';
+import { boletosPorPuntos, buscarPersonaEnArbol, puntosPeriodo } from '../arbol/modelo';
 import { equipoActual } from '../plataforma';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { nombreCompletoPersona } from '../personas/modelo';
@@ -41,14 +43,25 @@ export function Rifa({ perfil }: { perfil: PerfilUsuario }) {
   const [error, setError] = useState<string | null>(null);
   const [imprimir, setImprimir] = useState(false);
 
-  // Boletos ganados el mes pasado (los congela el cierre mensual de la página).
+  const arbol = useArbol(dbEquipo);
+  // Boletos ganados el mes pasado: del árbol de mi-equipo (la verdad) para
+  // quien esté en él; si no, los que congeló el cierre mensual de la página.
   const ganados = useMemo(() => {
-    if (personas.estado !== 'listo') return null;
+    if (personas.estado !== 'listo' || arbol.estado === 'cargando') return null;
+    const miembros = arbol.estado === 'listo' ? arbol.miembros : [];
     return personas.personas
       .filter(p => p.estado !== 'baja')
-      .map(p => ({ personaId: p.id, personaNombre: nombreCompletoPersona(p), boletos: personas.financiero.get(p.id)?.rifa.boletosPorMes?.[mesPasado] ?? 0 }))
+      .map(p => {
+        const enArbol = buscarPersonaEnArbol(miembros, { id: p.id, usuario: p.usuario, nombre: nombreCompletoPersona(p) });
+        const pts = enArbol ? puntosPeriodo(enArbol.miembro, mesPasado) : null;
+        return {
+          personaId: p.id,
+          personaNombre: nombreCompletoPersona(p),
+          boletos: pts ? boletosPorPuntos(pts.p1 + pts.p2) : personas.financiero.get(p.id)?.rifa.boletosPorMes?.[mesPasado] ?? 0
+        };
+      })
       .filter(g => g.boletos > 0);
-  }, [personas, mesPasado]);
+  }, [personas, arbol, mesPasado]);
 
   // Como la página: al abrir, se ponen los folios que falten (nunca se renumeran).
   useEffect(() => {
@@ -166,7 +179,7 @@ export function Rifa({ perfil }: { perfil: PerfilUsuario }) {
         ))}
 
       <h2>Boletos de {nombreMes(mesPasado)}</h2>
-      <p className="muted small">Sorteo oficial: {fechaSorteo(mesPasado)}. Son los boletos que se ganaron con las compras de ese mes.</p>
+      <p className="muted small">Sorteo oficial: {fechaSorteo(mesPasado)}. Son los boletos que se ganaron ese mes con los puntos del árbol de mi-equipo (1 al llegar a 3,000 y 1 más por cada 1,000).</p>
       {!resumen.length ? (
         <p className="muted small">{ganados && ganados.length ? 'Asignando folios…' : 'Nadie ganó boletos el mes pasado.'}</p>
       ) : (
