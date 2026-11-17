@@ -19,7 +19,7 @@ import {
 
 const anchos = (...a: number[]) => a.map(ancho => ({ titulo: '', ancho }));
 const crudo = (nombre: string, columnas: { titulo: string; ancho?: number }[], filas: Celda[][]): Hoja => ({ nombre, columnas, filas, sinEncabezado: true });
-const seguro = (s: string) => s.replace(/[^\p{L}\p{N}]+/gu, '-');
+const seguro = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '-');
 
 export function excelComisiones(miembros: Miembro[], liderId: string, mk: string) {
   const d = comisionesDelMes(miembros, liderId, mk);

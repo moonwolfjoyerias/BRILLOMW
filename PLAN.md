@@ -320,6 +320,16 @@ cálculos del Plan MW.
   del mes (solicitud o votación), opciones, solicitudes y votos, folios de
   los boletos del mes pasado para imprimir (10 por hoja carta) y la
   ganadora del sorteo presencial, con aviso. Mismos documentos que la página.
+- **Hecho (nov-2026):** pestaña Árbol (solo Administración) con el árbol de
+  mi-equipo, leído y guardado en su propia base (proyecto gala-mw-2026,
+  `arbolEquipo/team-tree-v2` y `team-tree-meta`, mismo formato JSON):
+  árbol completo, resumen por línea, auditoría de rango, comisiones por
+  líder (pagado, rastreo, rango manual), reportes e historiales, y edición
+  completa con puntos desde Excel. Cálculos comprobados contra el código de
+  mi-equipo. Cada cambio va en transacción y queda en Actividad
+  (módulo arbol_equipo). En la página, cada e/l ve su rama en "Mi equipo".
+  - Ojo: la base de mi-equipo no pide inicio de sesión; conviene cerrar
+    sus reglas (escritura solo para Administración).
 - En la página (PR aparte): Comisiones guarda solo lo que cambió y se
   actualiza en vivo; Plan MW se vuelve a pintar con lo que confirme
   BRILLO.
