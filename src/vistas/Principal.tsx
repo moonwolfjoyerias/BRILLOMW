@@ -1,3 +1,4 @@
+import { useConfiguracion } from '../config/configuracion';
 import { useEffect, useState } from 'react';
 import { cerrarSesion } from '../sesion/sesion';
 import { ETIQUETA_ROL, type PerfilUsuario } from '../sesion/perfil';
@@ -103,6 +104,8 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
   const [seccion, setSeccion] = useState<Seccion>('inicio');
   // Tipos de pago configurados: los usa la caja, el corte y las comisiones.
   useTiposPago(db);
+  // Configuración de Admin (depósito y días de apartado, rangos, constancia…).
+  useConfiguracion(db);
   // En pantallas angostas el menú se abre y cierra con el botón ☰.
   const [menuAbierto, setMenuAbierto] = useState(false);
   useEffect(() => {
