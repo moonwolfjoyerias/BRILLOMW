@@ -19,6 +19,8 @@ export interface Miembro {
   commissionPaid?: Record<string, boolean>;
   commissionTracking?: Record<string, string>;
   viewPassword?: string | null;
+  /** Persona del portal (personas/{id}) vinculada a mano por Administración. */
+  portalPersonaId?: string | null;
   // Formato viejo (antes de pointsHistory).
   pointsMonthKey?: string | null;
   pointsP1?: number | string | null;
@@ -742,15 +744,56 @@ export function miembrosDesdeExcel(filas: FilaExcel[], mk: string): { error: str
 
 // ---------- Para las e/l: encontrar su lugar en el árbol ----------
 
-/** Busca a la persona del portal: primero por membresía (MW####), si no por nombre. */
-export function miembroDePersona(miembros: Miembro[], usuario: string | undefined, nombre: string | undefined): Miembro | null {
-  const u = String(usuario ?? '').trim().toUpperCase();
-  if (u) {
-    const porCodigo = miembros.filter(m => String(m.clientCode ?? '').trim().toUpperCase() === u);
-    if (porCodigo.length === 1) return porCodigo[0];
+export type ComoCoincide = 'vinculo' | 'membresia' | 'nombre';
+
+/**
+ * Busca a la persona del portal en el árbol: primero el vínculo que puso
+ * Administración, luego la membresía igual a su usuario (MW####) y al final
+ * el nombre completo. Mientras membresía y usuario sean distintos, el vínculo
+ * es lo que manda.
+ */
+export function buscarPersonaEnArbol(miembros: Miembro[], persona: { id?: string; usuario?: string; nombre?: string }): { miembro: Miembro; como: ComoCoincide } | null {
+  if (persona.id) {
+    const v = miembros.find(m => m.portalPersonaId === persona.id);
+    if (v) return { miembro: v, como: 'vinculo' };
   }
-  const n = normalizarNombre(nombre);
-  if (!n) return null;
-  const porNombre = miembros.filter(m => normalizarNombre(m.fullName) === n);
-  return porNombre.length === 1 ? porNombre[0] : null;
+  const libres = miembros.filter(m => !m.portalPersonaId || m.portalPersonaId === persona.id);
+  const u = String(persona.usuario ?? '').trim().toUpperCase();
+  if (u) {
+    const c = libres.filter(m => String(m.clientCode ?? '').trim().toUpperCase() === u);
+    if (c.length === 1) return { miembro: c[0], como: 'membresia' };
+  }
+  const n = normalizarNombre(persona.nombre);
+  const porNombre = n ? libres.filter(m => normalizarNombre(m.fullName) === n) : [];
+  return porNombre.length === 1 ? { miembro: porNombre[0], como: 'nombre' } : null;
+}
+
+/** La persona del árbol con el nombre más parecido (para sugerir el vínculo), o null. */
+export function sugerirMiembro(miembros: Miembro[], nombre: string, excluir: Set<string> = new Set()): Miembro | null {
+  const a = new Set(normalizarNombre(nombre).split(' ').filter(w => w.length > 1));
+  if (!a.size) return null;
+  let mejor: Miembro | null = null;
+  let puntaje = 0;
+  for (const m of miembros) {
+    if (excluir.has(m.id)) continue;
+    const b = new Set(normalizarNombre(m.fullName).split(' ').filter(w => w.length > 1));
+    let comunes = 0;
+    a.forEach(w => { if (b.has(w)) comunes++; });
+    const p = comunes / Math.max(a.size, b.size);
+    if (comunes >= 2 && p > puntaje) { puntaje = p; mejor = m; }
+  }
+  return puntaje >= 0.5 ? mejor : null;
+}
+
+/** Vincula (o desvincula, con miembroId vacío) a una persona del portal con alguien del árbol. */
+export function vincularPersona(miembros: Miembro[], personaId: string, miembroId: string): string | null {
+  if (miembroId && !miembros.some(m => m.id === miembroId)) return 'Esa persona ya no está en el árbol.';
+  for (const m of miembros) if (m.portalPersonaId === personaId) m.portalPersonaId = null;
+  if (miembroId) miembros.find(m => m.id === miembroId)!.portalPersonaId = personaId;
+  return null;
+}
+
+/** Busca a la persona del portal: primero por membresía (MW####), si no por nombre. */
+export function miembroDePersona(miembros: Miembro[], usuario: string | undefined, nombre: string | undefined, personaId?: string): Miembro | null {
+  return buscarPersonaEnArbol(miembros, { id: personaId, usuario, nombre })?.miembro ?? null;
 }

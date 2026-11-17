@@ -30,8 +30,9 @@ import {
 } from '../arbol/modelo';
 import { AuditoriaRango, ComisionesLider, mxn, pts, ResumenLineas } from './ArbolDetalle';
 import { EditarArbol, ElegirPersona, type Guardar } from './ArbolEditar';
+import { VincularPagina } from './ArbolVincular';
 
-type Pestana = 'arbol' | 'comisiones' | 'reportes' | 'editar';
+type Pestana = 'arbol' | 'comisiones' | 'reportes' | 'editar' | 'vincular';
 type Ventana = { tipo: 'auditoria' | 'lineas' | 'comisiones'; id: string } | null;
 
 const fechaHora = (iso: string | null) => (iso ? new Date(iso).toLocaleString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Sin registros todavía');
@@ -68,7 +69,7 @@ export function Arbol({ perfil }: { perfil: PerfilUsuario }) {
         </div>
       </div>
       <nav className="pestanas" aria-label="Secciones del árbol">
-        {([['arbol', 'Árbol completo'], ['comisiones', 'Comisiones por líder'], ['reportes', 'Reportes e historiales'], ['editar', 'Editar árbol']] as [Pestana, string][]).map(([k, t]) => (
+        {([['arbol', 'Árbol completo'], ['comisiones', 'Comisiones por líder'], ['reportes', 'Reportes e historiales'], ['editar', 'Editar árbol'], ['vincular', 'Vincular con la página']] as [Pestana, string][]).map(([k, t]) => (
           <button key={k} className={pestana === k ? 'nav-boton activo' : 'nav-boton'} onClick={() => setPestana(k)}>{t}</button>
         ))}
       </nav>
@@ -76,6 +77,7 @@ export function Arbol({ perfil }: { perfil: PerfilUsuario }) {
       {pestana === 'comisiones' && <Comisiones miembros={miembros} mk={mk} guardar={guardar} abrir={setVentana} />}
       {pestana === 'reportes' && <Reportes miembros={miembros} mk={mk} />}
       {pestana === 'editar' && <EditarArbol miembros={miembros} mk={mk} guardar={guardar} />}
+      {pestana === 'vincular' && <VincularPagina miembros={miembros} guardar={guardar} />}
 
       {ventana?.tipo === 'auditoria' && <AuditoriaRango miembros={miembros} id={ventana.id} mk={mk} onCerrar={() => setVentana(null)} />}
       {ventana?.tipo === 'lineas' && <ResumenLineas miembros={miembros} id={ventana.id} mk={mk} onCerrar={() => setVentana(null)} />}
