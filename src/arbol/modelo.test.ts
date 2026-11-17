@@ -10,6 +10,9 @@ import {
   eliminarPersona,
   leerMiembros,
   miembroDePersona,
+  buscarPersonaEnArbol,
+  sugerirMiembro,
+  vincularPersona,
   miembrosDesdeExcel,
   normalizarNombre,
   rangoDelMes,
@@ -130,5 +133,27 @@ describe('Excel: escribir y volver a leer', () => {
     const buf = datos.buffer.slice(datos.byteOffset, datos.byteOffset + datos.byteLength) as ArrayBuffer;
     expect(await leerObjetosXlsx(buf)).toEqual([{ 'Nombre completo': 'Ana & <Bety>', Puntos: 12 }, { 'Nombre completo': 'Cris', Puntos: 3.5 }]);
     expect((await leerFilasXlsx(buf))[0]).toEqual(['Nombre completo', 'Puntos']);
+  });
+});
+
+describe('Árbol: vínculo con la página (membresía distinta del usuario)', () => {
+  it('el vínculo manda sobre membresía y nombre, y no se repite', () => {
+    const l = equipoPlata();
+    l.find(m => m.id === 'd2')!.clientCode = 'MW5555';
+    expect(buscarPersonaEnArbol(l, { id: 'P-1', usuario: 'MW0099', nombre: 'Otra Persona' })).toBeNull();
+    expect(vincularPersona(l, 'P-1', 'd2')).toBeNull();
+    expect(buscarPersonaEnArbol(l, { id: 'P-1', usuario: 'MW0099', nombre: 'Otra' })).toMatchObject({ miembro: { id: 'd2' }, como: 'vinculo' });
+    // Otra cuenta con la membresía de d2 ya no la toma: d2 está vinculada a P-1.
+    expect(buscarPersonaEnArbol(l, { id: 'P-2', usuario: 'MW5555', nombre: 'x' })).toBeNull();
+    vincularPersona(l, 'P-1', 'd3');
+    expect(l.filter(m => m.portalPersonaId === 'P-1').map(m => m.id)).toEqual(['d3']);
+    vincularPersona(l, 'P-1', '');
+    expect(l.some(m => m.portalPersonaId)).toBe(false);
+  });
+  it('sugiere por nombre parecido', () => {
+    const l: Miembro[] = [{ id: 'a', fullName: 'María Fernanda López Ruiz', leaderId: null }, { id: 'b', fullName: 'Ana López', leaderId: null }];
+    expect(sugerirMiembro(l, 'Maria Fernanda Lopez')?.id).toBe('a');
+    expect(sugerirMiembro(l, 'Pedro Pérez')).toBeNull();
+    expect(sugerirMiembro(l, 'Maria Fernanda Lopez', new Set(['a']))).toBeNull();
   });
 });

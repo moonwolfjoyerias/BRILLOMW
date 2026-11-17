@@ -9,7 +9,7 @@ import {
   initializeFirestore,
   memoryLocalCache,
   persistentLocalCache,
-  persistentMultipleTabManager
+  persistentSingleTabManager
 } from 'firebase/firestore';
 import { PILOTO } from './piloto';
 
@@ -23,14 +23,36 @@ const FIREBASE_CONFIG = {
 };
 
 export const app = initializeApp(FIREBASE_CONFIG);
+
+/** Borra lo que dejó en localStorage el modo de varias pestañas (ya no se usa). La página no usa estas llaves. */
+function limpiarEstadoVariasPestanas() {
+  try {
+    const viejas: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && /^firestore_(clients|targets|mutations|online_state|sequence_number|bundle_loaded|zombie)/.test(k)) viejas.push(k);
+    }
+    viejas.forEach(k => localStorage.removeItem(k));
+  } catch {
+    // Sin localStorage (modo privado): no hay nada que limpiar.
+  }
+}
 export const auth = getAuth(app);
 
 // Caché local persistente: la caja sigue mostrando datos (y más adelante
 // podrá registrar ventas) aunque se caiga el internet; se sincroniza al volver.
 // BRILLO PILOTO solo lee: usa una caché en memoria aparte, para no mezclar
 // nada con la caché de la app normal en el mismo equipo.
+//
+// Una sola pestaña (no "varias"): el modo de varias pestañas guarda su estado
+// en localStorage, y ese espacio (~5 MB) lo comparte BRILLO con la página
+// (mismo dominio moonwolfjoyerias.github.io). Cuando la página lo llenaba,
+// Firestore tronaba con QuotaExceededError y BRILLO se quedaba en
+// "Cargando BRILLO…". Con una pestaña, la caché vive solo en IndexedDB; si
+// se abre una segunda pestaña, esa usa caché en memoria (funciona igual).
+limpiarEstadoVariasPestanas();
 export const db = initializeFirestore(app, {
-  localCache: PILOTO ? memoryLocalCache() : persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+  localCache: PILOTO ? memoryLocalCache() : persistentLocalCache({ tabManager: persistentSingleTabManager(undefined) })
 });
 
 // Solo en desarrollo y si se pide (VITE_EMULADOR=puerto): datos de prueba en
