@@ -27,12 +27,13 @@ import { Solicitudes } from './Solicitudes';
 import { Comisiones } from './Comisiones';
 import { PlanMW } from './PlanMW';
 import { Rifa } from './Rifa';
+import { Arbol } from './Arbol';
 import { ConfirmarCompras } from './ConfirmarCompras';
 import { Estadisticas } from './Estadisticas';
 import { useTema } from '../tema';
 import { PILOTO } from '../piloto';
 
-export type Seccion = 'inicio' | 'vender' | 'documentos' | 'clientes' | 'tiposPago' | 'promociones' | 'usuarios' | 'catalogo' | 'productos' | 'stock' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'rifa' | 'compras' | 'estadisticas' | 'cuenta';
+export type Seccion = 'inicio' | 'vender' | 'documentos' | 'clientes' | 'tiposPago' | 'promociones' | 'usuarios' | 'catalogo' | 'productos' | 'stock' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'rifa' | 'arbol' | 'compras' | 'estadisticas' | 'cuenta';
 
 interface Item { id: Seccion; nombre: string }
 
@@ -79,7 +80,8 @@ function menuPara(perfil: PerfilUsuario): { titulo: string | null; items: Item[]
         { id: 'solicitudes', nombre: 'Solicitudes' },
         { id: 'comisiones', nombre: 'Comisiones' },
         { id: 'planmw', nombre: 'Plan MW' },
-        { id: 'rifa', nombre: 'Rifa del mes' }
+        { id: 'rifa', nombre: 'Rifa del mes' },
+        { id: 'arbol', nombre: 'Árbol' }
       ]
     });
     grupos.push({ titulo: 'Configuración', items: [{ id: 'usuarios', nombre: 'Usuarios y seguridad' }, { id: 'tiposPago', nombre: 'Tipos de pago' }] });
@@ -206,6 +208,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
           {seccion === 'comisiones' && <Comisiones perfil={perfil} />}
           {seccion === 'planmw' && <PlanMW perfil={perfil} />}
           {seccion === 'rifa' && <Rifa perfil={perfil} />}
+          {seccion === 'arbol' && <Arbol perfil={perfil} />}
           {seccion === 'estadisticas' && <Estadisticas perfil={perfil} />}
         </main>
       </div>

@@ -8,6 +8,8 @@ export interface Hoja {
   nombre: string;
   columnas: { titulo: string; ancho?: number }[];
   filas: Celda[][];
+  /** Sin fila de títulos: las columnas solo dan el ancho (reportes armados a mano). */
+  sinEncabezado?: boolean;
 }
 
 const xml = (s: string) =>
@@ -27,26 +29,28 @@ function celda(ref: string, v: Celda, estilo = 0): string {
 
 function hojaXml(h: Hoja): string {
   const cols = h.columnas.map((c, i) => `<col min="${i + 1}" max="${i + 1}" width="${c.ancho ?? 15}" customWidth="1"/>`).join('');
-  const enc = `<row r="1">${h.columnas.map((c, i) => celda(`${columna(i)}1`, c.titulo, 1)).join('')}</row>`;
-  const filas = h.filas.map((f, r) => `<row r="${r + 2}">${f.map((v, i) => celda(`${columna(i)}${r + 2}`, v)).join('')}</row>`).join('');
+  const inicio = h.sinEncabezado ? 1 : 2;
+  const enc = h.sinEncabezado ? '' : `<row r="1">${h.columnas.map((c, i) => celda(`${columna(i)}1`, c.titulo, 1)).join('')}</row>`;
+  const filas = h.filas.map((f, r) => `<row r="${r + inicio}">${f.map((v, i) => celda(`${columna(i)}${r + inicio}`, v)).join('')}</row>`).join('');
+  const congelar = h.sinEncabezado ? '' : '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>';
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>${cols}</cols><sheetData>${enc}${filas}</sheetData></worksheet>`;
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${congelar}<cols>${cols}</cols><sheetData>${enc}${filas}</sheetData></worksheet>`;
 }
 
-function archivos(h: Hoja): [string, string][] {
-  const nombre = xml(h.nombre.replace(/[\\/?*[\]:]/g, ' ').slice(0, 31) || 'Hoja1');
+function archivos(hojas: Hoja[]): [string, string][] {
+  const nombres = hojas.map((h, i) => xml(h.nombre.replace(/[\\/?*[\]:]/g, ' ').slice(0, 31) || `Hoja${i + 1}`));
   return [
     ['[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`],
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${hojas.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`],
     ['_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
     ['xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${nombre}" sheetId="1" r:id="rId1"/></sheets></workbook>`],
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${nombres.map((n, i) => `<sheet name="${n}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets></workbook>`],
     ['xl/_rels/workbook.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${hojas.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')}<Relationship Id="rId${hojas.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
     ['xl/styles.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="&quot;$&quot;#,##0.00"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`],
-    ['xl/worksheets/sheet1.xml', hojaXml(h)]
+    ...hojas.map((h, i): [string, string] => [`xl/worksheets/sheet${i + 1}.xml`, hojaXml(h)])
   ];
 }
 
@@ -113,12 +117,14 @@ function zip(entradas: [string, Uint8Array][]): Uint8Array {
   return out;
 }
 
-export function xlsx(h: Hoja): Uint8Array {
+/** Libro con una o varias hojas. */
+export function xlsx(h: Hoja | Hoja[]): Uint8Array {
   const enc = new TextEncoder();
-  return zip(archivos(h).map(([n, t]) => [n, enc.encode(t)]));
+  const hojas = Array.isArray(h) ? h : [h];
+  return zip(archivos(hojas.length ? hojas : [{ nombre: 'Hoja1', columnas: [], filas: [] }]).map(([n, t]) => [n, enc.encode(t)]));
 }
 
-export function descargarXlsx(h: Hoja, nombreArchivo: string) {
+export function descargarXlsx(h: Hoja | Hoja[], nombreArchivo: string) {
   const datos = xlsx(h);
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([datos.buffer as ArrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));

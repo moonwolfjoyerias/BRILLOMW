@@ -1064,3 +1064,59 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
 .boleto-local { font-size: 10px; color: #8a7f93; margin-top: 2px; }
 .boleto-folio { position: absolute; right: 14px; bottom: 8px; font-size: 19px; font-weight: 700; color: #5E1A8A; }
 @media print { .hoja-boletos { break-after: page; } .hoja-boletos:last-child { break-after: auto; } }
+
+/* ---------- Árbol (mi-equipo) ---------- */
+.arbol-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; align-self: center; }
+.arbol .pestanas { margin-bottom: 14px; }
+.arbol-lienzo { background: var(--surface); border: 1px solid var(--mw-border); border-radius: var(--radius); padding: 12px; overflow: auto; max-height: 70vh; }
+.arbol-lienzo ul { list-style: none; margin: 0; padding-left: 1.4em; border-left: 1px dashed var(--mw-border); }
+.arbol-lienzo ul.arbol-raiz { padding-left: 0; border-left: 0; }
+.arbol-lienzo li { margin: 2px 0; }
+.nodo-arbol { display: flex; align-items: center; gap: 6px; border-radius: 8px; padding: 2px 4px; }
+.nodo-arbol .abrir-nodo { width: 1.8em; flex: 0 0 1.8em; text-align: center; padding: 0; font-size: 1em; }
+.nodo-arbol .nombre-nodo { display: flex; flex-direction: column; align-items: flex-start; background: none; border: 0; padding: 2px 4px; text-align: left; cursor: pointer; color: inherit; font: inherit; }
+.nodo-arbol .nombre-nodo .small { font-size: 0.8em; }
+.nodo-arbol:hover { background: var(--mw-lilac-soft); }
+.nodo-arbol.coincide { background: var(--mw-gold-soft); }
+.nodo-arbol.elegido { background: var(--mw-lilac-soft); outline: 2px solid var(--mw-lilac); }
+.ficha-arbol { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; background: var(--mw-lilac-soft); border: 1px solid var(--mw-border); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 12px; }
+.acciones.izquierda { justify-content: flex-start; flex-wrap: wrap; }
+.acciones.sin-margen { margin: 0; }
+.arbol-datos { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.arbol-dato { display: flex; flex-direction: column; gap: 2px; background: var(--surface); border: 1px solid var(--mw-border); border-radius: 8px; padding: 8px 10px; }
+.ra-ok { color: var(--ok); font-weight: 600; }
+.ra-no { color: var(--danger); font-weight: 600; }
+.fila-ganadora td { background: var(--ok-soft); }
+.fila-sin-coincidir td { background: var(--danger-soft); }
+.nivel-arbol { border: 1px solid var(--mw-border); border-left-width: 5px; border-radius: 8px; padding: 6px 10px; margin-bottom: 8px; }
+.nivel-arbol summary { cursor: pointer; }
+.nivel-arbol.color-1 { border-left-color: #7b4bb3; }
+.nivel-arbol.color-2 { border-left-color: #d17ab8; }
+.nivel-arbol.color-3 { border-left-color: #c9a227; }
+.nivel-arbol.color-4 { border-left-color: #3f9b8f; }
+.nivel-arbol.color-5 { border-left-color: #4a78c2; }
+.nivel-arbol.color-6 { border-left-color: #c2604a; }
+.personas-nivel { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.personas-nivel li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; border-bottom: 1px solid var(--mw-border); padding: 4px 0; }
+.total-arbol { font-size: 1.1rem; text-align: right; }
+.elegir-persona { position: relative; }
+.elegir-persona .sugerencias { position: absolute; z-index: 20; left: 0; right: 0; top: 100%; list-style: none; margin: 2px 0 0; padding: 4px; background: var(--surface); border: 1px solid var(--mw-border); border-radius: 8px; box-shadow: 0 6px 20px var(--sombra); max-height: 260px; overflow: auto; }
+.elegir-persona .sugerencias button { width: 100%; text-align: left; background: none; border: 0; padding: 6px 8px; border-radius: 6px; cursor: pointer; color: inherit; font: inherit; }
+.elegir-persona .sugerencias button:hover { background: var(--mw-lilac-soft); }
+.arbol-editar { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; align-items: start; }
+.arbol-editar .tarjeta-caja:nth-child(4) { grid-column: 1 / -1; }
+.arbol-reportes { display: grid; gap: 14px; }
+.arbol-reportes summary h3 { display: inline; margin: 0; }
+.arbol-reportes summary { cursor: pointer; }
+.input-puntos { width: 110px; text-align: right; }
+.input-rastreo { min-width: 150px; }
+.tabla-comisiones-arbol select { width: auto; }
+.rango-plata { color: #6b7280; font-weight: 600; }
+.rango-oro { color: #b8860b; font-weight: 600; }
+.rango-diamante { color: #2f7fb8; font-weight: 600; }
+.rango-corona { color: #8a3fb8; font-weight: 700; }
+.en-linea .check input { flex: 0 0 auto; }
+.filtros-estadisticas.no-fija { position: static; }
+.opciones-puntos { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 4px 14px; margin-bottom: 10px; }
+.opciones-puntos .en-linea { flex-wrap: wrap; gap: 0 14px; }
+.opciones-puntos input[type='file'] { max-width: 100%; }
