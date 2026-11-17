@@ -1046,3 +1046,21 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
 .fechas-pieza { border: 1px solid var(--mw-border); border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; }
 .fechas-pieza-cabeza { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 @media (max-width: 480px) { .fechas-fila { grid-template-columns: 1fr; } .fechas-fila > .small { grid-column: 1; } }
+
+/* Rifa del mes */
+.opciones-rifa { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.opcion-rifa { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--mw-border); border-radius: 12px; background: var(--surface); }
+.opcion-rifa img, .opcion-rifa .foto-vacia { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; display: grid; place-items: center; }
+.fila-solicitud-rifa { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.fila-solicitud-rifa p { margin: 4px 0 0; }
+.fila-solicitud-rifa img { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; }
+.boletos-rifa { display: grid; gap: 16px; }
+.hoja-boletos { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 46mm; gap: 4mm 5mm; }
+.boleto-rifa { position: relative; display: flex; flex-direction: column; border: 2px solid #5E1A8A; border-radius: 12px; background: #fff; color: #312044; padding: 10px 14px; font-family: Georgia, 'Times New Roman', serif; overflow: hidden; break-inside: avoid; }
+.boleto-marca { font-size: 9px; letter-spacing: 1.6px; color: #C9A227; font-weight: 700; }
+.boleto-titulo { font-size: 16px; color: #5E1A8A; margin-top: 2px; }
+.boleto-mes { font-size: 10.5px; color: #6B6270; margin-top: 4px; }
+.boleto-nombre { font-size: 14px; margin-top: 8px; max-width: 78%; }
+.boleto-local { font-size: 10px; color: #8a7f93; margin-top: 2px; }
+.boleto-folio { position: absolute; right: 14px; bottom: 8px; font-size: 19px; font-weight: 700; color: #5E1A8A; }
+@media print { .hoja-boletos { break-after: page; } .hoja-boletos:last-child { break-after: auto; } }

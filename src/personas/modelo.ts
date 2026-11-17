@@ -66,7 +66,7 @@ export interface PersonaAdmin {
 export interface Financiero {
   datosBancarios: { titular: string; banco: string; clabe: string } | null;
   constancia: { mesesCumplidos: number; montoMesActual: number; metaMes: number; hitosOtorgados: { meses: number }[] };
-  rifa: { montoAcumuladoMes: number; meta: number };
+  rifa: { montoAcumuladoMes: number; meta: number; /** Boletos ganados por mes ya cerrado (los congela el cierre de la página). */ boletosPorMes?: Record<string, number> };
 }
 
 const txt = (v: unknown) => (typeof v === 'string' ? v : v == null ? '' : String(v));
@@ -122,7 +122,11 @@ export function normalizarFinanciero(d: Doc | undefined): Financiero {
       metaMes: num(c.metaMes) || 8000,
       hitosOtorgados: Array.isArray(c.hitosOtorgados) ? (c.hitosOtorgados as Doc[]).map(h => ({ meses: num(h.meses) })) : []
     },
-    rifa: { montoAcumuladoMes: num(r.montoAcumuladoMes), meta: num(r.meta) || 3000 }
+    rifa: {
+      montoAcumuladoMes: num(r.montoAcumuladoMes),
+      meta: num(r.meta) || 3000,
+      boletosPorMes: Object.fromEntries(Object.entries((r.boletosPorMes as Doc | undefined) ?? {}).map(([k, v]) => [k, num(v)]).filter(([, v]) => (v as number) > 0))
+    }
   };
 }
 

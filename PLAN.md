@@ -312,13 +312,14 @@ cálculos del Plan MW.
     (contar compras de constancia, boletos de rifa, rango efectivo y
     marcar inactivas) los sigue haciendo la página al abrir Admin. Si
     Admin deja de usar la página, hay que pasar esos cierres a BRILLO.
-  - Porcentajes, IVA y bonos son los de siempre. Configuración de la
-    página guarda cambios solo en el navegador donde se hicieron.
+  - Porcentajes, IVA y bonos salen de Configuración de Admin
+    (`configuracionVersiones`, compartida con la página).
   - Importar árbol, carga masiva de puntos y comprobante de todas las
     líderes en un solo PDF siguen en la página.
-- Pendiente: Rifa del mes (modo, opciones, votos, ganadora y boletos).
-  Los folios de los boletos viven solo en el navegador de la página;
-  moverlos a Firebase necesita autorización.
+- **Hecho (nov-2026):** pestaña Rifa del mes (solo Administración): modo
+  del mes (solicitud o votación), opciones, solicitudes y votos, folios de
+  los boletos del mes pasado para imprimir (10 por hoja carta) y la
+  ganadora del sorteo presencial, con aviso. Mismos documentos que la página.
 - En la página (PR aparte): Comisiones guarda solo lo que cambió y se
   actualiza en vivo; Plan MW se vuelve a pintar con lo que confirme
   BRILLO.
@@ -465,9 +466,8 @@ cálculos del Plan MW.
   en Admin). Cada acción es una transacción: ventana, existencias,
   crédito, Actividad y avisos se guardan juntos o nada. Las referencias
   de transferencia se comparten con las ventas de BRILLO.
-- Pendiente: los días y el depósito se leen de Configuración de la
-  página, que hoy vive solo en el navegador; BRILLO usa los valores de
-  siempre ($50, 3 y 15 días).
+- Hecho (nov-2026): el depósito y los días se leen de Configuración de
+  Admin (`configuracionVersiones`, la misma de la página).
 
 ### Prototipo de la dueña ("Caja de la joyería")
 
