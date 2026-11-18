@@ -1130,3 +1130,45 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
 .tabla-importar-constancia select { max-width: 240px; }
 .tabla-importar-constancia input[type='month'] { width: auto; }
 .check.small { min-height: auto; font-size: 0.8rem; white-space: normal; }
+
+/* ---------- Modales de importar / cargar del Plan de constancia ---------- */
+.modal.modal-amplio { width: min(1080px, 100%); padding-bottom: 0; }
+.modal-amplio .modal-cabeza { position: sticky; top: -22px; z-index: 3; background: var(--surface); margin: -22px -22px 12px; padding: 18px 22px 10px; }
+.archivo-excel { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 10px 0 14px; cursor: pointer; }
+.archivo-excel input[type='file'] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.archivo-excel:focus-within .btn { outline: 2px solid var(--mw-lilac); outline-offset: 2px; }
+.importar-filtros { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin: 4px 0 10px; }
+.importar-filtros .chips-eleccion { margin: 0; }
+.importar-filtros input[type='search'] { flex: 0 1 280px; min-width: 0; }
+.filas-importar { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.fila-importar { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr) minmax(0, 0.9fr); gap: 14px 18px; align-items: start; padding: 14px 16px; border: 1px solid var(--mw-border); border-radius: 14px; background: var(--surface); }
+.fila-importar.pendiente { border-color: var(--mw-gold, #CB924F); box-shadow: inset 4px 0 0 var(--mw-gold, #CB924F); }
+.fila-importar > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.fi-etiqueta { font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mw-text-muted); }
+.fi-excel strong { font-size: 0.95rem; line-height: 1.3; overflow-wrap: anywhere; }
+.fi-avisos { list-style: none; margin: 2px 0 0; padding: 0; display: grid; gap: 4px; }
+.fi-avisos li { font-size: 0.76rem; line-height: 1.35; color: var(--alerta, #8a5a12); background: var(--mw-gold-soft); border-radius: 8px; padding: 4px 8px; }
+.fi-inicio { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: var(--mw-text-muted); }
+.fi-inicio input { width: 100%; max-width: 220px; }
+.fi-cifras .fi-monto { font-family: var(--font-heading, inherit); font-size: 1.2rem; color: var(--mw-purple-dark, var(--mw-purple)); }
+.fi-cifras .chip { align-self: flex-start; }
+.fi-vacio { padding: 16px; text-align: center; }
+.pie-fijo { position: sticky; bottom: 0; z-index: 3; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin: 14px -22px 0; padding: 12px 22px; background: var(--surface); border-top: 1px solid var(--mw-border); }
+/* Buscador de persona */
+.buscar-persona { position: relative; }
+.buscar-persona input { width: 100%; }
+.buscar-persona.elegida { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border: 1px solid var(--mw-border); border-radius: 12px; background: var(--mw-lilac-soft); }
+.bp-avatar { flex: none; width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--surface); color: var(--mw-purple); font-weight: 700; font-size: 0.8rem; }
+.bp-nombre { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.bp-nombre strong { font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bp-nombre small { color: var(--mw-text-muted); font-size: 0.75rem; }
+.bp-sugerencias { position: absolute; z-index: 10; top: calc(100% + 4px); left: 0; right: 0; list-style: none; margin: 0; padding: 4px; background: var(--surface); border: 1px solid var(--mw-border); border-radius: 12px; box-shadow: 0 10px 28px var(--sombra); max-height: 280px; overflow: auto; }
+.bp-sugerencias button { width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 8px 10px; border: 0; background: none; border-radius: 8px; text-align: left; color: inherit; font: inherit; cursor: pointer; }
+.bp-sugerencias button small { color: var(--mw-text-muted); font-size: 0.75rem; }
+.bp-sugerencias button.activa, .bp-sugerencias button:hover { background: var(--mw-lilac-soft); }
+.bp-vacio { padding: 10px; color: var(--mw-text-muted); font-size: 0.85rem; }
+@media (max-width: 760px) {
+  .fila-importar { grid-template-columns: 1fr; gap: 10px; }
+  .importar-filtros input[type='search'] { flex: 1 1 100%; }
+}
+.archivo-excel .btn { display: inline-flex; align-items: center; justify-content: center; }

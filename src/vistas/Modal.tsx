@@ -2,8 +2,10 @@
 // y el estado de "guardando… / error" de cada envío.
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 
-export function MarcoModal({ titulo, onCerrar, enviando, children, onEnviar }: {
+export function MarcoModal({ titulo, onCerrar, enviando, children, onEnviar, clase }: {
   titulo: string;
+  /** Clase extra del recuadro (p. ej. "modal-amplio"). */
+  clase?: string;
   onCerrar: () => void;
   enviando?: boolean;
   children: ReactNode;
@@ -23,12 +25,12 @@ export function MarcoModal({ titulo, onCerrar, enviando, children, onEnviar }: {
   return (
     <div className="modal-fondo">
       {onEnviar ? (
-        <form className="modal" role="dialog" aria-modal="true" aria-label={titulo} onSubmit={onEnviar} noValidate>
+        <form className={`modal${clase ? ' ' + clase : ''}`} role="dialog" aria-modal="true" aria-label={titulo} onSubmit={onEnviar} noValidate>
           {cabeza}
           {children}
         </form>
       ) : (
-        <div className="modal" role="dialog" aria-modal="true" aria-label={titulo}>
+        <div className={`modal${clase ? ' ' + clase : ''}`} role="dialog" aria-modal="true" aria-label={titulo}>
           {cabeza}
           {children}
         </div>
