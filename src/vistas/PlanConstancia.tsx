@@ -220,15 +220,75 @@ function Resumen({ r }: { r: ResultadoPlan }) {
   );
 }
 
-// ------------------------------------------------------------ elegir persona
+// ------------------------------------------------------------ buscar persona (escribiendo)
 
-function ElegirPersonaPortal({ personas, valor, onCambiar }: { personas: PersonaAdmin[]; valor: string; onCambiar: (id: string) => void }) {
-  const ordenadas = useMemo(() => personas.filter(p => p.estado !== 'baja').sort((a, b) => nombreCompletoPersona(a).localeCompare(nombreCompletoPersona(b))), [personas]);
+const sinAcentos = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+/** Buscador de e/l: se escribe parte del nombre o del usuario y se elige de la lista (flechas + Enter). */
+function BuscarPersona({ personas, valor, onCambiar, ocupadas }: { personas: PersonaAdmin[]; valor: string; onCambiar: (id: string) => void; ocupadas?: Set<string> }) {
+  const activas = useMemo(() => personas.filter(p => p.estado !== 'baja').sort((a, b) => nombreCompletoPersona(a).localeCompare(nombreCompletoPersona(b))), [personas]);
+  const elegida = activas.find(p => p.id === valor);
+  const [texto, setTexto] = useState('');
+  const [abierto, setAbierto] = useState(false);
+  const [i, setI] = useState(0);
+  const q = sinAcentos(texto.trim());
+  const opciones = (q ? activas.filter(p => sinAcentos(`${nombreCompletoPersona(p)} ${p.usuario}`).includes(q)) : activas).slice(0, 8);
+  const elegir = (id: string) => { onCambiar(id); setTexto(''); setAbierto(false); };
+  if (elegida && !abierto) {
+    return (
+      <div className="buscar-persona elegida">
+        <span className="bp-avatar" aria-hidden="true">{nombreCompletoPersona(elegida).split(' ').slice(0, 2).map(w => w[0]).join('')}</span>
+        <span className="bp-nombre"><strong>{nombreCompletoPersona(elegida)}</strong><small>{elegida.usuario || 'sin usuario'} · {elegida.tipo === 'lider' ? 'Líder' : 'Emprendedora'}</small></span>
+        <button type="button" className="btn mini" onClick={() => { setAbierto(true); setTexto(''); setI(0); }}>Cambiar</button>
+        <button type="button" className="btn mini" aria-label="Quitar" onClick={() => onCambiar('')}>×</button>
+      </div>
+    );
+  }
   return (
-    <select value={valor} onChange={e => onCambiar(e.target.value)}>
-      <option value="">— No importar —</option>
-      {ordenadas.map(p => <option key={p.id} value={p.id}>{nombreCompletoPersona(p)}{p.usuario ? ` (${p.usuario})` : ''}</option>)}
-    </select>
+    <div className="buscar-persona">
+      <input
+        type="search"
+        value={texto}
+        autoFocus={abierto}
+        placeholder="Escribe el nombre o el usuario…"
+        onFocus={() => setAbierto(true)}
+        onBlur={() => setTimeout(() => setAbierto(false), 150)}
+        onChange={e => { setTexto(e.target.value); setI(0); setAbierto(true); }}
+        onKeyDown={e => {
+          if (e.key === 'ArrowDown') { e.preventDefault(); setI(x => Math.min(x + 1, opciones.length - 1)); }
+          else if (e.key === 'ArrowUp') { e.preventDefault(); setI(x => Math.max(x - 1, 0)); }
+          else if (e.key === 'Enter') { e.preventDefault(); if (opciones[i]) elegir(opciones[i].id); }
+          else if (e.key === 'Escape') { e.stopPropagation(); setAbierto(false); }
+        }}
+      />
+      {abierto && (
+        <ul className="bp-sugerencias" role="listbox">
+          {opciones.length ? opciones.map((p, j) => (
+            <li key={p.id}>
+              <button type="button" className={j === i ? 'activa' : ''} onMouseDown={e => e.preventDefault()} onClick={() => elegir(p.id)}>
+                <strong>{nombreCompletoPersona(p)}</strong>
+                <small>{p.usuario || 'sin usuario'}{ocupadas?.has(p.id) && p.id !== valor ? ' · ya elegida en otro renglón' : ''}</small>
+              </button>
+            </li>
+          )) : <li className="bp-vacio">Nadie coincide con "{texto}".</li>}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+type Filtro2 = 'todas' | 'pendientes' | 'avisos';
+
+function Filtros({ filtro, setFiltro, busca, setBusca, cuentas }: { filtro: Filtro2; setFiltro: (f: Filtro2) => void; busca: string; setBusca: (t: string) => void; cuentas: { todas: number; pendientes: number; avisos?: number } }) {
+  return (
+    <div className="importar-filtros">
+      <div className="chips-eleccion" role="group" aria-label="Mostrar">
+        <button type="button" className={`chip-elegir${filtro === 'todas' ? ' activo' : ''}`} onClick={() => setFiltro('todas')}>Todas ({cuentas.todas})</button>
+        <button type="button" className={`chip-elegir${filtro === 'pendientes' ? ' activo' : ''}`} onClick={() => setFiltro('pendientes')}>Por elegir ({cuentas.pendientes})</button>
+        {cuentas.avisos !== undefined && <button type="button" className={`chip-elegir${filtro === 'avisos' ? ' activo' : ''}`} onClick={() => setFiltro('avisos')}>Con avisos ({cuentas.avisos})</button>}
+      </div>
+      <input type="search" value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar en el Excel…" aria-label="Buscar en el Excel" />
+    </div>
   );
 }
 
@@ -241,6 +301,8 @@ function Importar({ personas, planes, perfil, onCerrar }: { personas: PersonaAdm
   const miembros = arbol.estado === 'listo' ? arbol.miembros : [];
   const [filas, setFilas] = useState<FilaVista[] | null>(null);
   const [hoja, setHoja] = useState('');
+  const [filtro, setFiltro] = useState<Filtro2>('todas');
+  const [busca, setBusca] = useState('');
   const { enviando, error, setError, enviar } = useEnvio();
   const hoy = mesKey(new Date());
   const ultimo = HITOS_CONSTANCIA[HITOS_CONSTANCIA.length - 1].meses;
@@ -260,43 +322,64 @@ function Importar({ personas, planes, perfil, onCerrar }: { personas: PersonaAdm
   }
   const cambiar = (i: number, c: Partial<FilaVista>) => setFilas(fs => fs && fs.map((f, j) => (j === i ? { ...f, ...c } : f)));
   const elegidas = filas?.filter(f => f.personaId) ?? [];
+  const ocupadas = new Set(elegidas.map(f => f.personaId));
   const repetidas = new Set(elegidas.map(f => f.personaId).filter((id, i, a) => a.indexOf(id) !== i));
+  const q = sinAcentos(busca.trim());
+  // "Por elegir" fija los renglones pendientes al aplicarse: al elegir a alguien no desaparece de golpe.
+  const [fijos, setFijos] = useState<Set<number>>(new Set());
+  const ponerFiltro = (fl: Filtro2) => { setFiltro(fl); if (fl === 'pendientes') setFijos(new Set((filas ?? []).map((f, i) => (!f.personaId || repetidas.has(f.personaId) ? i : -1)).filter(i => i >= 0))); };
+  const visibles = (filas ?? []).map((f, i) => ({ f, i })).filter(({ f, i }) =>
+    (filtro === 'todas' || (filtro === 'pendientes' && fijos.has(i)) || (filtro === 'avisos' && f.avisos.length > 0)) &&
+    (!q || sinAcentos(f.nombreExcel).includes(q)));
 
   return (
-    <MarcoModal titulo="Importar hoja del Excel" onCerrar={() => onCerrar()} enviando={enviando}>
-      <p className="muted small">Sube el Excel de Administración; se lee la hoja "PLAN DE CONSTANCIA". Revisa a quién corresponde cada renglón antes de guardar. Lo que ya estuviera guardado de esas personas se reemplaza con lo del Excel (los premios entregados se conservan).</p>
-      <label className="campo"><span>Archivo (.xlsx)</span><input type="file" accept=".xlsx" onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void leer(f); }} /></label>
+    <MarcoModal titulo="Importar hoja del Excel" onCerrar={() => onCerrar()} enviando={enviando} clase="modal-amplio">
+      <p className="muted small">Se lee la hoja "PLAN DE CONSTANCIA". Revisa a quién corresponde cada renglón antes de guardar. Lo que ya estuviera guardado de esas personas se reemplaza con lo del Excel; los premios entregados se conservan.</p>
+      <label className="archivo-excel">
+        <input type="file" accept=".xlsx" onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void leer(f); }} />
+        <span className="btn">{filas ? 'Elegir otro archivo' : 'Elegir archivo (.xlsx)'}</span>
+        <span className="muted small">{filas ? `Hoja "${hoja}" · ${filas.length} personas` : 'Ningún archivo todavía'}</span>
+      </label>
       {error && <p className="error" role="alert">{error}</p>}
       {filas && (
         <>
-          <p className="muted small">Hoja "{hoja}": {filas.length} personas · {elegidas.length} con su e/l elegida.</p>
-          <div className="tabla-desplazable">
-            <table className="tabla tabla-importar-constancia">
-              <thead><tr><th>En el Excel</th><th>e/l del portal</th><th>Empezó</th><th className="num">Acumulado</th><th>Cómo va</th></tr></thead>
-              <tbody>
-                {filas.map((f, i) => {
-                  const r = calcularPlan({ inicio: f.inicio, meses: f.meses, entregados: f.entregados }, hitos(), hoy);
-                  return (
-                    <tr key={i} className={!f.personaId || repetidas.has(f.personaId) ? 'fila-sin-coincidir' : ''}>
-                      <td><strong>{f.nombreExcel}</strong>{f.avisos.map((a, j) => <div key={j} className="error small">{a}</div>)}</td>
-                      <td>
-                        <ElegirPersonaPortal personas={personas} valor={f.personaId} onCambiar={id => cambiar(i, { personaId: id })} />
-                        {repetidas.has(f.personaId) && <div className="error small">Esta e/l está elegida en otro renglón.</div>}
-                      </td>
-                      <td><input type="month" value={f.inicio} max={hoy} onChange={e => e.target.value && cambiar(i, { inicio: e.target.value })} /></td>
-                      <td className="num">{dinero(r.acumulado)}<div className="muted small">{r.compras} compras</div></td>
-                      <td>
-                        {r.estado === 'caida' ? <span className="chip agotado" title={r.motivoCaida ?? ''}>Perdió el reto ({etiquetaMes(r.caidaEn!)})</span> : <span className="chip ok">En su reto</span>}
-                        {Object.keys(f.entregados).length > 0 && <div className="muted small">Entregados: {hitos().filter(h => f.entregados[String(h.meses)]).map(h => h.premio).join(', ')}</div>}
-                        {f.listo && <label className="check small"><input type="checkbox" checked={f.marcarViaje} onChange={e => cambiar(i, { marcarViaje: e.target.checked })} /> LISTO: marcar el último premio como entregado</label>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className="acciones">
+          <Filtros filtro={filtro} setFiltro={ponerFiltro} busca={busca} setBusca={setBusca}
+            cuentas={{ todas: filas.length, pendientes: filas.filter(f => !f.personaId || repetidas.has(f.personaId)).length, avisos: filas.filter(f => f.avisos.length).length }} />
+          <ul className="filas-importar">
+            {visibles.map(({ f, i }) => {
+              const r = calcularPlan({ inicio: f.inicio, meses: f.meses, entregados: f.entregados }, hitos(), hoy);
+              const pendiente = !f.personaId || repetidas.has(f.personaId);
+              const entregados = hitos().filter(h => f.entregados[String(h.meses)]).map(h => h.premio);
+              return (
+                <li key={i} className={`fila-importar${pendiente ? ' pendiente' : ''}`}>
+                  <div className="fi-excel">
+                    <span className="fi-etiqueta">En el Excel</span>
+                    <strong>{f.nombreExcel}</strong>
+                    {f.avisos.length > 0 && <ul className="fi-avisos">{f.avisos.map((a, j) => <li key={j}>{a}</li>)}</ul>}
+                  </div>
+                  <div className="fi-persona">
+                    <span className="fi-etiqueta">e/l del portal</span>
+                    <BuscarPersona personas={personas} valor={f.personaId} ocupadas={ocupadas} onCambiar={id => cambiar(i, { personaId: id })} />
+                    {repetidas.has(f.personaId) && <span className="error small">Está elegida en otro renglón.</span>}
+                    <label className="fi-inicio"><span>Empezó su reto</span><input type="month" value={f.inicio} max={hoy} onChange={e => e.target.value && cambiar(i, { inicio: e.target.value })} /></label>
+                  </div>
+                  <div className="fi-cifras">
+                    <span className="fi-etiqueta">Cómo va</span>
+                    <strong className="fi-monto">{dinero(r.acumulado)}</strong>
+                    <span className="muted small">{r.compras} compras · mes {r.mesDelReto}</span>
+                    {r.estado === 'caida'
+                      ? <span className="chip agotado" title={r.motivoCaida ?? ''}>Perdió el reto ({etiquetaMes(r.caidaEn!)})</span>
+                      : <span className="chip ok">{r.completado ? 'Completó el reto' : 'En su reto'}</span>}
+                    {entregados.length > 0 && <span className="muted small">Entregados: {entregados.join(', ')}</span>}
+                    {f.listo && <label className="check small"><input type="checkbox" checked={f.marcarViaje} onChange={e => cambiar(i, { marcarViaje: e.target.checked })} /> LISTO: marcar el último premio como entregado</label>}
+                  </div>
+                </li>
+              );
+            })}
+            {!visibles.length && <li className="muted fi-vacio">Nada que mostrar con este filtro.</li>}
+          </ul>
+          <div className="pie-fijo">
+            <span className="muted small">{elegidas.length} de {filas.length} con su e/l elegida{repetidas.size ? ' · hay e/l repetidas' : ''}</span>
             <button className="btn primario" disabled={enviando || !elegidas.length || repetidas.size > 0} onClick={() => void enviar(async () => {
               const ahora = new Date().toISOString();
               const nuevos = elegidas.map(f => {
@@ -331,6 +414,8 @@ function Cargar({ personas, planes, perfil, onCerrar }: { personas: PersonaAdmin
   const [corte, setCorte] = useState(new Date().getDate() <= 15 ? 'corte del 14' : 'cierre de mes');
   const [filas, setFilas] = useState<FilaCarga[] | null>(null);
   const [nuevasReto, setNuevasReto] = useState(true);
+  const [filtro, setFiltro] = useState<Filtro2>('todas');
+  const [busca, setBusca] = useState('');
   const { enviando, error, setError, enviar } = useEnvio();
 
   async function leer(f: File) {
@@ -348,41 +433,54 @@ function Cargar({ personas, planes, perfil, onCerrar }: { personas: PersonaAdmin
   }
   const cambiar = (i: number, c: Partial<FilaCarga>) => setFilas(fs => fs && fs.map((f, j) => (j === i ? { ...f, ...c } : f)));
   const elegidas = (filas ?? []).filter(f => f.personaId && (planes.has(f.personaId) || nuevasReto));
+  const ocupadas = new Set((filas ?? []).map(f => f.personaId).filter(Boolean));
   const meses = [hoy, sumarMeses(hoy, -1)];
+  const q = sinAcentos(busca.trim());
+  const [fijos, setFijos] = useState<Set<number>>(new Set());
+  const ponerFiltro = (fl: Filtro2) => { setFiltro(fl); if (fl === 'pendientes') setFijos(new Set((filas ?? []).map((f, i) => (!f.personaId ? i : -1)).filter(i => i >= 0))); };
+  const visibles = (filas ?? []).map((f, i) => ({ f, i })).filter(({ f, i }) => (filtro !== 'pendientes' || fijos.has(i)) && (!q || sinAcentos(f.nombreExcel).includes(q)));
 
   return (
-    <MarcoModal titulo="Cargar compras del mes" onCerrar={() => onCerrar()} enviando={enviando}>
-      <p className="muted small">Al corte del día 14 y al cierre de cada mes, sube lo que va comprado en el mes por cada e/l (solo compras normales, sin souvenirs ni cambios físicos). Cada carga reemplaza la anterior de ese mes.</p>
+    <MarcoModal titulo="Cargar compras del mes" onCerrar={() => onCerrar()} enviando={enviando} clase="modal-amplio">
+      <p className="muted small">Al corte del día 14 y al cierre de cada mes, sube un Excel con el nombre y lo que va comprado en el mes por cada e/l (solo compras normales, sin souvenirs ni cambios físicos). Cada carga reemplaza la anterior de ese mes.</p>
       <div className="opciones-puntos">
         <label className="campo"><span>Mes</span><select value={mk} onChange={e => setMk(e.target.value)}>{meses.map(m => <option key={m} value={m}>{etiquetaMes(m)}</option>)}</select></label>
         <label className="campo"><span>Carga</span><select value={corte} onChange={e => setCorte(e.target.value)}><option value="corte del 14">Corte del día 14</option><option value="cierre de mes">Cierre de mes</option></select></label>
-        <label className="campo"><span>Archivo (.xlsx)</span><input type="file" accept=".xlsx" onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void leer(f); }} /></label>
       </div>
+      <label className="archivo-excel">
+        <input type="file" accept=".xlsx" onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void leer(f); }} />
+        <span className="btn">{filas ? 'Elegir otro archivo' : 'Elegir archivo (.xlsx)'}</span>
+        <span className="muted small">{filas ? `${filas.length} renglones` : 'Columnas: Nombre y Monto'}</span>
+      </label>
       {error && <p className="error" role="alert">{error}</p>}
       {filas && (
         <>
           <label className="check"><input type="checkbox" checked={nuevasReto} onChange={e => setNuevasReto(e.target.checked)} /> A quien todavía no tiene plan, empezarle su reto en {etiquetaMes(mk)}</label>
-          <div className="tabla-desplazable">
-            <table className="tabla">
-              <thead><tr><th>En el Excel</th><th>e/l del portal</th><th className="num">Lo que va del mes</th><th>Queda</th></tr></thead>
-              <tbody>
-                {filas.map((f, i) => {
-                  const plan = f.personaId ? planes.get(f.personaId) : undefined;
-                  const base = plan ?? (f.personaId ? planNuevo(f.personaId, '', mk) : null);
-                  const r = base ? calcularPlan(aplicarMonto(base, mk, f.monto, corte), hitos(), hoy) : null;
-                  return (
-                    <tr key={i} className={f.personaId ? '' : 'fila-sin-coincidir'}>
-                      <td>{f.nombreExcel}</td>
-                      <td><ElegirPersonaPortal personas={personas} valor={f.personaId} onCambiar={id => cambiar(i, { personaId: id })} />{f.personaId && !plan && <div className="muted small">{nuevasReto ? `Empieza su reto en ${etiquetaMes(mk)}` : 'No tiene plan: no se carga'}</div>}</td>
-                      <td className="num"><input type="number" min="0" className="input-puntos" value={f.monto} onChange={e => cambiar(i, { monto: Number(e.target.value) || 0 })} /></td>
-                      <td>{r ? <>{dinero(r.acumulado)} · {r.compras} compras{r.faltaMes > 0 && mk === hoy ? <div className="error small">Le faltan {dinero(r.faltaMes)} este mes</div> : null}</> : '—'}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className="acciones">
+          <Filtros filtro={filtro} setFiltro={ponerFiltro} busca={busca} setBusca={setBusca} cuentas={{ todas: filas.length, pendientes: filas.filter(f => !f.personaId).length }} />
+          <ul className="filas-importar">
+            {visibles.map(({ f, i }) => {
+              const plan = f.personaId ? planes.get(f.personaId) : undefined;
+              const base = plan ?? (f.personaId ? planNuevo(f.personaId, '', mk) : null);
+              const r = base ? calcularPlan(aplicarMonto(base, mk, f.monto, corte), hitos(), hoy) : null;
+              return (
+                <li key={i} className={`fila-importar${f.personaId ? '' : ' pendiente'}`}>
+                  <div className="fi-excel"><span className="fi-etiqueta">En el Excel</span><strong>{f.nombreExcel}</strong></div>
+                  <div className="fi-persona">
+                    <span className="fi-etiqueta">e/l del portal</span>
+                    <BuscarPersona personas={personas} valor={f.personaId} ocupadas={ocupadas} onCambiar={id => cambiar(i, { personaId: id })} />
+                    {f.personaId && !plan && <span className="muted small">{nuevasReto ? `Empieza su reto en ${etiquetaMes(mk)}` : 'No tiene plan: no se carga'}</span>}
+                  </div>
+                  <div className="fi-cifras">
+                    <label className="fi-inicio"><span>Lo que va del mes</span><input type="number" min="0" value={f.monto} onChange={e => cambiar(i, { monto: Number(e.target.value) || 0 })} /></label>
+                    {r && <><span className="muted small">Queda en {dinero(r.acumulado)} · {r.compras} compras</span>{r.faltaMes > 0 && mk === hoy && <span className="error small">Le faltan {dinero(r.faltaMes)} este mes</span>}</>}
+                  </div>
+                </li>
+              );
+            })}
+            {!visibles.length && <li className="muted fi-vacio">Nada que mostrar con este filtro.</li>}
+          </ul>
+          <div className="pie-fijo">
+            <span className="muted small">{elegidas.length} de {filas.length} se van a cargar</span>
             <button className="btn primario" disabled={enviando || !elegidas.length} onClick={() => void enviar(async () => {
               const nuevos = elegidas.map(f => {
                 const persona = personas.find(p => p.id === f.personaId)!;
