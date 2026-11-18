@@ -28,12 +28,13 @@ import { Comisiones } from './Comisiones';
 import { PlanMW } from './PlanMW';
 import { Rifa } from './Rifa';
 import { Arbol } from './Arbol';
+import { PlanConstanciaVista } from './PlanConstancia';
 import { ConfirmarCompras } from './ConfirmarCompras';
 import { Estadisticas } from './Estadisticas';
 import { useTema } from '../tema';
 import { PILOTO } from '../piloto';
 
-export type Seccion = 'inicio' | 'vender' | 'documentos' | 'clientes' | 'tiposPago' | 'promociones' | 'usuarios' | 'catalogo' | 'productos' | 'stock' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'rifa' | 'arbol' | 'compras' | 'estadisticas' | 'cuenta';
+export type Seccion = 'inicio' | 'vender' | 'documentos' | 'clientes' | 'tiposPago' | 'promociones' | 'usuarios' | 'catalogo' | 'productos' | 'stock' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'rifa' | 'arbol' | 'constancia' | 'compras' | 'estadisticas' | 'cuenta';
 
 interface Item { id: Seccion; nombre: string }
 
@@ -81,6 +82,7 @@ function menuPara(perfil: PerfilUsuario): { titulo: string | null; items: Item[]
         { id: 'comisiones', nombre: 'Comisiones' },
         { id: 'planmw', nombre: 'Plan MW' },
         { id: 'rifa', nombre: 'Rifa del mes' },
+        { id: 'constancia', nombre: 'Plan de constancia' },
         { id: 'arbol', nombre: 'Árbol' }
       ]
     });
@@ -209,6 +211,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
           {seccion === 'planmw' && <PlanMW perfil={perfil} />}
           {seccion === 'rifa' && <Rifa perfil={perfil} />}
           {seccion === 'arbol' && <Arbol perfil={perfil} />}
+          {seccion === 'constancia' && <PlanConstanciaVista perfil={perfil} />}
           {seccion === 'estadisticas' && <Estadisticas perfil={perfil} />}
         </main>
       </div>

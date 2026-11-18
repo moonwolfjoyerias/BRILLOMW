@@ -61,20 +61,14 @@ function columnaANumero(letras: string): number {
   return n - 1;
 }
 
-/** Primera hoja → filas (arreglos de celdas; null donde no hay nada). */
-export async function leerFilasXlsx(buffer: ArrayBuffer): Promise<ValorLeido[][]> {
-  const entradas = entradasZip(buffer);
+async function textosCompartidos(entradas: Map<string, () => Promise<string>>): Promise<string[]> {
   const compartidos: string[] = [];
   const ss = entradas.get('xl/sharedStrings.xml');
   if (ss) for (const m of (await ss()).matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>|<si\b[^>]*\/>/g)) compartidos.push(textos(m[1] ?? ''));
+  return compartidos;
+}
 
-  const nombreHoja = [...entradas.keys()]
-    .map(n => ({ n, m: /^xl\/worksheets\/sheet(\d+)\.xml$/.exec(n) }))
-    .filter(x => x.m)
-    .sort((a, b) => Number(a.m![1]) - Number(b.m![1]))[0]?.n;
-  if (!nombreHoja) throw new Error('El Excel no tiene ninguna hoja.');
-  const hoja = await entradas.get(nombreHoja)!();
-
+function filasDeHoja(hoja: string, compartidos: string[]): ValorLeido[][] {
   const filas: ValorLeido[][] = [];
   let siguiente = 0;
   for (const f of hoja.matchAll(/<row\b([^>]*?)(?:\/>|>([\s\S]*?)<\/row>)/g)) {
@@ -102,6 +96,42 @@ export async function leerFilasXlsx(buffer: ArrayBuffer): Promise<ValorLeido[][]
     filas[iFila] = Array.from({ length: celdas.length }, (_, i) => celdas[i] ?? null);
   }
   return Array.from({ length: filas.length }, (_, i) => filas[i] || []);
+}
+
+/** Todas las hojas del libro, en su orden, con su nombre y sus filas (fórmulas = su último valor guardado). */
+export async function leerLibroXlsx(buffer: ArrayBuffer): Promise<{ nombre: string; filas: ValorLeido[][] }[]> {
+  const entradas = entradasZip(buffer);
+  const compartidos = await textosCompartidos(entradas);
+  const libro = entradas.get('xl/workbook.xml');
+  const rels = entradas.get('xl/_rels/workbook.xml.rels');
+  const destinos = new Map<string, string>();
+  if (rels) for (const m of (await rels()).matchAll(/<Relationship\b([^>]*)\/?>/g)) {
+    const id = /\bId="([^"]+)"/.exec(m[1])?.[1];
+    const t = /\bTarget="([^"]+)"/.exec(m[1])?.[1];
+    if (id && t) destinos.set(id, t.replace(/^\/?xl\//, '').replace(/^\//, ''));
+  }
+  const hojas: { nombre: string; ruta: string }[] = [];
+  if (libro) for (const m of (await libro()).matchAll(/<sheet\b([^>]*)\/?>/g)) {
+    const nombre = desXml(/\bname="([^"]*)"/.exec(m[1])?.[1] ?? '');
+    const rid = /\br:id="([^"]+)"/.exec(m[1])?.[1];
+    const destino = rid ? destinos.get(rid) : undefined;
+    if (destino) hojas.push({ nombre, ruta: 'xl/' + destino });
+  }
+  if (!hojas.length) {
+    for (const n of [...entradas.keys()].filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n)).sort()) hojas.push({ nombre: n, ruta: n });
+  }
+  const out: { nombre: string; filas: ValorLeido[][] }[] = [];
+  for (const h of hojas) {
+    const leer = entradas.get(h.ruta);
+    if (leer) out.push({ nombre: h.nombre, filas: filasDeHoja(await leer(), compartidos) });
+  }
+  if (!out.length) throw new Error('El Excel no tiene ninguna hoja.');
+  return out;
+}
+
+/** Primera hoja → filas (arreglos de celdas; null donde no hay nada). */
+export async function leerFilasXlsx(buffer: ArrayBuffer): Promise<ValorLeido[][]> {
+  return (await leerLibroXlsx(buffer))[0].filas;
 }
 
 /**
