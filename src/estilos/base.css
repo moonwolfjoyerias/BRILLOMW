@@ -1120,3 +1120,13 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
 .opciones-puntos { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 4px 14px; margin-bottom: 10px; }
 .opciones-puntos .en-linea { flex-wrap: wrap; gap: 0 14px; }
 .opciones-puntos input[type='file'] { max-width: 100%; }
+
+/* ---------- Plan de constancia ---------- */
+.plan-constancia .encabezado-seccion.con-accion > div:first-child { max-width: 680px; }
+.btn-texto { background: none; border: 0; padding: 4px 2px; color: inherit; font: inherit; cursor: pointer; border-radius: 6px; }
+.btn-texto:hover { background: var(--mw-lilac-soft); }
+.fila-premio { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--mw-border); }
+.fila-premio > span:last-child { display: inline-flex; gap: 8px; align-items: center; }
+.tabla-importar-constancia select { max-width: 240px; }
+.tabla-importar-constancia input[type='month'] { width: auto; }
+.check.small { min-height: auto; font-size: 0.8rem; white-space: normal; }
