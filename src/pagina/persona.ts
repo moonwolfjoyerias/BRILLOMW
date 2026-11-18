@@ -49,6 +49,27 @@ const normal = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLower
 const soloDigitos = (s: string) => s.replace(/\D/g, '');
 
 /** Busca por nombre, apellidos, membresía (usuario) o teléfono. */
+// ---------- Tarjeta virtual de la e/l ----------
+// El QR de su tarjeta (Mi cuenta en la página) trae "MWE:" + su usuario
+// (p. ej. "MWE:MW0003"), para no confundirlo con el código de un producto.
+export const PREFIJO_TARJETA = 'MWE:';
+
+/** El usuario que trae el QR de una tarjeta virtual, o null si no es una tarjeta. */
+export function usuarioDeTarjeta(texto: string): string | null {
+  const m = /^\s*MWE\s*:\s*([A-Za-z0-9_.-]+)\s*$/i.exec(texto);
+  return m ? m[1].toUpperCase() : null;
+}
+
+/** La e/l de una tarjeta escaneada (o de su usuario escrito tal cual). */
+export function personaDeTarjeta(personas: Persona[], texto: string): { persona: Persona } | { error: string } | null {
+  const usuario = usuarioDeTarjeta(texto) ?? (/^\s*MW\d{3,}\s*$/i.test(texto) ? texto.trim().toUpperCase() : null);
+  if (!usuario) return null;
+  const p = personas.find(x => x.usuario.trim().toUpperCase() === usuario);
+  if (!p) return { error: `No hay ninguna emprendedora o líder con el usuario ${usuario}.` };
+  if (p.estado === 'baja') return { error: `La cuenta de ${nombreCompleto(p)} (${usuario}) está dada de baja.` };
+  return { persona: p };
+}
+
 export function buscarPersonas(personas: Persona[], q: string, limite = 8): Persona[] {
   const t = normal(q.trim());
   if (!t) return [];
