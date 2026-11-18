@@ -5,7 +5,7 @@ import { equipoActual } from '../plataforma';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { useCatalogo } from '../pagina/useCatalogo';
 import { etiquetaVariante, stockTotal, type Producto } from '../pagina/producto';
-import { buscarPersonas, nombreCompleto, usePersonas } from '../pagina/persona';
+import { buscarPersonas, nombreCompleto, personaDeTarjeta, usePersonas, usuarioDeTarjeta } from '../pagina/persona';
 import { CAJAS, fechaLocal, leerMonto, nombreCaja, type IdCaja } from '../caja/turno';
 import { useTurnosDelDia } from '../caja/turnos';
 import { TarjetaCaja } from './Caja';
@@ -126,6 +126,16 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
     if (carrito.some(l => l.garantia)) setCarrito(cs => cs.map(l => garantiaParaCliente(l, c, productos)));
   }
   const productos = catalogo.estado === 'listo' ? catalogo.productos : [];
+  const personasCaja = usePersonas();
+  // Tarjeta virtual escaneada en el buscador de productos: elige a la e/l.
+  function tarjetaEscaneada(texto: string) {
+    if (personasCaja.estado !== 'listo') { setAviso('Todavía se están cargando las emprendedoras; vuelve a escanear en un momento.'); return; }
+    const r = personaDeTarjeta(personasCaja.personas, texto);
+    if (!r) return;
+    if ('error' in r) { setAviso(r.error); return; }
+    cambiarCliente(clienteDesdePersona(r.persona, nombreCompleto(r.persona)));
+    setAviso(`Clienta: ${nombreCompleto(r.persona)} (${r.persona.usuario}) — precio de ${r.persona.tipo === 'lider' ? 'líder' : 'emprendedora'}.`);
+  }
 
   function elegirCaja(c: IdCaja) {
     setCaja(c);
@@ -199,7 +209,7 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
     <>
       {pestanas}
         <div className="vender-columnas">
-          <BuscadorProductos productos={productos} cargando={catalogo.estado === 'cargando'} enCarrito={carrito} onAgregar={agregar} />
+          <BuscadorProductos productos={productos} cargando={catalogo.estado === 'cargando'} enCarrito={carrito} onAgregar={agregar} onTarjeta={tarjetaEscaneada} />
           <div className="panel-venta">
             <SelectorCliente cliente={cliente} onCambiar={cambiarCliente} />
             <div className="acciones-caja">
@@ -459,12 +469,15 @@ function BuscadorProductos({
   productos,
   cargando,
   enCarrito,
-  onAgregar
+  onAgregar,
+  onTarjeta
 }: {
   productos: Producto[];
   cargando: boolean;
   enCarrito: LineaCarrito[];
   onAgregar: (l: LineaCarrito) => void;
+  /** Se escaneó la tarjeta virtual de una e/l en el buscador de productos. */
+  onTarjeta?: (texto: string) => void;
 }) {
   const [q, setQ] = useState('');
   const [elegir, setElegir] = useState<Producto | null>(null);
@@ -486,6 +499,7 @@ function BuscadorProductos({
   // Lector de QR o código de barras tipo teclado: escribe el código y da Enter.
   function alEnviar(e: FormEvent) {
     e.preventDefault();
+    if (usuarioDeTarjeta(q) && onTarjeta) { onTarjeta(q); setQ(''); entrada.current?.focus(); return; }
     const codigo = normal(q);
     const exacto = productos.find(p => p.codigo && normal(p.codigo) === codigo);
     if (exacto) {
@@ -501,6 +515,7 @@ function BuscadorProductos({
   // QR leído con la cámara: si es el código de un producto se agrega; si
   // no, queda escrito en el buscador para ver qué hay parecido.
   function alEscanear(texto: string) {
+    if (usuarioDeTarjeta(texto) && onTarjeta) { onTarjeta(texto); setQ(''); return; }
     const codigo = normal(limpiarCodigo(texto));
     const exacto = productos.find(p => p.codigo && normal(p.codigo) === codigo);
     if (exacto && stockTotal(exacto) > 0) {
@@ -649,8 +664,23 @@ function FormServicio({ onCancelar, onAgregar }: { onCancelar: () => void; onAgr
 function SelectorCliente({ cliente, onCambiar }: { cliente: ClienteVenta; onCambiar: (c: ClienteVenta) => void }) {
   const [buscando, setBuscando] = useState(false);
   const [q, setQ] = useState('');
+  const [errorTarjeta, setErrorTarjeta] = useState<string | null>(null);
   const personas = usePersonas();
-  const resultados = personas.estado === 'listo' ? buscarPersonas(personas.personas, q) : [];
+  const resultados = personas.estado === 'listo' ? buscarPersonas(personas.personas, q.replace(/^\s*MWE\s*:/i, '')) : [];
+
+  // Tarjeta virtual (QR "MWE:<usuario>") o usuario exacto: queda elegida al momento.
+  function porTarjeta(texto: string): boolean {
+    if (personas.estado !== 'listo') return false;
+    const r = personaDeTarjeta(personas.personas, texto);
+    if (!r) return false;
+    if ('error' in r) { setErrorTarjeta(r.error); return true; }
+    onCambiar(clienteDesdePersona(r.persona, nombreCompleto(r.persona)));
+    setErrorTarjeta(null);
+    setBuscando(false);
+    setQ('');
+    return true;
+  }
+  const camara = <BotonCamara titulo="Escanear tarjeta de la emprendedora" etiqueta="Escanear tarjeta" className="btn mini" onCodigo={t => { if (!porTarjeta(t)) setErrorTarjeta('Ese QR no es una tarjeta de emprendedora o líder.'); }} />;
 
   if (!buscando) {
     return (
@@ -670,20 +700,26 @@ function SelectorCliente({ cliente, onCambiar }: { cliente: ClienteVenta; onCamb
           <button className="btn mini" onClick={() => setBuscando(true)}>
             {cliente.tipo === 'publico' ? 'Emprendedora / líder' : 'Cambiar'}
           </button>
+          {camara}
         </div>
+        {errorTarjeta && <p className="error small" role="alert">{errorTarjeta}</p>}
       </div>
     );
   }
   return (
     <div className="cliente buscando">
-      <input
-        type="search"
-        placeholder="Nombre, membresía (MW0001) o teléfono"
-        value={q}
-        onChange={e => setQ(e.target.value)}
-        autoFocus
-        aria-label="Buscar emprendedora o líder"
-      />
+      <form className="en-linea" onSubmit={e => { e.preventDefault(); if (!porTarjeta(q) && resultados.length === 1) { onCambiar(clienteDesdePersona(resultados[0], nombreCompleto(resultados[0]))); setBuscando(false); setQ(''); } }}>
+        <input
+          type="search"
+          placeholder="Nombre, membresía (MW0001), teléfono o escanea su tarjeta"
+          value={q}
+          onChange={e => { setQ(e.target.value); setErrorTarjeta(null); }}
+          autoFocus
+          aria-label="Buscar emprendedora o líder"
+        />
+        {camara}
+      </form>
+      {errorTarjeta && <p className="error small" role="alert">{errorTarjeta}</p>}
       {personas.estado === 'error' && <p className="error">No se pudieron cargar las emprendedoras.</p>}
       <ul className="resultados-cliente">
         {resultados.map(p => (
