@@ -10,7 +10,6 @@ import { CAJAS, fechaLocal, leerMonto, nombreCaja, type IdCaja } from '../caja/t
 import { useTurnosDelDia } from '../caja/turnos';
 import { TarjetaCaja } from './Caja';
 import { Corte } from './Corte';
-import { HistorialVentas } from './HistorialVentas';
 import {
   nombreMetodo,
   llevaReferencia,
@@ -62,7 +61,7 @@ function cajaGuardada(): IdCaja {
   return 'caja1';
 }
 
-export function Vender({ perfil }: { perfil: PerfilUsuario }) {
+export function Vender({ perfil, onVerDocumentos }: { perfil: PerfilUsuario; /** "Ventas" lleva a Documentos (donde están todos los tickets). */ onVerDocumentos?: () => void }) {
   const hoy = fechaLocal();
   const [caja, setCaja] = useState<IdCaja>(cajaGuardada);
   const turnos = useTurnosDelDia(hoy);
@@ -152,7 +151,7 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
     setAviso(r.error ?? null);
   }
 
-  const [modo, setModo] = useState<'cobrar' | 'corte' | 'ventas'>('cobrar');
+  const [modo, setModo] = useState<'cobrar' | 'corte'>('cobrar');
 
   /** Deja vacía la venta de la pestaña activa. */
   function vaciar() {
@@ -358,7 +357,7 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
         <nav className="pestanas" aria-label="Caja">
           <button className={modo === 'cobrar' ? 'nav-boton activo' : 'nav-boton'} onClick={() => setModo('cobrar')}>Cobrar</button>
           <button className={modo === 'corte' ? 'nav-boton activo' : 'nav-boton'} onClick={() => setModo('corte')}>Corte del día</button>
-          <button className={modo === 'ventas' ? 'nav-boton activo' : 'nav-boton'} onClick={() => setModo('ventas')}>Ventas</button>
+          {onVerDocumentos && <button className="nav-boton" onClick={onVerDocumentos} title="Buscar, reimprimir o cancelar tickets (en Documentos)">Ventas</button>}
         </nav>
         <label className="campo-en-linea">
           <span>Este equipo es</span>
@@ -370,9 +369,7 @@ export function Vender({ perfil }: { perfil: PerfilUsuario }) {
         </label>
       </div>
 
-      {modo === 'ventas' ? (
-        <HistorialVentas perfil={perfil} />
-      ) : modo === 'corte' ? (
+      {modo === 'corte' ? (
         <Corte perfil={perfil} />
       ) : turnos.estado === 'listo' && !cajaAbierta ? (
         // Caja y venta en una sola pestaña: si la caja de este equipo no se

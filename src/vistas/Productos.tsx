@@ -24,7 +24,8 @@ import { descargarProductos } from '../exportar/productos';
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 const normal = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
-export function Productos({ perfil }: { perfil: PerfilUsuario }) {
+export function Productos({ perfil, embebido = false }: { perfil: PerfilUsuario; /** Dentro de otra sección con pestañas: el título va como h2. */ embebido?: boolean }) {
+  const Titulo = embebido ? 'h2' : 'h1';
   const catalogo = useCatalogo();
   const minimo = useStockMinimo(db);
   const [q, setQ] = useState('');
@@ -64,7 +65,7 @@ export function Productos({ perfil }: { perfil: PerfilUsuario }) {
     <section>
       <div className="encabezado-seccion con-accion">
         <div>
-          <h1>Productos</h1>
+          <Titulo>Productos</Titulo>
           <p className="muted">{productos.length} productos a la venta · {enCat} en el catálogo · {productos.length - enCat} solo en tienda</p>
         </div>
         <div className="acciones">

@@ -21,6 +21,9 @@ import { useCatalogo } from '../pagina/useCatalogo';
 import { usePersonas } from '../pagina/persona';
 import { MODULOS_ACTIVIDAD, ROLES_ACTIVIDAD, normalizarRegistro, type RegistroLeido } from '../pagina/actividad';
 import { periodoKeyDe, proximoPeriodoPago } from '../cuenta/nomina';
+import { dbEquipo } from '../firebase';
+import { useArbol } from '../arbol/acciones';
+import { comisionesDelMes, lideres, mesKey } from '../arbol/modelo';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 type Ir = (s: Seccion) => void;
@@ -125,13 +128,19 @@ function ResumenAdmin({ onIr }: { onIr: Ir }) {
     []
   );
   const ps = personas.estado === 'listo' ? personas.personas : [];
+  // Comisiones del mes en curso aún sin marcar como pagadas (árbol de mi-equipo).
+  const arbol = useArbol(dbEquipo);
+  const mk = mesKey(new Date());
+  const porPagar = arbol.estado === 'listo'
+    ? lideres(arbol.miembros).filter(m => !m.commissionPaid?.[mk] && (comisionesDelMes(arbol.miembros, m.id, mk)?.total ?? 0) > 0.005).length
+    : null;
   return (
     <>
       <h3>Toda la tienda</h3>
       <div className="resumen-apartados">
         <Dato titulo="Productos disponibles" valor={catalogo.estado === 'listo' ? catalogo.productos.filter(p => p.variantes.some(v => v.stock > 0)).length : '…'} onClick={() => onIr('catalogo')} />
         <Dato titulo="Emprendedoras y líderes activas" valor={personas.estado === 'listo' ? ps.filter(p => p.estado === 'activa').length : '…'} onClick={() => onIr('emprendedoras')} />
-        <Dato titulo="Plan MW pendiente" valor={personas.estado === 'listo' ? ps.filter(p => p.ascensoPendiente || p.recompensaPendiente).length : '…'} detalle="Ascensos o recompensas por confirmar" onClick={() => onIr('planmw')} />
+        <Dato titulo="Comisiones por pagar" valor={porPagar ?? '…'} detalle="Líderes de este mes (Plan MW)" onClick={() => onIr('planmw')} />
         <Dato titulo="Solicitudes de inscripción" valor={solicitudes ?? '…'} detalle="Pendientes de revisar" onClick={() => onIr('solicitudes')} />
       </div>
     </>
@@ -228,7 +237,7 @@ function ActividadReciente({ onIr }: { onIr: Ir }) {
           ))}
         </ul>
       )}
-      <div className="acciones"><button className="btn" onClick={() => onIr('actividad')}>Ver toda la actividad</button></div>
+      <div className="acciones"><button className="btn" onClick={() => onIr('actividad')}>Ver toda la bitácora</button></div>
     </>
   );
 }

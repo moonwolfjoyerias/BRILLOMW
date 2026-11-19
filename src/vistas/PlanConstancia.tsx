@@ -31,7 +31,8 @@ import { MarcoModal, useEnvio } from './Modal';
 const hitos = () => HITOS_CONSTANCIA.map(h => ({ meses: h.meses, premio: h.premio }));
 type Filtro = 'todas' | 'activas' | 'caidas' | 'entregar';
 
-export function PlanConstanciaVista({ perfil }: { perfil: PerfilUsuario }) {
+export function PlanConstanciaVista({ perfil, embebido = false }: { perfil: PerfilUsuario; /** Dentro de otra sección con pestañas: el título va como h2. */ embebido?: boolean }) {
+  const Titulo = embebido ? 'h2' : 'h1';
   const planes = usePlanesConstancia(db);
   const personas = usePersonasAdmin(db, false);
   const [busca, setBusca] = useState('');
@@ -62,7 +63,7 @@ export function PlanConstanciaVista({ perfil }: { perfil: PerfilUsuario }) {
     <section className="plan-constancia">
       <div className="encabezado-seccion con-accion">
         <div>
-          <h1>Plan de constancia</h1>
+          <Titulo>Plan de constancia</Titulo>
           <p className="muted">Cada {dinero(META_COMPRA)} acumulados es una compra. Cada mes del reto pide {dinero(META_COMPRA)}; lo que sobra cubre los meses siguientes, y un mes sin compras hace perder el reto.</p>
         </div>
         <div className="acciones izquierda sin-margen">

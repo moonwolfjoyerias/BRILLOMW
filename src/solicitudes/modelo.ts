@@ -167,24 +167,36 @@ export function existeCorreoOTelefono(personas: Pick<PersonaAdmin, 'id' | 'corre
  * guarda la página.
  */
 /** liderId: la líder elegida al aprobar (undefined = quien la invitó, como antes). */
-export function nuevaPersonaDesdeSolicitud(s: SolicitudInscripcion, cred: { usuario: string; numeroCuenta: string }, firebaseUid: string | null, ahora: Date, liderId?: string | null) {
-  const partes = s.nombreCompleto.trim().split(/\s+/);
+export interface DatosPersonaNueva {
+  nombre: string;
+  apellidos: string;
+  tipo: 'emprendedora' | 'lider';
+  categoria: string;
+  viveEnSLP: boolean | null | undefined;
+  telefono: string;
+  correo: string;
+  liderId: string | null;
+  invitadaPor: string | null;
+}
+
+/** El documento de una e/l nueva (personas + personasFinanciero), igual que lo arma la página. */
+export function armarPersonaNueva(d: DatosPersonaNueva, cred: { usuario: string; numeroCuenta: string }, firebaseUid: string | null, ahora: Date) {
   const completo: Doc = {
     id: `persona-${ahora.getTime()}`,
-    nombre: partes[0] || s.nombreCompleto,
-    apellidos: partes.slice(1).join(' '),
-    tipo: 'emprendedora',
-    categoria: s.viveEnSLP === false ? 'foranea' : 'normal',
-    viveEnSLP: s.viveEnSLP,
+    nombre: d.nombre,
+    apellidos: d.apellidos,
+    tipo: d.tipo,
+    categoria: d.categoria,
+    viveEnSLP: d.viveEnSLP,
     estado: 'activa',
-    telefono: s.telefono,
-    correo: s.correo,
+    telefono: d.telefono,
+    correo: d.correo,
     fotoUrl: '',
     usuario: cred.usuario,
     numeroCuenta: cred.numeroCuenta,
     fechaAlta: ahora.toISOString(),
-    liderId: liderId !== undefined ? liderId : s.solicitanteId,
-    invitadaPor: s.solicitanteId ?? liderId ?? null,
+    liderId: d.liderId,
+    invitadaPor: d.invitadaPor,
     rangoActualKey: 'sin_rango',
     stats: { personasActivas: 0, produccionGrupalMes: 0, personasCalificadas: 0, compraPersonalPeriodo1: 0, compraPersonalPeriodo2: 0 },
     ascensoPendiente: null,
@@ -203,6 +215,26 @@ export function nuevaPersonaDesdeSolicitud(s: SolicitudInscripcion, cred: { usua
     }
   });
   return { persona, financiero };
+}
+
+export function nuevaPersonaDesdeSolicitud(s: SolicitudInscripcion, cred: { usuario: string; numeroCuenta: string }, firebaseUid: string | null, ahora: Date, liderId?: string | null) {
+  const partes = s.nombreCompleto.trim().split(/\s+/);
+  return armarPersonaNueva(
+    {
+      nombre: partes[0] || s.nombreCompleto,
+      apellidos: partes.slice(1).join(' '),
+      tipo: 'emprendedora',
+      categoria: s.viveEnSLP === false ? 'foranea' : 'normal',
+      viveEnSLP: s.viveEnSLP,
+      telefono: s.telefono,
+      correo: s.correo,
+      liderId: liderId !== undefined ? liderId : s.solicitanteId,
+      invitadaPor: s.solicitanteId ?? liderId ?? null
+    },
+    cred,
+    firebaseUid,
+    ahora
+  );
 }
 
 export function textoAprobacion(s: SolicitudInscripcion, usuario: string): string {

@@ -4,11 +4,21 @@
 // (si es Líder) Equipo y rango; editar, cambiar de líder, reactivar,
 // convertir Emprendedora ↔ Líder (reasignando su equipo), confirmar o
 // rechazar cambios de rama, armar el equipo y limpiar el historial de compras.
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { collection, getDocs } from '../datos/firestore';
+import { COL_SALDOS } from '../venta/cambios';
+import type { ClienteVenta } from '../venta/carrito';
+import { SaldoAFavorModal } from './SaldoAFavor';
+import { imprimirTicket, anchoGuardado } from '../venta/imprimir';
 import { db } from '../firebase';
 import { equipoActual } from '../plataforma';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { MarcoModal, useEnvio } from './Modal';
+import { PlanMWPersona } from './PlanMWArbol';
+import { dbEquipo } from '../firebase';
+import { useArbol } from '../arbol/acciones';
+import { comisionesDelMes, mesKey as mesKeyArbol, subarbol } from '../arbol/modelo';
+import { personasPorMiembro } from '../arbol/planmw';
 import { useApartados } from '../apartados/acciones';
 import { regla, type Ventana } from '../apartados/modelo';
 import { guardarPersonas, usePersonasAdmin, type CambioPersonas } from '../personas/acciones';
@@ -16,7 +26,6 @@ import { useComprasBrillo } from '../compras/acciones';
 import { ComprasBrillo } from '../compras/modelo';
 import {
   aplicarInfo,
-  boletosRifa,
   CATEGORIAS_PERSONA,
   comprasDe,
   convertirEnEmprendedora,
@@ -25,7 +34,6 @@ import {
   equipoActivoDirecto,
   ESTADOS_CUENTA_PERSONA,
   filtrarPersonas,
-  HITOS_CONSTANCIA,
   lideresDisponibles,
   limpiarComprasVentana,
   nombreCompletoPersona,
@@ -57,18 +65,50 @@ const CHIP_ESTADO: Record<string, string> = { activa: 'chip ok', inactiva: 'chip
 
 type Tab = 'info' | 'compras' | 'apartados' | 'planmw' | 'equipo';
 
+const MXN_SALDO = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+
 export function Emprendedoras({ perfil }: { perfil: PerfilUsuario }) {
   const datos = usePersonasAdmin(db, true);
   const apartados = useApartados(db);
+  const arbol = useArbol(dbEquipo);
+  // Rango vigente de cada líder (con el que cobra este mes), del árbol de mi-equipo.
+  const rangos = useMemo(() => {
+    const m = new Map<string, string>();
+    if (arbol.estado !== 'listo' || datos.estado !== 'listo') return m;
+    const mk = mesKeyArbol(new Date());
+    personasPorMiembro(arbol.miembros, datos.personas).forEach((persona, miembroId) => {
+      if (subarbol(arbol.miembros, miembroId).size <= 1) return;
+      const k = comisionesDelMes(arbol.miembros, miembroId, mk)?.rangoInfo.rango.key;
+      m.set(persona.id, !k || k === 'sinRango' ? 'sin_rango' : k);
+    });
+    return m;
+  }, [arbol, datos]);
   const [f, setF] = useState<FiltrosPersonas>({ texto: '', tipo: '', estado: '', categoria: '', liderId: '', rango: '' });
   const [seleccion, setSeleccion] = useState<string | null>(null);
   const [cambiarLider, setCambiarLider] = useState<PersonaAdmin | null>(null);
+  // Saldo a favor (antes en la pestaña Clientes, que ahora es esta misma).
+  const [saldos, setSaldos] = useState<Record<string, number>>({});
+  const [saldoDe, setSaldoDe] = useState<PersonaAdmin | null>(null);
+  const [conSaldo, setConSaldo] = useState(false);
+  const [paraImprimir, setParaImprimir] = useState<ReactNode>(null);
+  const leerSaldos = () =>
+    getDocs(collection(db, COL_SALDOS))
+      .then(s => setSaldos(Object.fromEntries(s.docs.map(d => [d.id, Number(d.data().saldo) || 0]))))
+      .catch(() => {});
+  useEffect(() => { void leerSaldos(); }, []);
+  useEffect(() => {
+    if (!paraImprimir) return;
+    const t = setTimeout(() => { imprimirTicket(anchoGuardado()); setParaImprimir(null); }, 50);
+    return () => clearTimeout(t);
+  }, [paraImprimir]);
 
   if (datos.estado === 'cargando') return <p className="muted">Cargando emprendedoras y líderes…</p>;
   if (datos.estado === 'error') return <p className="error">No se pudieron cargar las emprendedoras y líderes. Revisa la conexión.</p>;
   const { personas, financiero } = datos;
   const ventanas = apartados.estado === 'listo' ? apartados.ventanas : [];
-  const lista = filtrarPersonas(personas, f);
+  const lista = filtrarPersonas(personas, { ...f, rango: '' })
+    .filter(p => !f.rango || (p.tipo === 'lider' && (rangos.get(p.id) ?? 'sin_rango') === f.rango))
+    .filter(p => !conSaldo || (saldos[p.id] ?? 0) > 0);
   const elegida = seleccion ? personas.find(p => p.id === seleccion) : undefined;
   const set = (k: keyof FiltrosPersonas, v: string) => setF(x => ({ ...x, [k]: v }));
   const lideres = personas.filter(p => p.tipo === 'lider').sort((a, b) => nombreCompletoPersona(a).localeCompare(nombreCompletoPersona(b), 'es'));
@@ -76,8 +116,8 @@ export function Emprendedoras({ perfil }: { perfil: PerfilUsuario }) {
   return (
     <section className="emprendedoras">
       <div className="encabezado-seccion">
-        <h1>Emprendedoras / Líderes</h1>
-        <p className="muted">Busca, consulta su perfil completo y edita. Lo mismo que en la página: lo que se cambie aquí o allá se ve en los dos.</p>
+        <h1>Emprendedoras y Líderes</h1>
+        <p className="muted">Busca, consulta su perfil completo, edita y maneja su saldo a favor. Lo mismo que en la página: lo que se cambie aquí o allá se ve en los dos.</p>
       </div>
       <div className="filtros-personas">
         <input type="search" placeholder="Nombre, usuario o teléfono…" value={f.texto} onChange={e => set('texto', e.target.value)} aria-label="Buscar" />
@@ -102,6 +142,7 @@ export function Emprendedoras({ perfil }: { perfil: PerfilUsuario }) {
           <option value="">Todos los rangos</option>
           {RANGOS_MW.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
         </select>
+        <label className="check"><input type="checkbox" checked={conSaldo} onChange={e => setConSaldo(e.target.checked)} /> Con saldo a favor</label>
       </div>
       <p className="muted small">{lista.length} persona{lista.length === 1 ? '' : 's'}</p>
       <div className={elegida ? 'personas-columnas con-detalle' : 'personas-columnas'}>
@@ -117,11 +158,14 @@ export function Emprendedoras({ perfil }: { perfil: PerfilUsuario }) {
                     <span className="inicial">{(p.nombre || '?').trim().charAt(0).toUpperCase()}</span>
                     <span className="fila-principal">
                       <strong>{nombreCompletoPersona(p) || 'Sin nombre'}</strong>
-                      <span className="etiquetas"><Insignias p={p} /></span>
+                      <span className="etiquetas"><Insignias p={p} rango={rangos.get(p.id) ?? 'sin_rango'} /></span>
                       <span className="muted small">{p.usuario}{lider ? ` · Líder: ${nombreCompletoPersona(lider)}` : ' · Sin líder asignada'}</span>
                     </span>
                   </button>
-                  {p.tipo === 'emprendedora' && <button className="btn mini" onClick={() => setCambiarLider(p)}>Cambiar líder</button>}
+                  <div className="acciones-fila">
+                    <button className="btn mini" onClick={() => setSaldoDe(p)} title="Saldo a favor">{(saldos[p.id] ?? 0) > 0 ? `Saldo ${MXN_SALDO.format(saldos[p.id])}` : 'Saldo a favor'}</button>
+                    {p.tipo === 'emprendedora' && <button className="btn mini" onClick={() => setCambiarLider(p)}>Cambiar líder</button>}
+                  </div>
                 </div>
               );
             })
@@ -133,6 +177,7 @@ export function Emprendedoras({ perfil }: { perfil: PerfilUsuario }) {
             p={elegida}
             personas={personas}
             financiero={financiero.get(elegida.id)}
+            rango={rangos.get(elegida.id) ?? 'sin_rango'}
             ventanas={ventanas}
             perfil={perfil}
             onCerrar={() => setSeleccion(null)}
@@ -140,19 +185,27 @@ export function Emprendedoras({ perfil }: { perfil: PerfilUsuario }) {
         )}
       </div>
       {cambiarLider && <CambiarLider p={cambiarLider} personas={personas} perfil={perfil} onCerrar={() => setCambiarLider(null)} />}
+      {saldoDe && (
+        <SaldoAFavorModal
+          cliente={{ tipo: saldoDe.tipo, personaId: saldoDe.id, nombre: nombreCompletoPersona(saldoDe), membresia: saldoDe.usuario || null } as ClienteVenta}
+          saldo={saldos[saldoDe.id] ?? 0}
+          perfil={perfil}
+          onImprimir={t => setParaImprimir(t)}
+          onCerrar={() => { setSaldoDe(null); void leerSaldos(); }}
+        />
+      )}
+      <div className="ticket-impresion" aria-hidden="true">{paraImprimir}</div>
     </section>
   );
 }
 
-function Insignias({ p }: { p: PersonaAdmin }) {
+function Insignias({ p, rango }: { p: PersonaAdmin; rango: string }) {
   return (
     <>
       <span className="chip neutro">{p.tipo === 'lider' ? 'Líder' : 'Emprendedora'}</span>
       <span className={CHIP_ESTADO[p.estado] ?? 'chip neutro'}>{ESTADOS_CUENTA_PERSONA[p.estado] ?? p.estado}</span>
       <span className="chip neutro">{CATEGORIAS_PERSONA[p.categoria] ?? p.categoria}</span>
-      {p.tipo === 'lider' && <span className="chip neutro">{rangoLabel(p.rangoActualKey)}</span>}
-      {p.ascensoPendiente && <span className="chip pendiente">Sube de rango</span>}
-      {p.recompensaPendiente && <span className="chip pendiente">Recompensa lista</span>}
+      {p.tipo === 'lider' && <span className="chip neutro" title="Rango vigente (árbol de mi-equipo)">{rangoLabel(rango)}</span>}
       {p.solicitudCambioRamaPendiente && <span className="chip agotado">Solicitud de cambio de rama</span>}
     </>
   );
@@ -172,10 +225,11 @@ function useCambio(perfil: PerfilUsuario) {
   return { enviando, error, setError, aplicar };
 }
 
-function Perfil({ p, personas, financiero, ventanas, perfil, onCerrar }: {
+function Perfil({ p, personas, financiero, rango, ventanas, perfil, onCerrar }: {
   p: PersonaAdmin;
   personas: PersonaAdmin[];
   financiero: Financiero | undefined;
+  rango: string;
   ventanas: Ventana[];
   perfil: PerfilUsuario;
   onCerrar: () => void;
@@ -186,7 +240,7 @@ function Perfil({ p, personas, financiero, ventanas, perfil, onCerrar }: {
   const esLider = p.tipo === 'lider';
   const nombre = nombreCompletoPersona(p);
   const lider = p.liderId ? personas.find(x => x.id === p.liderId) : undefined;
-  const tabs: [Tab, string][] = [['info', 'Información'], ['compras', 'Compras'], ['apartados', 'Apartados'], ['planmw', 'Plan MW'], ...(esLider ? [['equipo', 'Equipo y rango'] as [Tab, string]] : [])];
+  const tabs: [Tab, string][] = [['info', 'Información'], ['compras', 'Compras'], ['apartados', 'Apartados'], ['planmw', 'Plan MW'], ...(esLider ? [['equipo', 'Equipo'] as [Tab, string]] : [])];
 
   const convertirLider = () =>
     aplicar(
@@ -206,7 +260,7 @@ function Perfil({ p, personas, financiero, ventanas, perfil, onCerrar }: {
       <div className="fila-titulo">
         <div>
           <h2>{nombre || 'Sin nombre'}</h2>
-          <div className="etiquetas"><Insignias p={p} /></div>
+          <div className="etiquetas"><Insignias p={p} rango={rango} /></div>
         </div>
         <button className="btn" onClick={onCerrar}>Cerrar</button>
       </div>
@@ -297,7 +351,7 @@ function Perfil({ p, personas, financiero, ventanas, perfil, onCerrar }: {
       )}
       {tab === 'compras' && <Compras p={p} ventanas={ventanas} perfil={perfil} />}
       {tab === 'apartados' && <Apartados p={p} ventanas={ventanas} />}
-      {tab === 'planmw' && <PlanMW p={p} financiero={financiero} />}
+      {tab === 'planmw' && <PlanMWPersona personaId={p.id} usuario={p.usuario} nombre={nombreCompletoPersona(p)} esLider={p.tipo === 'lider'} />}
       {tab === 'equipo' && esLider && <Equipo p={p} personas={personas} perfil={perfil} />}
 
       {modal === 'editar' && <EditarInfo p={p} personas={personas} ventanas={ventanas} perfil={perfil} onCerrar={() => setModal(null)} />}
@@ -609,42 +663,6 @@ function Apartados({ p, ventanas }: { p: PersonaAdmin; ventanas: Ventana[] }) {
   );
 }
 
-function PlanMW({ p, financiero }: { p: PersonaAdmin; financiero: Financiero | undefined }) {
-  if (!financiero) return <p className="muted">Todavía no hay datos de constancia ni de rifa para {p.nombre}.</p>;
-  const { constancia, rifa } = financiero;
-  const boletos = boletosRifa(rifa);
-  const barra = (v: number, meta: number) => <div className="barra-progreso"><div style={{ width: `${Math.min(100, (v / (meta || 1)) * 100)}%` }} /></div>;
-  return (
-    <>
-      <h3>Reto de Constancia</h3>
-      <div className="resumen-apartados">
-        <div className="dato"><span>Compras cumplidas</span><strong>{constancia.mesesCumplidos}</strong></div>
-        <div className="dato"><span>Compra del mes en curso</span><strong>{$(constancia.montoMesActual)}</strong><span className="small">de {$(constancia.metaMes)}</span></div>
-      </div>
-      {barra(constancia.montoMesActual, constancia.metaMes)}
-      <div className="resumen-apartados">
-        {HITOS_CONSTANCIA.map(h => {
-          const otorgado = constancia.hitosOtorgados.some(o => o.meses === h.meses);
-          return (
-            <div key={h.meses} className="dato">
-              <span>{h.meses} compras</span>
-              <strong>{h.premio}</strong>
-              <span className="small">{otorgado ? 'Entregado' : constancia.mesesCumplidos >= h.meses ? 'Cumplido, por confirmar' : 'Pendiente'}</span>
-            </div>
-          );
-        })}
-      </div>
-      {p.recompensaPendiente && <p className="nota-apartado">Cumplió {p.recompensaPendiente.meses} compras: falta confirmar la entrega de {p.recompensaPendiente.premio}. Se confirma en la pestaña Plan MW.</p>}
-      <h3>Boletos de rifa (mes en curso)</h3>
-      <div className="resumen-apartados">
-        <div className="dato"><span>Próximo beneficio</span><strong className="texto-normal">{boletos.mensaje}</strong></div>
-        <div className="dato"><span>Compra acumulada del mes</span><strong>{$(rifa.montoAcumuladoMes)}</strong><span className="small">de {$(rifa.meta)}</span></div>
-      </div>
-      {barra(rifa.montoAcumuladoMes, rifa.meta)}
-    </>
-  );
-}
-
 function Equipo({ p, personas, perfil }: { p: PersonaAdmin; personas: PersonaAdmin[]; perfil: PerfilUsuario }) {
   const { conNivel, porLider } = useMemo(() => descendencia(personas, p.id), [personas, p.id]);
   const [nivelAbierto, setNivelAbierto] = useState<number | null>(null);
@@ -659,8 +677,6 @@ function Equipo({ p, personas, perfil }: { p: PersonaAdmin; personas: PersonaAdm
   const candidatas = personas
     .filter(x => x.id !== p.id && x.liderId !== p.id && !arriba.has(x.id))
     .sort((a, b) => nombreCompletoPersona(a).localeCompare(nombreCompletoPersona(b), 'es'));
-  const rangoActual = RANGOS_MW.findIndex(r => r.key === p.rangoActualKey);
-  const siguiente = RANGOS_MW[rangoActual + 1];
 
   const Nodo = ({ x, nivel }: { x: PersonaAdmin; nivel: number }) => (
     <li>
@@ -674,12 +690,7 @@ function Equipo({ p, personas, perfil }: { p: PersonaAdmin; personas: PersonaAdm
 
   return (
     <>
-      <h3>Rango</h3>
-      <p>
-        <strong>Rango actual: {rangoLabel(p.rangoActualKey)}</strong>
-        {siguiente ? <span className="muted"> · Siguiente: {siguiente.label} ({siguiente.personas} personas activas, {siguiente.produccion.toLocaleString('es-MX')} puntos de producción grupal, {siguiente.calificado} calificadas)</span> : <span className="muted"> · Ya está en el rango más alto.</span>}
-      </p>
-      {p.ascensoPendiente && <p className="nota-apartado">Lista para subir a {rangoLabel(p.ascensoPendiente.rangoKey)}. El ascenso se confirma en la pestaña Plan MW (ahí se ve qué requisito le falta).</p>}
+      <p className="muted small">Su rango y lo que le falta para el siguiente salen del árbol de mi-equipo: pestaña Plan MW.</p>
       <h3>Equipo</h3>
       <div className="resumen-apartados niveles">
         {[1, 2, 3, 4, 5].map(n => (
