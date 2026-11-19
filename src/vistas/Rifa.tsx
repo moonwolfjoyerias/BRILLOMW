@@ -158,7 +158,7 @@ export function Rifa({ perfil, embebido = false }: { perfil: PerfilUsuario; embe
               <div>
                 <strong>{actual.premio.nombre}</strong>
                 {actual.premio.descripcion && <p className="muted small">{actual.premio.descripcion}</p>}
-                <p className="muted small">Las Emprendedoras y Líderes lo ven en su portal (Inicio y Mi cuenta).</p>
+                <p className="muted small">Las Emprendedoras y Líderes lo ven en su Mi cuenta de la página.</p>
               </div>
             </div>
           ) : (
@@ -257,7 +257,7 @@ export function Rifa({ perfil, embebido = false }: { perfil: PerfilUsuario; embe
             return 'error' in p ? Promise.resolve(p.error) : guardarPremio(db, mesActual, p as PremioRifa, perfil, equipoActual());
           }}
           perfil={perfil}
-          onCerrar={ok => { setEditarPremio(false); if (ok) avisar('Premio del mes guardado. Ya lo ven las e/l en su portal.'); }}
+          onCerrar={ok => { setEditarPremio(false); if (ok) avisar('Premio del mes guardado. Ya lo ven las e/l en su Mi cuenta.'); }}
         />
       )}
       {imprimir && <HojaBoletos boletos={boletos} mesKey={mesPasado} onCerrar={() => setImprimir(false)} />}
