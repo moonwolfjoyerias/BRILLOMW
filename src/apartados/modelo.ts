@@ -62,6 +62,10 @@ export interface Pieza {
   estado: EstadoPieza;
   fechaSolicitud: string;
   enBolsita?: MarcaPersona;
+  /** Pieza cancelada que estaba en su bolsita y ya se sacó (como la página). */
+  sacadaDeBolsita?: MarcaPersona;
+  /** Pieza cancelada que el equipo quitó de la vista (×): no se lista en ningún lado; sigue en la auditoría. */
+  ocultaDeLaVista?: MarcaPersona;
   retiro?: MarcaPersona & { motivo: string };
   [extra: string]: unknown;
 }
@@ -696,6 +700,30 @@ export function alternarBolsita(ventana: Ventana, piezaId: string, usuario: stri
     actividad = { accion: 'guardar_en_bolsita', descripcion: `Guardó ${p.producto} en la bolsita física (apartado de ${v.usuarioNombre})` };
   }
   return { ok: true, ventana: v, efectos: { actividad } };
+}
+
+/** Cancelada que sigue en su bolsita física: alguien tiene que sacarla (igual que la página). */
+export const pendienteDeSacarDeBolsita = (p: Pieza) => p.estado === 'cancelada' && !!p.enBolsita && !p.sacadaDeBolsita;
+export const piezaOcultaDeLaVista = (p: Pieza) => p.estado === 'cancelada' && !!p.ocultaDeLaVista;
+
+export function marcarSacadaDeBolsita(ventana: Ventana, piezaId: string, usuario: string, ahora = new Date()): Resultado {
+  const v = copia(ventana);
+  const p = v.apartados.find(x => x.id === piezaId);
+  if (!p || !pendienteDeSacarDeBolsita(p)) return { ok: false, error: 'Esa pieza ya no está pendiente de sacar de la bolsita.' };
+  p.sacadaDeBolsita = { fecha: ahoraISO(ahora), usuario };
+  v.auditoria.push(historial(`${p.producto}: se sacó de la bolsita física (pieza cancelada)`, usuario, ahora));
+  return { ok: true, ventana: v, efectos: { actividad: { accion: 'sacar_de_bolsita', descripcion: `Sacó ${p.producto} de la bolsita física (pieza cancelada del apartado de ${v.usuarioNombre})` } } };
+}
+
+/** × en una pieza cancelada: deja de verse para todos (página y BRILLO). Si sigue en su bolsita, primero hay que sacarla. */
+export function ocultarPiezaCancelada(ventana: Ventana, piezaId: string, usuario: string, ahora = new Date()): Resultado {
+  const v = copia(ventana);
+  const p = v.apartados.find(x => x.id === piezaId);
+  if (!p || p.estado !== 'cancelada') return { ok: false, error: 'Solo se quitan de la vista las piezas canceladas.' };
+  if (pendienteDeSacarDeBolsita(p)) return { ok: false, error: 'Sigue en su bolsita: primero confirma que se sacó.' };
+  p.ocultaDeLaVista = { fecha: ahoraISO(ahora), usuario };
+  v.auditoria.push(historial(`${p.producto}: pieza cancelada quitada de la vista`, usuario, ahora));
+  return { ok: true, ventana: v, efectos: { actividad: { accion: 'ocultar_pieza_cancelada', descripcion: `Quitó de la vista ${p.producto} (cancelada) del apartado de ${v.usuarioNombre}` } } };
 }
 
 export function alternarOculta(ventana: Ventana, ocultar: boolean, usuario: string, ahora = new Date()): Resultado {
