@@ -1,14 +1,17 @@
 // Rifa del mes: las MISMAS reglas y documentos que la página
 // (js/rifa-mensual-modelo.js y js/rifa-boletos-modelo.js):
-//   rifaMensualConfigs/{mesKey}        → modo (solicitud/votación), opciones, ganadora
+//   rifaMensualConfigs/{mesKey}        → modo (solicitud/votación/premio), opciones, premio, ganadora
 //   rifaMensualSolicitudes/{p__mesKey} → lo que cada e/l pidió (modo solicitud)
 //   rifaMensualVotos/{p__mesKey}       → su voto (modo votación)
 //   rifaBoletos/{mesKey}               → folios de los boletos de un mes ya cerrado
 // El sorteo es presencial: aquí solo se imprimen los boletos y se registra
 // a mano quién ganó. Funciones puras, para poder probarlas.
 
-export type ModoRifa = 'solicitud' | 'votacion';
-export const MODOS_RIFA: Record<ModoRifa, string> = { solicitud: 'Solicitud', votacion: 'Votación' };
+export type ModoRifa = 'solicitud' | 'votacion' | 'premio';
+export const MODOS_RIFA: Record<ModoRifa, string> = { solicitud: 'Solicitud', votacion: 'Votación', premio: 'Premio del mes' };
+
+/** Modo "Premio del mes": Administración sube qué se rifa y las e/l lo ven en su portal. */
+export interface PremioRifa { nombre: string; descripcion: string; fotoUrl: string; actualizadoEn?: string }
 
 export interface OpcionRifa { id: string; nombre: string; fotoUrl: string; descripcion: string; creadoEn?: string }
 
@@ -16,6 +19,7 @@ export interface ConfigRifa {
   mesKey: string;
   modo: ModoRifa | null;
   opciones: OpcionRifa[];
+  premio: PremioRifa | null;
   actualizadoEn?: string;
   actualizadoPorId?: string | null;
   actualizadoPorNombre?: string | null;
@@ -54,11 +58,15 @@ export function fechaSorteo(mesKey: string): string {
 }
 
 export function normalizarConfig(mesKey: string, d: Record<string, unknown> | undefined): ConfigRifa {
-  const modo = d?.modo === 'solicitud' || d?.modo === 'votacion' ? d.modo : null;
+  const modo = d?.modo === 'solicitud' || d?.modo === 'votacion' || d?.modo === 'premio' ? d.modo : null;
   const opciones = Array.isArray(d?.opciones)
     ? (d!.opciones as Record<string, unknown>[]).map(o => ({ id: String(o.id ?? ''), nombre: String(o.nombre ?? ''), fotoUrl: String(o.fotoUrl ?? ''), descripcion: String(o.descripcion ?? ''), creadoEn: o.creadoEn ? String(o.creadoEn) : undefined }))
     : [];
-  return { ...(d ?? {}), mesKey, modo, opciones } as ConfigRifa;
+  const p = d?.premio && typeof d.premio === 'object' ? (d.premio as Record<string, unknown>) : null;
+  const premio = p && String(p.nombre ?? '').trim()
+    ? { nombre: String(p.nombre), descripcion: String(p.descripcion ?? ''), fotoUrl: String(p.fotoUrl ?? ''), ...(p.actualizadoEn ? { actualizadoEn: String(p.actualizadoEn) } : {}) }
+    : null;
+  return { ...(d ?? {}), mesKey, modo, opciones, premio } as ConfigRifa;
 }
 
 /** Votos por opción viva (los de opciones borradas quedan como historial, sin contar). */
@@ -70,6 +78,12 @@ export function nuevaOpcion(datos: { nombre: string; fotoUrl: string; descripcio
   const nombre = datos.nombre.trim();
   if (!nombre) return { error: 'Escribe el nombre del regalo.' };
   return { id: `rifa-op-${ahora.getTime()}-${Math.random().toString(36).slice(2, 7)}`, nombre, fotoUrl: datos.fotoUrl || '', descripcion: datos.descripcion.trim(), creadoEn: ahora.toISOString() };
+}
+
+export function nuevoPremio(datos: { nombre: string; fotoUrl: string; descripcion: string }, ahora = new Date()): PremioRifa | { error: string } {
+  const nombre = datos.nombre.trim();
+  if (!nombre) return { error: 'Escribe qué se va a rifar.' };
+  return { nombre, descripcion: datos.descripcion.trim(), fotoUrl: datos.fotoUrl || '', actualizadoEn: ahora.toISOString() };
 }
 
 /**

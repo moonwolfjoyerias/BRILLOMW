@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { asignarFolios, conteoVotos, fechaSorteo, foliosLocales, mesAnterior, normalizarConfig, nuevaOpcion, resumenPorPersona } from './modelo';
+import { asignarFolios, conteoVotos, fechaSorteo, foliosLocales, mesAnterior, normalizarConfig, nuevaOpcion, nuevoPremio, resumenPorPersona } from './modelo';
 
 const T = new Date('2026-11-17T12:00:00Z');
 
@@ -29,5 +29,12 @@ describe('Rifa del mes', () => {
   it('opción nueva pide nombre', () => {
     expect(nuevaOpcion({ nombre: ' ', descripcion: '', fotoUrl: '' })).toEqual({ error: 'Escribe el nombre del regalo.' });
     expect(nuevaOpcion({ nombre: ' Bolsa ', descripcion: ' piel ', fotoUrl: '' }, T)).toMatchObject({ nombre: 'Bolsa', descripcion: 'piel' });
+  });
+  it('modo premio del mes: se lee el premio y pide qué se rifa', () => {
+    const c = normalizarConfig('2026-11', { modo: 'premio', premio: { nombre: 'Bolsa de piel', descripcion: 'Color miel', fotoUrl: 'data:x' } });
+    expect([c.modo, c.premio?.nombre, c.premio?.descripcion]).toEqual(['premio', 'Bolsa de piel', 'Color miel']);
+    expect(normalizarConfig('2026-11', { modo: 'otro', premio: { nombre: ' ' } })).toMatchObject({ modo: null, premio: null });
+    expect(nuevoPremio({ nombre: ' ', descripcion: '', fotoUrl: '' })).toEqual({ error: 'Escribe qué se va a rifar.' });
+    expect(nuevoPremio({ nombre: ' Perfume ', descripcion: ' 100 ml ', fotoUrl: '' }, T)).toEqual({ nombre: 'Perfume', descripcion: '100 ml', fotoUrl: '', actualizadoEn: T.toISOString() });
   });
 });

@@ -81,7 +81,7 @@ export function Clientes({ perfil }: { perfil: PerfilUsuario }) {
   return (
     <section>
       <div className="encabezado-seccion">
-        <h1>Clientes</h1>
+        <h1>Emprendedoras y Líderes</h1>
         <p className="muted">{personas.length} emprendedoras y líderes · {Object.values(saldos).filter(s => s > 0).length} con saldo a favor</p>
       </div>
       {aviso && <p className="aviso-ok" role="status">{aviso}</p>}

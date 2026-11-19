@@ -1172,3 +1172,23 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
   .importar-filtros input[type='search'] { flex: 1 1 100%; }
 }
 .archivo-excel .btn { display: inline-flex; align-items: center; justify-content: center; }
+
+/* ---------- Plan MW: rangos y logros, pago y comprobante, premio del mes ---------- */
+.plan-mw .pestanas { flex-wrap: wrap; }
+.proximos-rango { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.proximo-rango { display: grid; gap: 6px; padding: 12px 14px; border: 1px solid var(--mw-border); border-radius: 12px; background: var(--surface); }
+.proximo-rango.listo { border-color: var(--ok); box-shadow: 0 0 0 1px var(--ok); }
+.pr-cabeza { display: grid; gap: 2px; }
+.requisitos-rango { margin: 4px 0; padding: 0; list-style: none; display: grid; gap: 2px; font-size: 0.85rem; }
+.requisitos-rango .ra-ok, .requisitos-rango .ra-no { font-weight: 500; }
+.logro-rango { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 12px; border: 1px solid var(--mw-border); border-radius: 10px; background: var(--surface); }
+.bloque-pago { padding: 10px 0; border-top: 1px solid var(--mw-border); }
+.bloque-pago input[type='number'] { max-width: 160px; }
+.premio-rifa { display: grid; grid-template-columns: minmax(120px, 220px) 1fr; gap: 14px; align-items: start; padding: 12px; border: 1px solid var(--mw-border); border-radius: 12px; background: var(--surface); }
+.premio-rifa img, .premio-rifa .foto-vacia { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; display: grid; place-items: center; }
+@media (max-width: 560px) { .premio-rifa { grid-template-columns: 1fr; } }
+.inventario > .pestanas { margin-bottom: 4px; }
+/* Tarjeta de persona con sus botones: el nombre no se aprieta; los botones bajan si no caben. */
+.tarjeta-persona { flex-wrap: wrap; }
+.tarjeta-persona-cuerpo { flex: 1 1 220px; }
+.tarjeta-persona > .acciones-fila { margin-left: auto; }

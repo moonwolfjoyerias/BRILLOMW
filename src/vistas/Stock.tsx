@@ -24,7 +24,8 @@ type Modal =
   | { tipo: 'historial'; producto: Producto }
   | { tipo: 'minimo' };
 
-export function Stock({ perfil, productoInicial }: { perfil: PerfilUsuario; productoInicial?: string }) {
+export function Stock({ perfil, productoInicial, embebido = false }: { perfil: PerfilUsuario; productoInicial?: string; embebido?: boolean }) {
+  const Titulo = embebido ? 'h2' : 'h1';
   const catalogo = useCatalogo();
   const minimo = useStockMinimo(db);
   const [q, setQ] = useState(productoInicial ?? '');
@@ -52,7 +53,7 @@ export function Stock({ perfil, productoInicial }: { perfil: PerfilUsuario; prod
     <section>
       <div className="encabezado-seccion con-accion">
         <div>
-          <h1>Stock</h1>
+          <Titulo>Stock</Titulo>
           <p className="muted">{totalPiezas} piezas en {filas.length} variantes · aviso de poco stock con {minimo} o menos</p>
         </div>
         {puede && (

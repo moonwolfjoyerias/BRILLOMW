@@ -7,12 +7,14 @@ import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';
 import { nuevoAviso } from '../pagina/avisos';
 import {
   asignarFolios,
+  MODOS_RIFA,
   nombreMes,
   normalizarConfig,
   type BoletoRifa,
   type ConfigRifa,
   type ModoRifa,
   type OpcionRifa,
+  type PremioRifa,
   type SolicitudRifa,
   type VotoRifa
 } from './modelo';
@@ -85,7 +87,14 @@ const marca = (perfil: PerfilUsuario) => ({ actualizadoEn: new Date().toISOStrin
 export const fijarModo = (db: Firestore, mesKey: string, modo: ModoRifa, perfil: PerfilUsuario, equipo: string) =>
   cambiarConfig(db, mesKey, c => ({ ...c, modo, ...marca(perfil) }), perfil, equipo, {
     accion: 'cambiar_modo',
-    descripcion: `Rifa del mes ${mesKey}: modo cambiado a "${modo === 'solicitud' ? 'Solicitud' : 'Votación'}"`
+    descripcion: `Rifa del mes ${mesKey}: modo cambiado a "${MODOS_RIFA[modo]}"`
+  });
+
+/** Modo "Premio del mes": qué se va a rifar (las e/l lo ven en su portal). */
+export const guardarPremio = (db: Firestore, mesKey: string, premio: PremioRifa, perfil: PerfilUsuario, equipo: string) =>
+  cambiarConfig(db, mesKey, c => ({ ...c, premio, ...marca(perfil) }), perfil, equipo, {
+    accion: 'guardar_premio',
+    descripcion: `Rifa del mes ${mesKey}: premio del mes "${premio.nombre}"`
   });
 
 export const guardarOpcion = (db: Firestore, mesKey: string, opcion: OpcionRifa, perfil: PerfilUsuario, equipo: string) =>

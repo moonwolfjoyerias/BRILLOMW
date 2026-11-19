@@ -1,6 +1,9 @@
-// Árbol de equipo (solo Administración): el mismo árbol de mi-equipo, con sus
-// puntos, rangos y comisiones. Lee y guarda en la base de mi-equipo, así que
-// lo que se cambie aquí lo ven al instante en mi-equipo y viceversa.
+// Plan MW (solo Administración): todo lo de Emprendedoras y Líderes que va de
+// la mano, en una sola sección con pestañas. Rangos, comisiones y boletos
+// salen SIEMPRE del árbol de mi-equipo (lee y guarda en su base, así que lo
+// que se cambie aquí lo ven al instante en mi-equipo y viceversa):
+//   Árbol completo · Comisiones (del árbol + pago y comprobante) ·
+//   Rangos y logros · Constancia · Rifa del mes · Reportes · Editar · Vincular
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { db, dbEquipo } from '../firebase';
 import { equipoActual } from '../plataforma';
@@ -31,13 +34,29 @@ import {
 import { AuditoriaRango, ComisionesLider, mxn, pts, ResumenLineas } from './ArbolDetalle';
 import { EditarArbol, ElegirPersona, type Guardar } from './ArbolEditar';
 import { VincularPagina } from './ArbolVincular';
+import { PagoComprobante, RangosYLogros } from './PlanMWArbol';
+import { PlanConstanciaVista } from './PlanConstancia';
+import { Rifa } from './Rifa';
 
-type Pestana = 'arbol' | 'comisiones' | 'reportes' | 'editar' | 'vincular';
-type Ventana = { tipo: 'auditoria' | 'lineas' | 'comisiones'; id: string } | null;
+type Pestana = 'arbol' | 'comisiones' | 'rangos' | 'constancia' | 'rifa' | 'reportes' | 'editar' | 'vincular';
+type Ventana = { tipo: 'auditoria' | 'lineas' | 'comisiones' | 'pago'; id: string } | null;
+
+const PESTANAS: [Pestana, string][] = [
+  ['arbol', 'Árbol completo'],
+  ['comisiones', 'Comisiones'],
+  ['rangos', 'Rangos y logros'],
+  ['constancia', 'Constancia'],
+  ['rifa', 'Rifa del mes'],
+  ['reportes', 'Reportes e historiales'],
+  ['editar', 'Editar árbol'],
+  ['vincular', 'Vincular con la página']
+];
+/** Pestañas que no usan el mes del árbol (tienen el suyo). */
+const SIN_MES = new Set<Pestana>(['constancia', 'rifa', 'vincular']);
 
 const fechaHora = (iso: string | null) => (iso ? new Date(iso).toLocaleString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Sin registros todavía');
 
-export function Arbol({ perfil }: { perfil: PerfilUsuario }) {
+export function PlanMW({ perfil }: { perfil: PerfilUsuario }) {
   const arbol = useArbol(dbEquipo);
   const [pestana, setPestana] = useState<Pestana>('arbol');
   const [mk, setMk] = useState<string>('');
@@ -46,35 +65,56 @@ export function Arbol({ perfil }: { perfil: PerfilUsuario }) {
   const meses = useMemo(() => (miembros ? mesesConPuntos(miembros) : []), [miembros]);
   useEffect(() => { if (meses.length && !meses.includes(mk)) setMk(meses[0]); }, [meses, mk]);
 
-  if (perfil.rol !== 'admin') return <p className="muted">Solo Administración maneja el Árbol.</p>;
-  if (arbol.estado === 'error') return <p className="error" role="alert">{arbol.mensaje}</p>;
-  if (arbol.estado !== 'listo' || !miembros || !mk) return <p className="muted">Cargando el árbol…</p>;
+  if (perfil.rol !== 'admin') return <p className="muted">Solo Administración maneja el Plan MW.</p>;
+
+  const navegacion = (
+    <nav className="pestanas" aria-label="Secciones del Plan MW">
+      {PESTANAS.map(([k, t]) => (
+        <button key={k} className={pestana === k ? 'nav-boton activo' : 'nav-boton'} aria-current={pestana === k ? 'page' : undefined} onClick={() => setPestana(k)}>{t}</button>
+      ))}
+    </nav>
+  );
+  const encabezado = (
+    <div className="encabezado-seccion">
+      <h1>Plan MW</h1>
+      <p className="muted">Árbol, comisiones, rangos, constancia y rifa. Rangos, comisiones y boletos salen del árbol de mi-equipo.</p>
+    </div>
+  );
+
+  // Constancia y Rifa no dependen del árbol para mostrarse.
+  if (pestana === 'constancia' || pestana === 'rifa') {
+    return (
+      <section className="arbol plan-mw">
+        {encabezado}
+        {navegacion}
+        {pestana === 'constancia' ? <PlanConstanciaVista perfil={perfil} embebido /> : <Rifa perfil={perfil} embebido />}
+      </section>
+    );
+  }
+  if (arbol.estado === 'error') return <section className="arbol plan-mw">{encabezado}{navegacion}<p className="error" role="alert">{arbol.mensaje}</p></section>;
+  if (arbol.estado !== 'listo' || !miembros || !mk) return <section className="arbol plan-mw">{encabezado}{navegacion}<p className="muted">Cargando el árbol…</p></section>;
 
   const guardar: Guardar = (cambiar, tipo, accion, descripcion) => cambiarArbol(dbEquipo, db, cambiar, tipo, perfil, equipoActual(), { accion, descripcion });
 
   return (
-    <section className="arbol">
-      <div className="encabezado-seccion">
-        <h1>Árbol</h1>
-        <p className="muted">El árbol de mi-equipo: puntos, rangos y comisiones. Lo que cambies aquí se ve también en mi-equipo.</p>
-      </div>
-      <div className="filtros-estadisticas">
-        <label className="campo"><span>Mes</span>
-          <select value={mk} onChange={e => setMk(e.target.value)}>{meses.map(m => <option key={m} value={m}>{etiquetaMes(m)}</option>)}</select>
-        </label>
-        <div className="muted small arbol-meta">
-          <span>{miembros.length} personas</span>
-          <span>Árbol actualizado: {fechaHora(arbol.meta.lastTreeUpdate)}</span>
-          <span>Puntos actualizados: {fechaHora(arbol.meta.lastPointsUpdate)}</span>
+    <section className="arbol plan-mw">
+      {encabezado}
+      {navegacion}
+      {!SIN_MES.has(pestana) && (
+        <div className="filtros-estadisticas">
+          <label className="campo"><span>Mes</span>
+            <select value={mk} onChange={e => setMk(e.target.value)}>{meses.map(m => <option key={m} value={m}>{etiquetaMes(m)}</option>)}</select>
+          </label>
+          <div className="muted small arbol-meta">
+            <span>{miembros.length} personas</span>
+            <span>Árbol actualizado: {fechaHora(arbol.meta.lastTreeUpdate)}</span>
+            <span>Puntos actualizados: {fechaHora(arbol.meta.lastPointsUpdate)}</span>
+          </div>
         </div>
-      </div>
-      <nav className="pestanas" aria-label="Secciones del árbol">
-        {([['arbol', 'Árbol completo'], ['comisiones', 'Comisiones por líder'], ['reportes', 'Reportes e historiales'], ['editar', 'Editar árbol'], ['vincular', 'Vincular con la página']] as [Pestana, string][]).map(([k, t]) => (
-          <button key={k} className={pestana === k ? 'nav-boton activo' : 'nav-boton'} onClick={() => setPestana(k)}>{t}</button>
-        ))}
-      </nav>
+      )}
       {pestana === 'arbol' && <VistaArbol miembros={miembros} mk={mk} abrir={setVentana} />}
       {pestana === 'comisiones' && <Comisiones miembros={miembros} mk={mk} guardar={guardar} abrir={setVentana} />}
+      {pestana === 'rangos' && <RangosYLogros miembros={miembros} mk={mk} abrirAuditoria={id => setVentana({ tipo: 'auditoria', id })} />}
       {pestana === 'reportes' && <Reportes miembros={miembros} mk={mk} />}
       {pestana === 'editar' && <EditarArbol miembros={miembros} mk={mk} guardar={guardar} />}
       {pestana === 'vincular' && <VincularPagina miembros={miembros} guardar={guardar} />}
@@ -82,6 +122,7 @@ export function Arbol({ perfil }: { perfil: PerfilUsuario }) {
       {ventana?.tipo === 'auditoria' && <AuditoriaRango miembros={miembros} id={ventana.id} mk={mk} onCerrar={() => setVentana(null)} />}
       {ventana?.tipo === 'lineas' && <ResumenLineas miembros={miembros} id={ventana.id} mk={mk} onCerrar={() => setVentana(null)} />}
       {ventana?.tipo === 'comisiones' && <ComisionesLider miembros={miembros} id={ventana.id} mk={mk} onCerrar={() => setVentana(null)} />}
+      {ventana?.tipo === 'pago' && <PagoComprobante miembros={miembros} liderId={ventana.id} mk={mk} perfil={perfil} onCerrar={() => setVentana(null)} />}
     </section>
   );
 }
@@ -278,6 +319,7 @@ function Comisiones({ miembros, mk, guardar, abrir }: { miembros: Miembro[]; mk:
                 <td>
                   <div className="acciones izquierda sin-margen">
                     <button className="btn mini" onClick={() => abrir({ tipo: 'comisiones', id: m.id })}>Ver</button>
+                    <button className="btn mini primario" onClick={() => abrir({ tipo: 'pago', id: m.id })}>Pago y comprobante</button>
                     <button className="btn mini" onClick={() => abrir({ tipo: 'auditoria', id: m.id })}>Auditoría</button>
                     <button className="btn mini" onClick={() => excelComisiones(miembros, m.id, mk)}>Excel</button>
                   </div>

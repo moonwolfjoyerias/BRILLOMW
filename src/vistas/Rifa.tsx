@@ -1,7 +1,8 @@
-// Rifa del mes (solo Administración), igual que la pestaña de Plan MW de la
-// página: el modo del mes en curso (solicitud o votación), sus opciones y
-// la participación; y del mes pasado, los boletos con folio para imprimir
-// y la ganadora del sorteo presencial del día 15.
+// Rifa del mes (solo Administración; pestaña de Plan MW), igual que la
+// página: el modo del mes en curso (solicitud, votación o premio del mes),
+// sus opciones o el premio, y la participación; y del mes pasado, los
+// boletos (del árbol) con folio para imprimir y la ganadora del sorteo
+// presencial del día 15.
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { db, dbEquipo } from '../firebase';
@@ -23,16 +24,24 @@ import {
   MODOS_RIFA,
   nombreMes,
   nuevaOpcion,
+  nuevoPremio,
   resumenPorPersona,
   type BoletoRifa,
   type ModoRifa,
-  type OpcionRifa
+  type OpcionRifa,
+  type PremioRifa
 } from '../rifa/modelo';
-import { confirmarGanadora, eliminarOpcion, fijarModo, guardarOpcion, sincronizarFolios, useRifa } from '../rifa/acciones';
+import { confirmarGanadora, eliminarOpcion, fijarModo, guardarOpcion, guardarPremio, sincronizarFolios, useRifa } from '../rifa/acciones';
+
+const TEXTO_MODO: Record<ModoRifa, string> = {
+  solicitud: 'Solicitud — cada quien pide algo',
+  votacion: 'Votación — votan por una opción',
+  premio: 'Premio del mes — tú subes qué se rifa'
+};
 
 const fecha = (iso?: string) => (iso ? new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 
-export function Rifa({ perfil }: { perfil: PerfilUsuario }) {
+export function Rifa({ perfil, embebido = false }: { perfil: PerfilUsuario; embebido?: boolean }) {
   const mesActual = mesKeyDe();
   const mesPasado = mesAnterior(mesActual);
   const datos = useRifa(db, mesActual, mesPasado);
@@ -42,6 +51,7 @@ export function Rifa({ perfil }: { perfil: PerfilUsuario }) {
   const [aviso, setAviso] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [imprimir, setImprimir] = useState(false);
+  const [editarPremio, setEditarPremio] = useState(false);
 
   const arbol = useArbol(dbEquipo);
   // Boletos ganados el mes pasado: del árbol de mi-equipo (la verdad) para
@@ -90,10 +100,12 @@ export function Rifa({ perfil }: { perfil: PerfilUsuario }) {
 
   return (
     <section className="rifa">
-      <div className="encabezado-seccion">
-        <h1>Rifa del mes</h1>
-        <p className="muted">Qué se rifa este mes y los boletos del sorteo presencial. Los mismos datos que Plan MW de la página.</p>
-      </div>
+      {!embebido && (
+        <div className="encabezado-seccion">
+          <h1>Rifa del mes</h1>
+          <p className="muted">Qué se rifa este mes y los boletos del sorteo presencial. Los mismos datos que Plan MW de la página.</p>
+        </div>
+      )}
       {aviso && <p className="aviso-ok" role="status">{aviso}</p>}
       {error && <p className="error" role="alert">{error}</p>}
 
@@ -102,7 +114,7 @@ export function Rifa({ perfil }: { perfil: PerfilUsuario }) {
       <div className="chips-eleccion" role="group" aria-label="Modo de la rifa">
         {(Object.keys(MODOS_RIFA) as ModoRifa[]).map(m => (
           <button key={m} type="button" className={`chip-elegir${actual.modo === m ? ' activo' : ''}`} onClick={() => void cambiarModo(m)}>
-            {m === 'solicitud' ? 'Solicitud — cada quien pide algo' : 'Votación — votan por una opción'}
+            {TEXTO_MODO[m]}
           </button>
         ))}
       </div>
@@ -134,9 +146,30 @@ export function Rifa({ perfil }: { perfil: PerfilUsuario }) {
         </>
       )}
 
-      <h3>
+      {actual.modo === 'premio' && (
+        <>
+          <div className="encabezado-seccion con-accion">
+            <h3>Qué se rifa este mes</h3>
+            <button className="btn primario" onClick={() => setEditarPremio(true)}>{actual.premio ? 'Cambiar premio' : '+ Subir premio'}</button>
+          </div>
+          {actual.premio ? (
+            <div className="premio-rifa">
+              {fotoMostrable(actual.premio.fotoUrl) ? <img src={actual.premio.fotoUrl} alt={actual.premio.nombre} /> : <div className="foto foto-vacia">Sin foto</div>}
+              <div>
+                <strong>{actual.premio.nombre}</strong>
+                {actual.premio.descripcion && <p className="muted small">{actual.premio.descripcion}</p>}
+                <p className="muted small">Las Emprendedoras y Líderes lo ven en su portal (Inicio y Mi cuenta).</p>
+              </div>
+            </div>
+          ) : (
+            <p className="muted small">Todavía no subes el premio: mientras tanto, a las e/l les aparece "Muy pronto sabrás qué se rifa este mes".</p>
+          )}
+        </>
+      )}
+
+      {actual.modo !== 'premio' && <h3>
         {!actual.modo ? 'Resultados' : actual.modo === 'solicitud' ? `Solicitudes recibidas (${solicitudes.length})` : `Votos recibidos (${totalVotos})`}
-      </h3>
+      </h3>}
       {!actual.modo && <p className="muted small">Elige un modo arriba para empezar a recibir participación este mes.</p>}
       {actual.modo === 'solicitud' &&
         (solicitudes.length ? (
@@ -213,6 +246,20 @@ export function Rifa({ perfil }: { perfil: PerfilUsuario }) {
           onBorrar={() => eliminarOpcion(db, mesActual, borrar, perfil, equipoActual()).then(err => { if (!err) { setBorrar(null); avisar('Opción eliminada.'); } return err; })}
         />
       )}
+      {editarPremio && (
+        <EditarOpcion
+          mesKey={mesActual}
+          opcion={actual.premio ? { id: 'premio', ...actual.premio } : null}
+          titulo={actual.premio ? 'Cambiar el premio del mes' : 'Premio del mes'}
+          etiqueta="Qué se rifa"
+          onGuardar={d => {
+            const p = nuevoPremio(d);
+            return 'error' in p ? Promise.resolve(p.error) : guardarPremio(db, mesActual, p as PremioRifa, perfil, equipoActual());
+          }}
+          perfil={perfil}
+          onCerrar={ok => { setEditarPremio(false); if (ok) avisar('Premio del mes guardado. Ya lo ven las e/l en su portal.'); }}
+        />
+      )}
       {imprimir && <HojaBoletos boletos={boletos} mesKey={mesPasado} onCerrar={() => setImprimir(false)} />}
     </section>
   );
@@ -265,13 +312,30 @@ function Ganadora({ mesKey, anterior, resumen, perfil, onListo }: {
   );
 }
 
-function EditarOpcion({ mesKey, opcion, perfil, onCerrar }: { mesKey: string; opcion: OpcionRifa | null; perfil: PerfilUsuario; onCerrar: (ok?: string) => void }) {
+function EditarOpcion({ mesKey, opcion, perfil, onCerrar, onGuardar, titulo, etiqueta = 'Nombre del regalo' }: {
+  mesKey: string;
+  opcion: OpcionRifa | null;
+  perfil: PerfilUsuario;
+  onCerrar: (ok?: string) => void;
+  /** Para el premio del mes: guarda otra cosa en lugar de una opción de votación. */
+  onGuardar?: (d: { nombre: string; descripcion: string; fotoUrl: string }) => Promise<string | null>;
+  titulo?: string;
+  etiqueta?: string;
+}) {
   const [nombre, setNombre] = useState(opcion?.nombre ?? '');
   const [descripcion, setDescripcion] = useState(opcion?.descripcion ?? '');
   const [foto, setFoto] = useState(opcion?.fotoUrl ?? '');
   const { enviando, error, setError, enviar } = useEnvio();
   function guardar(e: FormEvent) {
     e.preventDefault();
+    if (onGuardar) {
+      void enviar(async () => {
+        const err = await onGuardar({ nombre, descripcion, fotoUrl: foto });
+        if (!err) onCerrar('ok');
+        return err;
+      });
+      return;
+    }
     const nueva = nuevaOpcion({ nombre, descripcion, fotoUrl: foto });
     if ('error' in nueva) return setError(nueva.error);
     const lista = opcion ? { ...opcion, nombre: nueva.nombre, descripcion: nueva.descripcion, fotoUrl: foto } : nueva;
@@ -282,9 +346,9 @@ function EditarOpcion({ mesKey, opcion, perfil, onCerrar }: { mesKey: string; op
     });
   }
   return (
-    <MarcoModal titulo={opcion ? 'Editar opción' : 'Nueva opción de la rifa'} onCerrar={() => onCerrar()} enviando={enviando} onEnviar={guardar}>
+    <MarcoModal titulo={titulo ?? (opcion ? 'Editar opción' : 'Nueva opción de la rifa')} onCerrar={() => onCerrar()} enviando={enviando} onEnviar={guardar}>
       <p className="muted">{nombreMes(mesKey)}</p>
-      <label className="campo"><span>Nombre del regalo</span><input value={nombre} onChange={e => setNombre(e.target.value)} autoFocus /></label>
+      <label className="campo"><span>{etiqueta}</span><input value={nombre} onChange={e => setNombre(e.target.value)} autoFocus /></label>
       <label className="campo"><span>Descripción</span><textarea rows={3} value={descripcion} onChange={e => setDescripcion(e.target.value)} /></label>
       <label className="campo">
         <span>Foto</span>

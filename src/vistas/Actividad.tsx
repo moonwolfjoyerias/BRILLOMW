@@ -53,7 +53,7 @@ export function Actividad({ perfil }: { perfil: PerfilUsuario }) {
   return (
     <section className="actividad">
       <div className="encabezado-seccion">
-        <h1>Actividad</h1>
+        <h1>Bitácora</h1>
         <p className="muted">Quién hizo qué y cuándo, en la página y en BRILLO. Se actualiza sola.</p>
       </div>
       {datos.estado === 'cargando' && <p className="muted">Cargando…</p>}

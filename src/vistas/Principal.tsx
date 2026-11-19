@@ -24,72 +24,99 @@ import { MiCuenta } from './MiCuenta';
 import { Nomina } from './Nomina';
 import { Emprendedoras } from './Emprendedoras';
 import { Solicitudes } from './Solicitudes';
-import { Comisiones } from './Comisiones';
-import { PlanMW } from './PlanMW';
-import { Rifa } from './Rifa';
-import { Arbol } from './Arbol';
-import { PlanConstanciaVista } from './PlanConstancia';
+import { PlanMW } from './Arbol';
 import { ConfirmarCompras } from './ConfirmarCompras';
 import { Estadisticas } from './Estadisticas';
 import { useTema } from '../tema';
 import { PILOTO } from '../piloto';
 
-export type Seccion = 'inicio' | 'vender' | 'documentos' | 'clientes' | 'tiposPago' | 'promociones' | 'usuarios' | 'catalogo' | 'productos' | 'stock' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'comisiones' | 'planmw' | 'rifa' | 'arbol' | 'constancia' | 'compras' | 'estadisticas' | 'cuenta';
+export type Seccion = 'inicio' | 'vender' | 'documentos' | 'tiposPago' | 'promociones' | 'usuarios' | 'catalogo' | 'inventario' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'planmw' | 'compras' | 'estadisticas' | 'cuenta';
 
 interface Item { id: Seccion; nombre: string }
 
-/** El menú agrupado por área; cada rol ve solo lo que puede usar (igual que en la página). */
+/**
+ * El menú agrupado por área; cada rol ve solo lo que puede usar (igual que en la página).
+ * - Inventario junta Productos y Stock (cada sub-pestaña sigue su permiso).
+ * - Emprendedoras y Líderes junta lo que antes era Clientes: Staff y Encargado
+ *   ven contacto y saldo a favor; Administración, además, el perfil completo.
+ * - Plan MW junta Árbol, Comisiones, Rangos, Constancia y Rifa (del árbol).
+ * - Bitácora (quién hizo qué) va en Configuración (Admin) o Resultados.
+ */
 function menuPara(perfil: PerfilUsuario): { titulo: string | null; items: Item[] }[] {
   const cobra = puede(perfil, 'cobrar');
+  const admin = perfil.rol === 'admin';
+  const ve = (id: string) => veModulo(perfil, id);
   const grupos: { titulo: string | null; items: Item[] }[] = [
     { titulo: null, items: [{ id: 'inicio', nombre: 'Inicio' }] },
     {
       titulo: 'Tienda',
       items: [
         // Caja y venta van juntas: abrir la caja del día y cobrar en la misma pestaña (Staff no cobra).
-        ...(cobra ? [{ id: 'vender' as const, nombre: 'Caja' }, { id: 'documentos' as const, nombre: 'Documentos' }] : []),
-        { id: 'catalogo', nombre: 'Catálogo' },
-        { id: 'productos', nombre: 'Productos' },
-        { id: 'stock', nombre: 'Stock' },
-        { id: 'apartados', nombre: 'Apartados' },
-        { id: 'clientes', nombre: 'Clientes' },
-        ...(perfil.rol !== 'staff' ? [{ id: 'promociones' as const, nombre: 'Promociones' }] : []),
+        ...(cobra && ve('vender') ? [{ id: 'vender' as const, nombre: 'Caja' }] : []),
+        ...(cobra && ve('documentos') ? [{ id: 'documentos' as const, nombre: 'Documentos' }] : []),
+        ...(ve('catalogo') ? [{ id: 'catalogo' as const, nombre: 'Catálogo' }] : []),
+        ...(ve('productos') || ve('stock') ? [{ id: 'inventario' as const, nombre: 'Inventario' }] : []),
+        ...(ve('apartados') ? [{ id: 'apartados' as const, nombre: 'Apartados' }] : []),
+        ...(perfil.rol !== 'staff' && ve('promociones') ? [{ id: 'promociones' as const, nombre: 'Promociones' }] : []),
         // Lo liquidado en la página cuenta para el Plan MW hasta que se confirma aquí.
-        { id: 'compras', nombre: 'Compras por confirmar' },
-        { id: 'deseos', nombre: 'Lista de deseos' }
+        ...(ve('compras') ? [{ id: 'compras' as const, nombre: 'Compras por confirmar' }] : []),
+        ...(ve('deseos') ? [{ id: 'deseos' as const, nombre: 'Lista de deseos' }] : [])
       ]
     },
     {
       titulo: 'Equipo',
       items: [
-        { id: 'calendario', nombre: 'Calendario' },
-        { id: 'actividadesStaff', nombre: perfil.rol === 'staff' ? 'Mis actividades' : 'Actividades del Staff' },
-        { id: 'actividad', nombre: 'Actividad' },
+        ...(ve('calendario') ? [{ id: 'calendario' as const, nombre: 'Calendario' }] : []),
+        ...(ve('actividadesStaff') ? [{ id: 'actividadesStaff' as const, nombre: perfil.rol === 'staff' ? 'Mis actividades' : 'Actividades del Staff' }] : []),
         // Nómina: Encargado y Administrativo, como en la página (Staff ve su recibo en Mi cuenta).
-        ...(perfil.rol !== 'staff' ? [{ id: 'nomina' as const, nombre: 'Nómina' }] : [])
+        ...(perfil.rol !== 'staff' && ve('nomina') ? [{ id: 'nomina' as const, nombre: 'Nómina' }] : [])
+      ]
+    },
+    {
+      titulo: 'Emprendedoras',
+      items: [
+        ...(admin || ve('clientes') ? [{ id: 'emprendedoras' as const, nombre: 'Emprendedoras y Líderes' }] : []),
+        ...(admin ? [{ id: 'solicitudes' as const, nombre: 'Solicitudes' }, { id: 'planmw' as const, nombre: 'Plan MW' }] : [])
       ]
     }
   ];
-  // Estadísticas: Administración (todo) y Encargado (tienda, staff y uso; Nómina si tiene el permiso).
-  if (perfil.rol !== 'staff') grupos.push({ titulo: 'Resultados', items: [{ id: 'estadisticas', nombre: 'Estadísticas' }] });
-  // Emprendedoras/Líderes, Solicitudes, Comisiones y Plan MW: solo Administración, como en la página.
-  if (perfil.rol === 'admin') {
+  // Resultados: Estadísticas (Administración y Encargado) y, fuera de Admin, la Bitácora.
+  const resultados: Item[] = [
+    ...(perfil.rol !== 'staff' && ve('estadisticas') ? [{ id: 'estadisticas' as const, nombre: 'Estadísticas' }] : []),
+    ...(!admin && ve('actividad') ? [{ id: 'actividad' as const, nombre: 'Bitácora' }] : [])
+  ];
+  grupos.push({ titulo: 'Resultados', items: resultados });
+  if (admin) {
     grupos.push({
-      titulo: 'Emprendedoras',
+      titulo: 'Configuración',
       items: [
-        { id: 'emprendedoras', nombre: 'Emprendedoras y Líderes' },
-        { id: 'solicitudes', nombre: 'Solicitudes' },
-        { id: 'comisiones', nombre: 'Comisiones' },
-        { id: 'planmw', nombre: 'Plan MW' },
-        { id: 'rifa', nombre: 'Rifa del mes' },
-        { id: 'constancia', nombre: 'Plan de constancia' },
-        { id: 'arbol', nombre: 'Árbol' }
+        { id: 'usuarios', nombre: 'Cuentas y seguridad' },
+        { id: 'tiposPago', nombre: 'Tipos de pago' },
+        { id: 'actividad', nombre: 'Bitácora' }
       ]
     });
-    grupos.push({ titulo: 'Configuración', items: [{ id: 'usuarios', nombre: 'Usuarios y seguridad' }, { id: 'tiposPago', nombre: 'Tipos de pago' }] });
   }
-  // Módulos que Administración le ocultó a esta persona (Usuarios y seguridad).
-  return grupos.map(g => ({ ...g, items: g.items.filter(it => veModulo(perfil, it.id)) })).filter(g => g.items.length);
+  return grupos.filter(g => g.items.length);
+}
+
+/** Inventario: Productos y Stock en una sola sección con dos sub-pestañas. */
+function Inventario({ perfil }: { perfil: PerfilUsuario }) {
+  const opciones = ([['productos', 'Productos'], ['stock', 'Stock']] as const).filter(([k]) => veModulo(perfil, k));
+  const [sub, setSub] = useState<'productos' | 'stock'>(opciones[0]?.[0] ?? 'productos');
+  return (
+    <section className="inventario">
+      <div className="encabezado-seccion">
+        <h1>Inventario</h1>
+        <p className="muted">Todas las piezas a la venta y su existencia por variante, con entradas, ajustes e historial.</p>
+      </div>
+      {opciones.length > 1 && (
+        <nav className="pestanas" aria-label="Inventario">
+          {opciones.map(([k, t]) => <button key={k} className={sub === k ? 'nav-boton activo' : 'nav-boton'} aria-current={sub === k ? 'page' : undefined} onClick={() => setSub(k)}>{t}</button>)}
+        </nav>
+      )}
+      {sub === 'productos' ? <Productos perfil={perfil} embebido /> : <Stock perfil={perfil} embebido />}
+    </section>
+  );
 }
 
 const IconoLuna = () => (
@@ -188,16 +215,14 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
         </nav>
         <main className="contenido">
           {seccion === 'inicio' && <Inicio perfil={perfil} onIr={ir} />}
-          {seccion === 'vender' && <Vender perfil={perfil} />}
+          {seccion === 'vender' && <Vender perfil={perfil} onVerDocumentos={puede(perfil, 'cobrar') && veModulo(perfil, 'documentos') ? () => ir('documentos') : undefined} />}
           {seccion === 'cuenta' && <MiCuenta perfil={perfil} />}
           {seccion === 'catalogo' && <Catalogo perfil={perfil} />}
-          {seccion === 'productos' && <Productos perfil={perfil} />}
+          {seccion === 'inventario' && <Inventario perfil={perfil} />}
           {seccion === 'documentos' && <Documentos perfil={perfil} />}
-          {seccion === 'clientes' && <Clientes perfil={perfil} />}
           {seccion === 'tiposPago' && <TiposPago perfil={perfil} />}
           {seccion === 'usuarios' && <Usuarios perfil={perfil} />}
           {seccion === 'promociones' && <Promociones perfil={perfil} />}
-          {seccion === 'stock' && <Stock perfil={perfil} />}
           {seccion === 'apartados' && <Apartados perfil={perfil} />}
           {seccion === 'compras' && <ConfirmarCompras perfil={perfil} />}
           {seccion === 'deseos' && <ListaDeseos perfil={perfil} />}
@@ -205,13 +230,9 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
           {seccion === 'calendario' && <Calendario perfil={perfil} />}
           {seccion === 'actividad' && <Actividad perfil={perfil} />}
           {seccion === 'nomina' && <Nomina perfil={perfil} />}
-          {seccion === 'emprendedoras' && <Emprendedoras perfil={perfil} />}
+          {seccion === 'emprendedoras' && (perfil.rol === 'admin' ? <Emprendedoras perfil={perfil} /> : <Clientes perfil={perfil} />)}
           {seccion === 'solicitudes' && <Solicitudes perfil={perfil} />}
-          {seccion === 'comisiones' && <Comisiones perfil={perfil} />}
           {seccion === 'planmw' && <PlanMW perfil={perfil} />}
-          {seccion === 'rifa' && <Rifa perfil={perfil} />}
-          {seccion === 'arbol' && <Arbol perfil={perfil} />}
-          {seccion === 'constancia' && <PlanConstanciaVista perfil={perfil} />}
           {seccion === 'estadisticas' && <Estadisticas perfil={perfil} />}
         </main>
       </div>
