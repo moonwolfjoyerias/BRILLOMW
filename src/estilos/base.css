@@ -1192,3 +1192,8 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
 .tarjeta-persona { flex-wrap: wrap; }
 .tarjeta-persona-cuerpo { flex: 1 1 220px; }
 .tarjeta-persona > .acciones-fila { margin-left: auto; }
+
+/* Apartados: × para quitar de la vista una pieza cancelada (para todos). */
+.pieza { position: relative; }
+.pieza-quitar-vista { position: absolute; top: -4px; right: -4px; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--mw-border); background: var(--surface); color: var(--mw-text-muted); font-size: 1.05rem; line-height: 1; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.pieza-quitar-vista:hover { color: var(--danger); border-color: var(--danger); }

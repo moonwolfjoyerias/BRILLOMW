@@ -20,6 +20,10 @@ import {
   depositoFaltante,
   fechasVentana,
   alternarBolsita,
+  marcarSacadaDeBolsita,
+  ocultarPiezaCancelada,
+  pendienteDeSacarDeBolsita,
+  piezaOcultaDeLaVista,
   alternarOculta,
   aplicarExcedente,
   aprobarVip,
@@ -537,12 +541,32 @@ function FilaVentana({
       {abierta && (
         <div className="ventana-detalle">
           <h3>Piezas del apartado</h3>
-          {!v.apartados.length && <p className="muted small">Sin piezas</p>}
-          {v.apartados.map(p => {
+          {!v.apartados.some(p => !piezaOcultaDeLaVista(p)) && <p className="muted small">Sin piezas</p>}
+          {v.apartados.filter(p => !piezaOcultaDeLaVista(p)).map(p => {
             const producto = productos.find(x => x.id === p.productoId);
             const ep = ESTADO_PIEZA[p.estado] ?? { texto: p.estado, clase: 'neutro' };
             return (
               <div key={p.id} className="pieza">
+                {p.estado === 'cancelada' && !pendienteDeSacarDeBolsita(p) && (
+                  <button
+                    type="button"
+                    className="pieza-quitar-vista"
+                    aria-label={`Quitar de la vista ${p.producto}`}
+                    title="Quitar de la vista esta pieza cancelada"
+                    onClick={() =>
+                      onConfirmar({
+                        titulo: 'Quitar de la vista',
+                        mensaje: `¿Quitar de la vista "${p.producto}" (cancelada) del apartado de ${v.usuarioNombre}? Ya no aparecerá en BRILLO ni en la página para nadie; queda en el historial del apartado.`,
+                        textoBoton: 'Sí, quitar de la vista',
+                        ventanaId: v.id,
+                        accion: (a, u) => ocultarPiezaCancelada(a, p.id, u),
+                        exito: 'Pieza quitada de la vista.'
+                      })
+                    }
+                  >
+                    ×
+                  </button>
+                )}
                 <Miniatura producto={producto} />
                 <div className="pieza-texto">
                   <strong>{p.producto}</strong>
@@ -570,11 +594,31 @@ function FilaVentana({
                         </button>
                         <button className="btn peligro mini" onClick={() => onModal({ tipo: 'quitar', v, pieza: p })}>× Quitar pieza</button>
                       </>
+                    ) : pendienteDeSacarDeBolsita(p) ? (
+                      <button
+                        className="btn primario mini"
+                        onClick={() =>
+                          onConfirmar({
+                            titulo: 'Sacar de la bolsita',
+                            mensaje: `¿Confirmas que "${p.producto}" de ${v.usuarioNombre} ya se sacó de su bolsita física?`,
+                            textoBoton: 'Sí, ya se sacó',
+                            ventanaId: v.id,
+                            accion: (a, u) => marcarSacadaDeBolsita(a, p.id, u),
+                            exito: 'Pieza sacada de la bolsita.'
+                          })
+                        }
+                      >
+                        Confirmar que se sacó de la bolsita
+                      </button>
+                    ) : p.sacadaDeBolsita ? (
+                      <span className="chip ok">✓ Sacada de la bolsita</span>
                     ) : (
                       p.enBolsita && <span className="chip ok">✓ Estuvo en bolsita</span>
                     )}
                   </div>
                   {p.enBolsita && <span className="muted small bloque">En bolsita desde {fechaHora(p.enBolsita.fecha)} · {p.enBolsita.usuario}</span>}
+                  {pendienteDeSacarDeBolsita(p) && <span className="small bloque peligro-texto">Se canceló y sigue en su bolsita: sácala y confirma aquí.</span>}
+                  {p.sacadaDeBolsita && <span className="muted small bloque">Sacada de la bolsita {fechaHora(p.sacadaDeBolsita.fecha)} · {p.sacadaDeBolsita.usuario}</span>}
                   {p.retiro && <span className="small bloque peligro-texto">Quitada del apartado: {p.retiro.motivo} · {p.retiro.usuario} · {fechaHora(p.retiro.fecha)}</span>}
                   {p.retiro && p.estado === 'cancelada' && v.estado !== 'vencida' && (
                     <button className="btn mini descancelar" onClick={() => onConfirmar(confirmacionDescancelar(v, p))}>↺ Descancelar (llegó de nuevo)</button>
