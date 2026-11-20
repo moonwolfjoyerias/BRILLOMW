@@ -229,7 +229,7 @@ function FormEvento({ evento, perfil, onListo, onCerrar }: { evento?: Evento; pe
                 <textarea rows={2} maxLength={200} value={d.acompanantes.motivo} onChange={e => setAcomp({ motivo: e.target.value })} placeholder="Ej. Es una comida familiar de fin de año" />
               </label>
             )}
-            <span className="muted small">Al confirmar su asistencia en la página, la e/l marca "Llevaré acompañante" y escribe el nombre de cada uno (y su teléfono si son prospectos).</span>
+            <span className="muted small">Al confirmar su asistencia en la página, la e/l marca "Llevaré acompañante" y escribe el nombre de cada uno (y su teléfono si son prospectos). Si son prospectos, se le avisa que no son parte de su equipo (personas que todavía no están en MW).</span>
           </>
         )}
       </fieldset>
