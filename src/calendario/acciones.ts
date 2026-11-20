@@ -6,9 +6,34 @@ import { collection, doc, onSnapshot, runTransaction, type Firestore } from '../
 import { useEffect, useState } from 'react';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';
-import { normalizarEvento, type Evento } from './modelo';
+import { normalizarAsistencia, normalizarEvento, type Asistente, type Evento } from './modelo';
 
 export const COL_EVENTOS = 'eventos';
+/** Confirmaciones de asistencia de las e/l (una por persona y evento, con acompañantes). */
+export const COL_ASISTENCIA = 'eventosAsistencia';
+
+/** eventoId → confirmaciones, en vivo. */
+export function useAsistencias(db: Firestore): Map<string, Asistente[]> {
+  const [mapa, setMapa] = useState<Map<string, Asistente[]>>(new Map());
+  useEffect(
+    () =>
+      onSnapshot(
+        collection(db, COL_ASISTENCIA),
+        s => {
+          const m = new Map<string, Asistente[]>();
+          s.docs.forEach(d => {
+            const a = normalizarAsistencia(d.data());
+            if (!m.has(a.eventoId)) m.set(a.eventoId, []);
+            m.get(a.eventoId)!.push(a);
+          });
+          setMapa(m);
+        },
+        () => setMapa(new Map())
+      ),
+    [db]
+  );
+  return mapa;
+}
 
 export type EstadoEventos = { estado: 'cargando' } | { estado: 'error' } | { estado: 'listo'; eventos: Evento[] };
 

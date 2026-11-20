@@ -8,18 +8,23 @@ import type { PerfilUsuario } from '../sesion/perfil';
 import { comprimirFoto } from '../pagina/fotos';
 import { fotoMostrable } from '../pagina/producto';
 import { fechaLocal } from '../caja/turno';
-import { guardarEvento, useEventos } from '../calendario/acciones';
+import { guardarEvento, useAsistencias, useEventos } from '../calendario/acciones';
 import {
   EVENTO_FOTO_CALIDAD,
   EVENTO_FOTO_LADO_MAX,
   TIPOS_EVENTO,
+  ACOMPANANTES_LIMITE_MAXIMO,
   asistentesOrdenados,
+  configAcompanantes,
   csvAsistencia,
+  SIN_ACOMPANANTES,
   eventoEditado,
   filtrarEventos,
   nuevoEvento,
   resumenEventos,
   validarEvento,
+  type Asistente,
+  type ConfigAcompanantes,
   type DatosEvento,
   type Evento
 } from '../calendario/modelo';
@@ -37,6 +42,8 @@ type Modal = { tipo: 'nuevo' } | { tipo: 'editar'; id: string } | { tipo: 'elimi
 
 export function Calendario({ perfil }: { perfil: PerfilUsuario }) {
   const datos = useEventos(db);
+  // Confirmaciones de las e/l (con acompañantes), en vivo.
+  const asistencias = useAsistencias(db);
   const [busqueda, setBusqueda] = useState('');
   const [tipo, setTipo] = useState('');
   const [modal, setModal] = useState<Modal | null>(null);
@@ -107,7 +114,7 @@ export function Calendario({ perfil }: { perfil: PerfilUsuario }) {
                     </span>
                     <span className="acciones-fila">
                       <button className="btn mini" onClick={() => setModal({ tipo: 'editar', id: ev.id })}>Editar</button>
-                      <button className="btn mini" onClick={() => setModal({ tipo: 'asistencia', id: ev.id })}>Asistencia ({ev.asistentes.length})</button>
+                      <button className="btn mini" onClick={() => setModal({ tipo: 'asistencia', id: ev.id })}>Asistencia ({asistentesOrdenados(ev, asistencias.get(ev.id)).length})</button>
                       <button className="btn peligro mini" onClick={() => setModal({ tipo: 'eliminar', id: ev.id })}>Eliminar</button>
                     </span>
                   </li>
@@ -120,7 +127,7 @@ export function Calendario({ perfil }: { perfil: PerfilUsuario }) {
       {modal?.tipo === 'nuevo' && <FormEvento perfil={perfil} onListo={listo} onCerrar={() => setModal(null)} />}
       {modal?.tipo === 'editar' && evento && <FormEvento evento={evento} perfil={perfil} onListo={listo} onCerrar={() => setModal(null)} />}
       {modal?.tipo === 'eliminar' && evento && <Eliminar evento={evento} perfil={perfil} onListo={listo} onCerrar={() => setModal(null)} />}
-      {modal?.tipo === 'asistencia' && evento && <Asistencia evento={evento} onCerrar={() => setModal(null)} />}
+      {modal?.tipo === 'asistencia' && evento && <Asistencia evento={evento} deLaBase={asistencias.get(evento.id) ?? []} onCerrar={() => setModal(null)} />}
     </section>
   );
 }
@@ -134,12 +141,16 @@ function FormEvento({ evento, perfil, onListo, onCerrar }: { evento?: Evento; pe
     hora: evento?.hora ?? '',
     lugarTexto: evento?.lugarTexto ?? '',
     enlace: evento?.enlace ?? '',
-    imagen: evento?.imagen ?? ''
+    imagen: evento?.imagen ?? '',
+    acompanantes: configAcompanantes(evento) ?? SIN_ACOMPANANTES
   }));
+  const setAcomp = (x: Partial<ConfigAcompanantes>) => setD(prev => ({ ...prev, acompanantes: { ...prev.acompanantes, ...x } }));
+  // Hasta que contesten si son prospectos (en un evento nuevo), no se da nada por hecho.
+  const [prospectosElegido, setProspectosElegido] = useState(!!configAcompanantes(evento));
   const [procesando, setProcesando] = useState(false);
   const archivo = useRef<HTMLInputElement>(null);
   const { enviando, error, setError, enviar } = useEnvio();
-  const set = (k: keyof DatosEvento, v: string) => setD(prev => ({ ...prev, [k]: v }));
+  const set = (k: Exclude<keyof DatosEvento, 'acompanantes'>, v: string) => setD(prev => ({ ...prev, [k]: v }));
   const foto = fotoMostrable(d.imagen);
 
   async function elegirFoto(e: ChangeEvent<HTMLInputElement>) {
@@ -159,6 +170,7 @@ function FormEvento({ evento, perfil, onListo, onCerrar }: { evento?: Evento; pe
 
   function guardar(e: FormEvent) {
     e.preventDefault();
+    if (d.acompanantes.permitido && !prospectosElegido) return setError('Indica si los acompañantes son prospectos.');
     const v = validarEvento(d);
     if (!v.ok) return setError(v.error);
     void enviar(async () => {
@@ -199,6 +211,28 @@ function FormEvento({ evento, perfil, onListo, onCerrar }: { evento?: Evento; pe
       </div>
       <label className="campo"><span>Lugar *</span><input value={d.lugarTexto} onChange={e => set('lugarTexto', e.target.value)} placeholder="Ej. Centro Joyero San Luis, Local 21 / En línea (Zoom)" /></label>
       <label className="campo"><span>Enlace (ubicación o videollamada)</span><input value={d.enlace} onChange={e => set('enlace', e.target.value)} placeholder="https://…" /></label>
+      <fieldset className="campo acompanantes-evento">
+        <legend className="small">Acompañantes</legend>
+        <label className="check"><input type="checkbox" checked={d.acompanantes.permitido} onChange={e => setAcomp({ permitido: e.target.checked })} /> Las Emprendedoras/Líderes pueden llevar acompañantes</label>
+        {d.acompanantes.permitido && (
+          <>
+            <label className="campo"><span>Máximo de acompañantes por e/l</span>
+              <input type="number" min={1} max={ACOMPANANTES_LIMITE_MAXIMO} step={1} value={d.acompanantes.limite} onChange={e => setAcomp({ limite: Math.floor(Number(e.target.value)) })} />
+            </label>
+            <span className="small">¿Los acompañantes son prospectos?</span>
+            <div className="en-linea">
+              <label className="check"><input type="radio" name="acompProspectos" checked={prospectosElegido && d.acompanantes.prospectos} onChange={() => { setProspectosElegido(true); setAcomp({ prospectos: true }); }} /> Sí, son prospectos</label>
+              <label className="check"><input type="radio" name="acompProspectos" checked={prospectosElegido && !d.acompanantes.prospectos} onChange={() => { setProspectosElegido(true); setAcomp({ prospectos: false }); }} /> No</label>
+            </div>
+            {prospectosElegido && !d.acompanantes.prospectos && (
+              <label className="campo"><span>¿Por qué van los acompañantes? *</span>
+                <textarea rows={2} maxLength={200} value={d.acompanantes.motivo} onChange={e => setAcomp({ motivo: e.target.value })} placeholder="Ej. Es una comida familiar de fin de año" />
+              </label>
+            )}
+            <span className="muted small">Al confirmar su asistencia en la página, la e/l marca "Llevaré acompañante" y escribe el nombre de cada uno (y su teléfono si son prospectos).</span>
+          </>
+        )}
+      </fieldset>
       <p className="muted small">Queda registrado a nombre de {perfil.nombre} en el evento y en Actividad.</p>
       {error && <p className="error" role="alert">{error}</p>}
       <div className="acciones">
@@ -213,7 +247,7 @@ function Eliminar({ evento, perfil, onListo, onCerrar }: { evento: Evento; perfi
   return (
     <MarcoModal titulo="Eliminar evento" onCerrar={onCerrar} enviando={enviando}>
       <p>¿Eliminar <strong>{evento.titulo}</strong> del calendario? Desaparece también de la página. <strong>No se puede deshacer.</strong></p>
-      {evento.asistentes.length > 0 && <p className="nota-apartado">Tiene {evento.asistentes.length} confirmación(es) de asistencia; se pierden con el evento.</p>}
+      {evento.asistentes.length > 0 && <p className="nota-apartado">Tiene confirmaciones de asistencia; se pierden con el evento.</p>}
       {error && <p className="error" role="alert">{error}</p>}
       <div className="acciones">
         <button className="btn" onClick={onCerrar} disabled={enviando}>No, conservar</button>
@@ -236,10 +270,12 @@ function Eliminar({ evento, perfil, onListo, onCerrar }: { evento: Evento; perfi
   );
 }
 
-function Asistencia({ evento, onCerrar }: { evento: Evento; onCerrar: () => void }) {
-  const asistentes = asistentesOrdenados(evento);
+function Asistencia({ evento, deLaBase, onCerrar }: { evento: Evento; deLaBase: Asistente[]; onCerrar: () => void }) {
+  const asistentes = asistentesOrdenados(evento, deLaBase);
+  const acomp = configAcompanantes(evento);
+  const totalAcomp = asistentes.reduce((s, a) => s + (a.acompanantes?.length ?? 0), 0);
   function descargar() {
-    const blob = new Blob([csvAsistencia(evento, fechaLarga)], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csvAsistencia(evento, fechaLarga, deLaBase)], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -251,7 +287,11 @@ function Asistencia({ evento, onCerrar }: { evento: Evento; onCerrar: () => void
   }
   return (
     <MarcoModal titulo="Lista de asistencia" onCerrar={onCerrar}>
-      <p className="muted">{evento.titulo} · {asistentes.length} confirmación{asistentes.length === 1 ? '' : 'es'}</p>
+      <p className="muted">
+        {evento.titulo} · {asistentes.length} {asistentes.length === 1 ? 'confirmación' : 'confirmaciones'}
+        {totalAcomp > 0 && ` + ${totalAcomp} acompañante${totalAcomp === 1 ? '' : 's'} = ${asistentes.length + totalAcomp} personas`}
+      </p>
+      {acomp && <p className="muted small">Acompañantes: hasta {acomp.limite} por e/l · {acomp.prospectos ? 'son prospectos' : `no son prospectos — ${acomp.motivo}`}.</p>}
       {!asistentes.length ? (
         <p className="muted">Todavía nadie ha confirmado su asistencia a este evento.</p>
       ) : (
@@ -260,6 +300,17 @@ function Asistencia({ evento, onCerrar }: { evento: Evento; onCerrar: () => void
             <li key={a.personaId ?? i}>
               <strong>{a.nombre}</strong>
               {a.fecha && <span className="muted small bloque">Confirmó el {fechaLarga(a.fecha)}</span>}
+              {(a.acompanantes?.length ?? 0) > 0 && (
+                <ul className="acompanantes-lista">
+                  {a.acompanantes!.map((c, j) => (
+                    <li key={j}>
+                      {c.nombre}
+                      {c.telefono && <> · <a href={`tel:${c.telefono}`}>{c.telefono}</a></>}
+                      {acomp?.prospectos && <span className="chip pendiente">Prospecto</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </li>
           ))}
         </ul>
