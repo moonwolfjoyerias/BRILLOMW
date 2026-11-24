@@ -200,8 +200,7 @@ function NuevaEL({ perfil, onCerrar, onListo }: { perfil: PerfilUsuario; onCerra
       {lider && lider.tipo !== 'lider' && (
         <label className="check nota-apartado"><input type="checkbox" checked={ascender} onChange={e => setAscender(e.target.checked)} /> {lider.nombre} todavía es Emprendedora: convertir su cuenta a Líder para inscribir a esta persona en su equipo.</label>
       )}
-      <label className="campo"><span>Contraseña (opcional)</span><input value={d.password} onChange={e => set('password', e.target.value)} autoComplete="new-password" placeholder="Vacío = la automática (usuario + iniciales)" /></label>
-      <p className="muted small">El usuario se genera solo (MW####). La persona aparece al instante en la página y en BRILLO.</p>
+      <p className="muted small">Se creará una contraseña automática: <strong>MW#### + iniciales del nombre</strong> (MW#### es su número de usuario). Te la mostramos al terminar para que se la compartas. La persona aparece al instante en la página y en BRILLO.</p>
       {per.estado === 'error' && <p className="error">No se pudieron cargar las Emprendedoras y Líderes.</p>}
       {error && <p className="error" role="alert">{error}</p>}
       <div className="acciones"><button type="submit" className="btn primario" disabled={enviando || per.estado !== 'listo'}>{enviando ? 'Creando…' : 'Crear cuenta'}</button></div>

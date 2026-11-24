@@ -56,7 +56,7 @@ function menuPara(perfil: PerfilUsuario): { titulo: string | null; items: Item[]
         ...(cobra && ve('documentos') ? [{ id: 'documentos' as const, nombre: 'Documentos' }] : []),
         ...(ve('catalogo') ? [{ id: 'catalogo' as const, nombre: 'Catálogo' }] : []),
         ...(ve('productos') || ve('stock') ? [{ id: 'inventario' as const, nombre: 'Inventario' }] : []),
-        ...(ve('apartados') ? [{ id: 'apartados' as const, nombre: 'Apartados' }] : []),
+        ...(ve('apartados') ? [{ id: 'apartados' as const, nombre: 'Pedidos' }] : []),
         ...(perfil.rol !== 'staff' && ve('promociones') ? [{ id: 'promociones' as const, nombre: 'Promociones' }] : []),
         // Lo liquidado en la página cuenta para el Plan MW hasta que se confirma aquí.
         ...(ve('compras') ? [{ id: 'compras' as const, nombre: 'Compras por confirmar' }] : []),
