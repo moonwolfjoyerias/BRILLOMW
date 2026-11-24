@@ -1,5 +1,6 @@
 // Guardar entradas y ajustes de existencia (una transacción cada uno: el
 // producto, su movimiento y la Actividad) y leer el historial de una pieza.
+import { escribirEnResumen, partesResumenTx } from '../pagina/resumenCatalogo';
 import { puede } from '../sesion/permisos';
 import { useEffect, useState } from 'react';
 import { collection, doc, getDocs, onSnapshot, query, runTransaction, setDoc, where, type Firestore, type Transaction } from '../datos/firestore';
@@ -88,16 +89,18 @@ export async function moverStock(db: Firestore, c: CambioStock, perfil: PerfilUs
       const s = await tx.get(ref);
       if (!s.exists()) throw new Error('Ese producto ya no existe.');
       const datos = s.data();
+      const partesResumen = await partesResumenTx(tx, db);
       const r = cambiarExistencia(Array.isArray(datos.variantes) ? datos.variantes : [], c.varianteId, c.cambio);
       if ('error' in r) throw new Error(r.error);
       if (r.antes === r.despues) throw new Error('La existencia no cambia.');
       const fecha = ahora.toISOString();
-      tx.update(ref, {
+      const cambio = {
         variantes: r.variantes,
         disponible: r.variantes.some(x => (Number(x.stock) || 0) > 0),
-        // Con ultimaAccion la página ve el cambio en su resumen del catálogo.
         ultimaAccion: { tipo: 'Existencia modificada', empleado: perfil.nombre, fecha, origen: `BRILLO (${equipo})` }
-      });
+      };
+      tx.update(ref, cambio);
+      escribirEnResumen(tx, db, partesResumen, c.productoId, { ...datos, ...cambio });
       anotarMovimiento(tx, db, { productoId: c.productoId, varianteId: c.varianteId, producto: datos, tipo: c.tipo, cantidad: r.despues - r.antes, antes: r.antes, despues: r.despues, motivo: c.motivo, nota: c.nota?.trim(), proveedor: c.proveedor?.trim(), por: perfil.nombre }, ahora);
       const v = (datos.variantes as VarianteCruda[]).find(x => x.id === c.varianteId)!;
       const nombre = `${String(datos.nombre)} (${etiquetaVariante({ color: String(v.color ?? ''), talla: String(v.talla ?? '') })})`;

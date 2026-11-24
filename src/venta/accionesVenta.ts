@@ -1,5 +1,6 @@
 // Lo que se hace sobre ventas ya cobradas y sobre los cambios físicos
 // abiertos. Cada acción es UNA transacción con su registro en Actividad.
+import { escribirEnResumen, partesResumenTx } from '../pagina/resumenCatalogo';
 import { anotarMovimiento } from '../stock/acciones';
 import { FirebaseError } from 'firebase/app';
 import { collection, doc, getDoc, onSnapshot, query, runTransaction, where, type Firestore } from '../datos/firestore';
@@ -126,13 +127,21 @@ export function regresarAlInventario(db: Firestore, folio: string, perfil: Perfi
     if (v.cambioFisico.regresado) throw new ErrorAccion('Esas piezas ya se regresaron al inventario.');
     const piezas = piezasRegresables(v.cambioFisico.piezas);
     const actuales = new Map<string, Record<string, unknown>[] | undefined>();
+    const completos = new Map<string, Record<string, unknown>>();
     for (const id of new Set(piezas.map(p => p.productoId!))) {
       const p = await tx.get(doc(db, 'productos', id));
       actuales.set(id, p.exists() && Array.isArray(p.data().variantes) ? (p.data().variantes as Record<string, unknown>[]) : undefined);
+      if (p.exists()) completos.set(id, p.data());
     }
+    const partesResumen = completos.size ? await partesResumenTx(tx, db) : null;
     const r = sumarExistencias(actuales, piezas, 1);
     if (!r.ok) throw new ErrorAccion(r.error);
-    r.cambios.forEach((variantes, id) => tx.update(doc(db, 'productos', id), { variantes, disponible: variantes.some(x => (Number(x.stock) || 0) > 0) }));
+    r.cambios.forEach((variantes, id) => {
+      const cambio = { variantes, disponible: variantes.some(x => (Number(x.stock) || 0) > 0) };
+      tx.update(doc(db, 'productos', id), cambio);
+      const antes = completos.get(id);
+      if (antes) escribirEnResumen(tx, db, partesResumen, id, { ...antes, ...cambio });
+    });
     const ahora = new Date().toISOString();
     for (const p of piezas) {
       anotarMovimiento(tx, db, { productoId: p.productoId!, varianteId: p.varianteId!, producto: { nombre: p.nombre, codigo: p.codigo, variantes: actuales.get(p.productoId!) ?? [] }, tipo: 'regreso_cambio', cantidad: 1, referencia: folio, nota: `Cambio físico de ${v.cliente.nombre}`, por: perfil.nombre }, new Date(ahora));
@@ -170,10 +179,13 @@ export function cancelarVenta(db: Firestore, folio: string, motivo: string, hoy:
     const vendidas = v.lineas.filter(l => !l.esServicio && l.productoId && l.varianteId);
     const delCambio = v.cambioFisico?.regresado ? piezasRegresables(v.cambioFisico.piezas) : [];
     const actuales = new Map<string, Record<string, unknown>[] | undefined>();
+    const completos = new Map<string, Record<string, unknown>>();
     for (const id of new Set([...vendidas.map(l => l.productoId!), ...delCambio.map(p => p.productoId!)])) {
       const p = await tx.get(doc(db, 'productos', id));
       actuales.set(id, p.exists() && Array.isArray(p.data().variantes) ? (p.data().variantes as Record<string, unknown>[]) : undefined);
+      if (p.exists()) completos.set(id, p.data());
     }
+    const partesResumen = completos.size ? await partesResumenTx(tx, db) : null;
     const personaId = v.cliente.tipo !== 'publico' ? v.cliente.personaId : null;
     const saldoRef = personaId ? doc(db, COL_SALDOS, personaId) : null;
     const saldoSnap = saldoRef && v.saldoAFavor ? await tx.get(saldoRef) : null;
@@ -207,7 +219,12 @@ export function cancelarVenta(db: Firestore, folio: string, motivo: string, hoy:
       if (!r2x.ok) throw new ErrorAccion('Las piezas del cambio físico ya se vendieron otra vez; no se puede cancelar esta venta.');
       cambios = new Map([...cambios, ...r2x.cambios]);
     }
-    cambios.forEach((variantes, id) => tx.update(doc(db, 'productos', id), { variantes, disponible: variantes.some(x => (Number(x.stock) || 0) > 0) }));
+    cambios.forEach((variantes, id) => {
+      const cambio = { variantes, disponible: variantes.some(x => (Number(x.stock) || 0) > 0) };
+      tx.update(doc(db, 'productos', id), cambio);
+      const antes = completos.get(id);
+      if (antes) escribirEnResumen(tx, db, partesResumen, id, { ...antes, ...cambio });
+    });
     {
       const cuando = new Date();
       for (const l of vendidas) {

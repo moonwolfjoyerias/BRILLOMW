@@ -2,6 +2,7 @@
 // caja abierta + existencias reales + referencias no usadas → descuenta
 // existencias en `productos` (la colección de la página), asigna folio y
 // guarda la venta. Si algo falla, no se guarda nada.
+import { escribirEnResumen, partesResumenTx } from '../pagina/resumenCatalogo';
 import { FirebaseError } from 'firebase/app';
 import { doc, runTransaction, serverTimestamp, type Firestore } from '../datos/firestore';
 import type { PerfilUsuario } from '../sesion/perfil';
@@ -197,6 +198,7 @@ export async function registrarVenta(
         const s = await tx.get(doc(db, 'productos', id));
         actuales.set(id, s.exists() ? s.data() : undefined);
       }
+      const partesResumen = productoIds.length ? await partesResumenTx(tx, db) : null;
       const usadas = [];
       for (const { p, ref } of refsPago) {
         const s = await tx.get(ref);
@@ -283,9 +285,12 @@ export async function registrarVenta(
         ...(cambio ? { cambioFisico: { id: cambio.id, piezas: cambio.piezas, valor: valorDelCambio, usado: usoCambio, aSaldo, regresado: null } } : {}),
         ...(personaId && (usoSaldo > 0 || aSaldo > 0) ? { saldoAFavor: { usado: usoSaldo, guardado: aSaldo, saldoFinal } } : {})
       };
-      r.cambios.forEach((variantes, id) =>
-        tx.update(doc(db, 'productos', id), { variantes, disponible: variantes.some(x => (Number(x.stock) || 0) > 0) })
-      );
+      r.cambios.forEach((variantes, id) => {
+        const cambio = { variantes, disponible: variantes.some(x => (Number(x.stock) || 0) > 0) };
+        tx.update(doc(db, 'productos', id), cambio);
+        const antes = actuales.get(id);
+        if (antes) escribirEnResumen(tx, db, partesResumen, id, { ...antes, ...cambio });
+      });
       for (const a of promos?.aplicadas ?? []) {
         const p = promosServidor.find(x => x.id === a.id)!;
         tx.update(doc(db, COL_PROMOCIONES, a.id), { usos: (Number(p.usos) || 0) + 1 });
