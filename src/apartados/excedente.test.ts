@@ -29,7 +29,7 @@ describe('agregar excedente a una ventana activa', () => {
     const r = ok(agregarExcedente(activa, { monto: 300, metodo: 'transferencia', referencia: 'R2' }, 'Fer', T2));
     expect(r.ventana).toMatchObject({ depositoPiso: 50, depositoExcedente: 300, depositoApartadoDisponible: 350, fechaVencimiento: activa.fechaVencimiento });
     expect(r.ventana.auditoria.at(-1)).toMatchObject({ texto: 'Excedente de depósito agregado: $300 (transferencia — referencia R2)', usuario: 'Fer' });
-    expect(r.efectos.avisos?.[0]).toMatchObject({ paraId: 'ana', texto: 'Recibimos $300 más para tu apartado: ya quedaron en tu depósito.' });
+    expect(r.efectos.avisos?.[0]).toMatchObject({ paraId: 'ana', texto: 'Recibimos $300 más para tu pedido: ya quedaron en tu depósito.' });
     const aplicada = ok(aplicarExcedente(r.ventana, 'Fer', T2)).ventana;
     expect(aplicada.apartados[0].saldo).toBe(200);
     expect(aplicada.depositoExcedente).toBe(0);

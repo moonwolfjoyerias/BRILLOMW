@@ -23,6 +23,7 @@ import { useApartados } from '../apartados/acciones';
 import { regla, type Ventana } from '../apartados/modelo';
 import { guardarPersonas, usePersonasAdmin, type CambioPersonas } from '../personas/acciones';
 import { useComprasBrillo } from '../compras/acciones';
+import { quitarFotoPerfil, useFotoPerfil } from '../personas/fotos';
 import { ComprasBrillo } from '../compras/modelo';
 import {
   aplicarInfo,
@@ -155,7 +156,7 @@ export function Emprendedoras({ perfil }: { perfil: PerfilUsuario }) {
               return (
                 <div key={p.id} className={p.id === seleccion ? 'tarjeta-persona activa' : 'tarjeta-persona'}>
                   <button className="tarjeta-persona-cuerpo" onClick={() => setSeleccion(p.id)}>
-                    <span className="inicial">{(p.nombre || '?').trim().charAt(0).toUpperCase()}</span>
+                    <Avatar id={p.id} nombre={p.nombre} />
                     <span className="fila-principal">
                       <strong>{nombreCompletoPersona(p) || 'Sin nombre'}</strong>
                       <span className="etiquetas"><Insignias p={p} rango={rangos.get(p.id) ?? 'sin_rango'} /></span>
@@ -225,6 +226,42 @@ function useCambio(perfil: PerfilUsuario) {
   return { enviando, error, setError, aplicar };
 }
 
+/** Foto de perfil (la sube cada quien desde la página) o la inicial. */
+function Avatar({ id, nombre, grande }: { id: string; nombre?: string; grande?: boolean }) {
+  const foto = useFotoPerfil(db, id);
+  const cls = grande ? 'inicial grande' : 'inicial';
+  if (foto) return <span className={`${cls} con-foto`}><img src={foto} alt="" /></span>;
+  return <span className={cls}>{(nombre || '?').trim().charAt(0).toUpperCase()}</span>;
+}
+
+/** Admin/Encargado pueden quitar una foto que no sea apropiada (no subir otra). */
+function QuitarFoto({ id, nombre, perfil }: { id: string; nombre: string; perfil: PerfilUsuario }) {
+  const foto = useFotoPerfil(db, id);
+  const [confirmar, setConfirmar] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  if (!foto) return null;
+  const quitar = async () => {
+    setEnviando(true);
+    const e = await quitarFotoPerfil(db, id, nombre, perfil, equipoActual());
+    setEnviando(false);
+    setError(e);
+    if (!e) setConfirmar(false);
+  };
+  return (
+    <div className="quitar-foto">
+      {!confirmar
+        ? <button className="btn" onClick={() => setConfirmar(true)}>Quitar foto de perfil</button>
+        : <>
+            <span>¿Quitar la foto de {nombre}? Ella podrá subir otra desde su cuenta.</span>
+            <button className="btn" onClick={() => setConfirmar(false)} disabled={enviando}>No</button>
+            <button className="btn peligro" onClick={() => void quitar()} disabled={enviando}>{enviando ? 'Quitando…' : 'Sí, quitar'}</button>
+          </>}
+      {error && <p className="error">{error}</p>}
+    </div>
+  );
+}
+
 function Perfil({ p, personas, financiero, rango, ventanas, perfil, onCerrar }: {
   p: PersonaAdmin;
   personas: PersonaAdmin[];
@@ -258,12 +295,16 @@ function Perfil({ p, personas, financiero, rango, ventanas, perfil, onCerrar }: 
   return (
     <div className="tarjeta-caja perfil-persona">
       <div className="fila-titulo">
-        <div>
-          <h2>{nombre || 'Sin nombre'}</h2>
-          <div className="etiquetas"><Insignias p={p} rango={rango} /></div>
+        <div className="perfil-persona-cabeza">
+          <Avatar id={p.id} nombre={p.nombre} grande />
+          <div>
+            <h2>{nombre || 'Sin nombre'}</h2>
+            <div className="etiquetas"><Insignias p={p} rango={rango} /></div>
+          </div>
         </div>
         <button className="btn" onClick={onCerrar}>Cerrar</button>
       </div>
+      <QuitarFoto id={p.id} nombre={nombre} perfil={perfil} />
       <nav className="pestanas" aria-label="Perfil">
         {tabs.map(([k, v]) => <button key={k} className={tab === k ? 'nav-boton activo' : 'nav-boton'} onClick={() => setTab(k)}>{v}</button>)}
       </nav>

@@ -87,7 +87,7 @@ export async function guardarPersonas(db: Firestore, cambio: CambioPersonas, per
         if (cambiadas.length) {
           const etiqueta = CATEGORIAS_PERSONA[categoria] ?? categoria;
           avisos.push({
-            texto: `Tu cuenta ahora es ${etiqueta}: ${cambiadas.length === 1 ? 'tu apartado se actualizó' : `tus ${cambiadas.length} apartados se actualizaron`} con las condiciones de ${etiqueta}.`,
+            texto: `Tu cuenta ahora es ${etiqueta}: ${cambiadas.length === 1 ? 'tu pedido se actualizó' : `tus ${cambiadas.length} pedidos se actualizaron`} con las condiciones de ${etiqueta}.`,
             link: 'apartados',
             paraId: personaId,
             rolDestino: 'emprendedora_lider',
