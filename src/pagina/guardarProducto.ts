@@ -1,6 +1,7 @@
 // Guarda productos en `productos` (la colección de la página) y deja el
 // registro en `auditoria`, que es la pestaña "Actividad" de la página,
 // en la MISMA operación: o se guardan los dos o ninguno.
+import { escribirEnResumen, partesResumen, partesResumenTx } from './resumenCatalogo';
 import { FirebaseError } from 'firebase/app';
 import { collection, doc, getDocs, runTransaction, writeBatch, type Firestore } from '../datos/firestore';
 import type { PerfilUsuario } from '../sesion/perfil';
@@ -56,8 +57,11 @@ export async function crearProducto(
     ahora
   );
   try {
+    const partes = await partesResumen(db);
+    const nuevo = { ...armarDocumento(id, datos, ultimaAccion), fechaAlta: ahora.toISOString() };
     const lote = writeBatch(db);
-    lote.set(doc(db, 'productos', id), { ...armarDocumento(id, datos, ultimaAccion), fechaAlta: ahora.toISOString() });
+    lote.set(doc(db, 'productos', id), nuevo);
+    escribirEnResumen(lote, db, partes, id, nuevo);
     lote.set(doc(db, 'auditoria', registro.id), registro);
     await lote.commit();
     return { ok: true, id };
@@ -99,7 +103,10 @@ export async function editarProducto(
       if (textoEstable(normalizarProducto(alAbrir.id, actual)) !== textoEstable(alAbrir)) {
         throw new Error('cambio-externo');
       }
-      tx.set(ref, armarDocumento(alAbrir.id, datos, ultimaAccion, actual));
+      const partes = await partesResumenTx(tx, db);
+      const nuevo = armarDocumento(alAbrir.id, datos, ultimaAccion, actual);
+      tx.set(ref, nuevo);
+      escribirEnResumen(tx, db, partes, alAbrir.id, nuevo);
       tx.set(doc(db, 'auditoria', registro.id), registro);
     });
     return null;
@@ -159,7 +166,9 @@ export async function eliminarProducto(
       if (textoEstable(normalizarProducto(alAbrir.id, snap.data())) !== textoEstable(alAbrir)) {
         throw new Error('cambio-externo');
       }
+      const partes = await partesResumenTx(tx, db);
       tx.delete(ref);
+      escribirEnResumen(tx, db, partes, alAbrir.id, null);
       tx.set(doc(db, 'auditoria', registro.id), registro);
     });
     return null;

@@ -1,6 +1,7 @@
 // Prender o apagar "Mostrar en catálogo" de un producto desde Productos.
 import { doc, runTransaction, type Firestore } from '../datos/firestore';
 import type { PerfilUsuario } from '../sesion/perfil';
+import { escribirEnResumen, partesResumenTx } from './resumenCatalogo';
 import { conOrigen, nuevoRegistroActividad } from './actividad';
 
 export async function cambiarMostrarEnCatalogo(
@@ -16,10 +17,13 @@ export async function cambiarMostrarEnCatalogo(
       const ref = doc(db, 'productos', producto.id);
       const s = await tx.get(ref);
       if (!s.exists()) throw new Error('Ese producto ya no existe.');
-      tx.update(ref, {
+      const partesResumen = await partesResumenTx(tx, db);
+      const cambio = {
         mostrarEnCatalogo: mostrar,
         ultimaAccion: { tipo: 'Editado', empleado: perfil.nombre, fecha: ahora.toISOString(), origen: `BRILLO (${equipo})` }
-      });
+      };
+      tx.update(ref, cambio);
+      escribirEnResumen(tx, db, partesResumen, producto.id, { ...s.data(), ...cambio });
       const r = nuevoRegistroActividad(
         perfil,
         'catalogo',

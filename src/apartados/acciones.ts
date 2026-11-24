@@ -3,6 +3,7 @@
 // versión actual de la ventana en el servidor, aplica la regla de
 // ./modelo y guarda junto la ventana, el crédito, las existencias, la
 // Actividad y los avisos. Si algo cambió o falla, no se guarda nada.
+import { escribirEnResumen, partesResumenTx } from '../pagina/resumenCatalogo';
 import { FirebaseError } from 'firebase/app';
 import {
   collection,
@@ -103,12 +104,13 @@ export async function ejecutarAccion(
       const idsProductos = new Set<string>();
       if (op.descontar?.productoId) idsProductos.add(op.descontar.productoId);
       actual && piezasActivas(actual).forEach(p => p.productoId && idsProductos.add(p.productoId));
-      const productos = new Map<string, { ref: DocumentReference; variantes: Record<string, unknown>[]; nombre: string; codigo: string } | null>();
+      const productos = new Map<string, { ref: DocumentReference; datos: Record<string, unknown>; variantes: Record<string, unknown>[]; nombre: string; codigo: string } | null>();
       for (const id of idsProductos) {
         const ref = doc(db, 'productos', id);
         const s = await tx.get(ref);
-        productos.set(id, s.exists() ? { ref, variantes: Array.isArray(s.data().variantes) ? s.data().variantes : [], nombre: String(s.data().nombre ?? ''), codigo: String(s.data().codigo ?? '') } : null);
+        productos.set(id, s.exists() ? { ref, datos: s.data(), variantes: Array.isArray(s.data().variantes) ? s.data().variantes : [], nombre: String(s.data().nombre ?? ''), codigo: String(s.data().codigo ?? '') } : null);
       }
+      const partesResumen = idsProductos.size ? await partesResumenTx(tx, db) : null;
       // Mismo id que las ventas de BRILLO: una transferencia ya usada en caja
       // tampoco se puede usar en un apartado (y al revés).
       const refReferencia = op.referencia ? doc(db, COL_REFERENCIAS, `${op.referencia.metodo}_${normalizarReferencia(op.referencia.referencia)}`) : null;
@@ -151,9 +153,12 @@ export async function ejecutarAccion(
         const { usuarioId, monto } = efectos.credito;
         tx.set(refCreditos, { [usuarioId]: monto > 0 ? monto : deleteField() }, { merge: true });
       }
-      cambios.forEach((variantes, id) =>
-        tx.update(productos.get(id)!.ref, { variantes, disponible: variantes.some(v => (Number(v.stock) || 0) > 0) })
-      );
+      cambios.forEach((variantes, id) => {
+        const p = productos.get(id)!;
+        const cambio = { variantes, disponible: variantes.some(v => (Number(v.stock) || 0) > 0) };
+        tx.update(p.ref, cambio);
+        escribirEnResumen(tx, db, partesResumen, id, { ...p.datos, ...cambio });
+      });
       // Historial de Stock.
       if (op.descontar) {
         const p = productos.get(op.descontar.productoId)!;

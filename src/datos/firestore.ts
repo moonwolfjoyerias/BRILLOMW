@@ -236,7 +236,7 @@ export const deleteField: typeof F.deleteField = PILOTO ? ((() => BORRAR) as unk
 export const serverTimestamp: typeof F.serverTimestamp = PILOTO ? ((() => F.Timestamp.now()) as unknown as typeof F.serverTimestamp) : F.serverTimestamp;
 
 type Operacion =
-  | { tipo: 'set'; ref: Ref; datos: Datos; mezclar: boolean }
+  | { tipo: 'set'; ref: Ref; datos: Datos; mezclar: boolean; soloCampos?: string[] }
   | { tipo: 'update'; ref: Ref; datos: Datos }
   | { tipo: 'delete'; ref: Ref };
 
@@ -246,6 +246,11 @@ async function aplicarOperaciones(ops: Operacion[]) {
   const actual = async (ref: Ref) => (nuevo.has(ref.path) ? nuevo.get(ref.path)! : await datosActuales(ref));
   for (const op of ops) {
     if (op.tipo === 'delete') nuevo.set(op.ref.path, null);
+    else if (op.tipo === 'set' && op.soloCampos) {
+      // mergeFields: solo esas rutas se reemplazan completas; lo demás queda igual.
+      const cambios = Object.fromEntries(op.soloCampos.map(r => [r, campo(op.datos, r) ?? BORRAR]));
+      nuevo.set(op.ref.path, aplicar((await actual(op.ref)) ?? {}, cambios as Datos, false));
+    }
     else if (op.tipo === 'set') nuevo.set(op.ref.path, op.mezclar ? aplicar((await actual(op.ref)) ?? {}, op.datos, true) : aplicar({}, op.datos, false));
     else {
       const base = await actual(op.ref);
@@ -257,7 +262,13 @@ async function aplicarOperaciones(ops: Operacion[]) {
   avisar();
 }
 
-const opSet = (ref: Ref, datos: unknown, o?: F.SetOptions): Operacion => ({ tipo: 'set', ref, datos: datos as Datos, mezclar: !!(o && 'merge' in o && o.merge) });
+const opSet = (ref: Ref, datos: unknown, o?: F.SetOptions): Operacion => ({
+  tipo: 'set',
+  ref,
+  datos: datos as Datos,
+  mezclar: !!(o && 'merge' in o && o.merge),
+  soloCampos: o && 'mergeFields' in o && Array.isArray(o.mergeFields) ? o.mergeFields.map(String) : undefined
+});
 
 export const setDoc: typeof F.setDoc = PILOTO
   ? (((ref: Ref, datos: unknown, o?: F.SetOptions) => aplicarOperaciones([opSet(ref, datos, o)])) as typeof F.setDoc)
