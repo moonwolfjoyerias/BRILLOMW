@@ -90,7 +90,7 @@ function ResumenOperativo({ perfil, onIr }: { perfil: PerfilUsuario; onIr: Ir })
       <h3>Resumen operativo</h3>
       <div className="resumen-apartados">
         <Dato titulo="Pendientes de depósito" valor={apartados.estado === 'listo' ? ventanas.filter(v => v.estado === 'pendiente_deposito').length : '…'} onClick={() => onIr('apartados')} />
-        <Dato titulo="Apartados vencidos" valor={apartados.estado === 'listo' ? ventanas.filter(v => v.estado === 'activa' && estaVencida(v)).length : '…'} detalle="Por gestionar" onClick={() => onIr('apartados')} />
+        <Dato titulo="Pedidos vencidos" valor={apartados.estado === 'listo' ? ventanas.filter(v => v.estado === 'activa' && estaVencida(v)).length : '…'} detalle="Por gestionar" onClick={() => onIr('apartados')} />
         <Dato
           titulo={perfil.rol === 'admin' ? 'Deseos activos' : 'Lista de deseos'}
           valor={deseos.estado === 'listo' ? (perfil.rol === 'admin' ? activos : lista.length) : '…'}

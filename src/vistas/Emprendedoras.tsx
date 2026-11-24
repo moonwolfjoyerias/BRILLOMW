@@ -240,7 +240,7 @@ function Perfil({ p, personas, financiero, rango, ventanas, perfil, onCerrar }: 
   const esLider = p.tipo === 'lider';
   const nombre = nombreCompletoPersona(p);
   const lider = p.liderId ? personas.find(x => x.id === p.liderId) : undefined;
-  const tabs: [Tab, string][] = [['info', 'Información'], ['compras', 'Compras'], ['apartados', 'Apartados'], ['planmw', 'Plan MW'], ...(esLider ? [['equipo', 'Equipo'] as [Tab, string]] : [])];
+  const tabs: [Tab, string][] = [['info', 'Información'], ['compras', 'Compras'], ['apartados', 'Pedidos'], ['planmw', 'Plan MW'], ...(esLider ? [['equipo', 'Equipo'] as [Tab, string]] : [])];
 
   const convertirLider = () =>
     aplicar(

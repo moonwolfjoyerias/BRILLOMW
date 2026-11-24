@@ -46,7 +46,7 @@ export const conOrigen = (descripcion: string, equipo: string) => `${descripcion
 
 export const MODULOS_ACTIVIDAD: Record<string, string> = {
   catalogo: 'Catálogo',
-  apartados: 'Apartados',
+  apartados: 'Pedidos',
   calendario: 'Calendario',
   lista_deseos: 'Lista de deseos',
   resurtido: 'Resurtido',

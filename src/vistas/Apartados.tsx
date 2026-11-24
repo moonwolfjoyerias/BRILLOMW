@@ -264,7 +264,7 @@ export function Apartados({ perfil }: { perfil: PerfilUsuario }) {
     <section className="apartados">
       <div className="encabezado-seccion con-accion">
         <div>
-          <h1>Apartados</h1>
+          <h1>Pedidos</h1>
           <p className="muted">Las mismas ventanas de apartado que en la página.</p>
         </div>
         <button className="btn primario" onClick={() => setModal({ tipo: 'nueva' })} disabled={datos.estado !== 'listo'}>

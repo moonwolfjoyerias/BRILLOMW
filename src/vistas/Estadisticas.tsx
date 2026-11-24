@@ -34,7 +34,7 @@ const PRESETS: { id: E.Preset; nombre: string }[] = [
   { id: 'anio', nombre: 'Este año' }
 ];
 const MODULOS: Record<string, string> = {
-  apartados: 'Apartados', catalogo: 'Catálogo', personas: 'Emprendedoras', comisiones: 'Comisiones', nomina: 'Nómina', caja: 'Caja',
+  apartados: 'Pedidos', catalogo: 'Catálogo', personas: 'Emprendedoras', comisiones: 'Comisiones', nomina: 'Nómina', caja: 'Caja',
   configuracion: 'Configuración', solicitudes: 'Solicitudes', deseos: 'Lista de deseos', listaDeseos: 'Lista de deseos', lista_deseos: 'Lista de deseos', actividades_staff: 'Actividades del Staff', plan_mw: 'Plan MW', calendario: 'Calendario',
   planmw: 'Plan MW', actividadesStaff: 'Actividades del Staff', cuentas: 'Cuentas'
 };
@@ -216,7 +216,7 @@ function SeccionVentas({ rango, categoria, personas, mapa, productos, ventanas, 
                 <BarrasTiempo
                   titulo={`Ventas por ${r.gran === 'dia' ? 'día' : 'mes'}`}
                   datos={r.serie}
-                  series={[{ clave: 'caja', nombre: 'Caja', color: 1 }, { clave: 'apartado', nombre: 'Apartados', color: 2 }]}
+                  series={[{ clave: 'caja', nombre: 'Caja', color: 1 }, { clave: 'apartado', nombre: 'Pedidos', color: 2 }]}
                   formato={dinero}
                 />
               </div>

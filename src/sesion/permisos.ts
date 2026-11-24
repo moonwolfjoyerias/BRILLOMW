@@ -26,7 +26,7 @@ export const MODULOS_CONFIGURABLES: { id: string; nombre: string }[] = [
   { id: 'catalogo', nombre: 'Catálogo' },
   { id: 'productos', nombre: 'Inventario → Productos' },
   { id: 'stock', nombre: 'Inventario → Stock' },
-  { id: 'apartados', nombre: 'Apartados' },
+  { id: 'apartados', nombre: 'Pedidos' },
   { id: 'clientes', nombre: 'Emprendedoras y Líderes (contacto y saldo a favor)' },
   { id: 'promociones', nombre: 'Promociones' },
   { id: 'compras', nombre: 'Compras por confirmar' },
