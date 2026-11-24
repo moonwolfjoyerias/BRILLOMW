@@ -96,7 +96,7 @@ describe('cancelar y quitar', () => {
     const v = ventanaActiva();
     const r1 = ok(quitarPieza(v, v.apartados[0].id, 'Sin existencia disponible', 'V', T0));
     expect(r1.efectos.restaurarStock).toBeUndefined();
-    expect(r1.efectos.avisos?.[0]).toMatchObject({ paraId: 'ana', texto: 'Quitamos "Anillo 1" de tu apartado. Motivo: Sin existencia disponible.' });
+    expect(r1.efectos.avisos?.[0]).toMatchObject({ paraId: 'ana', texto: 'Quitamos "Anillo 1" de tu pedido. Motivo: Sin existencia disponible.' });
     expect(r1.ventana.estado).toBe('activa');
     const r2 = ok(quitarPieza(r1.ventana, v.apartados[1].id, 'Dañada', 'V', T0));
     expect(r2.ventana).toMatchObject({ estado: 'cerrada', resolucionDeposito: 'credito' });
@@ -132,7 +132,7 @@ describe('marcas y avisos', () => {
     expect(unDia?.avisos.map(a => a.rolDestino)).toEqual(['emprendedora_lider']);
     expect(avisosDeVencimiento(unDia!.ventana, new Date('2026-10-15T01:00:00Z').getTime())).toBeNull();
     const vencida = avisosDeVencimiento(unDia!.ventana, new Date('2026-10-16T00:00:00Z').getTime());
-    expect(vencida?.avisos[0]).toMatchObject({ rolDestino: 'admin', texto: 'El apartado de 2 piezas de Ana López ya venció.' });
+    expect(vencida?.avisos[0]).toMatchObject({ rolDestino: 'admin', texto: 'El pedido de 2 piezas de Ana López ya venció.' });
   });
   it('referencias usadas en depósitos o pagos', () => {
     const v = ventanaActiva();

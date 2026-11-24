@@ -360,7 +360,7 @@ function DetalleSolicitud({ s, productos, perfil, onHecho, onCerrar }: { s: Soli
               )}
             </>
           )}
-          <span className="muted small">Así el aviso la lleva directo a apartarlo.</span>
+          <span className="muted small">Así el aviso la lleva directo a seleccionarlo.</span>
         </div>
       )}
       <label className="campo">

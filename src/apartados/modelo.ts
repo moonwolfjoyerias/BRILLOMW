@@ -309,7 +309,7 @@ export function confirmarDeposito(
     ok: true,
     ventana: v,
     efectos: {
-      avisos: [{ texto: `Confirmamos tu depósito de $${d.monto}: tus piezas ya quedaron apartadas.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider' }],
+      avisos: [{ texto: `Confirmamos tu depósito de $${d.monto}: tus piezas ya quedaron aseguradas en tu pedido.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider' }],
       actividad: { accion: 'confirmar_deposito', descripcion: `Depósito de $${d.monto} confirmado para ${v.usuarioNombre}` }
     }
   };
@@ -337,7 +337,7 @@ export function agregarExcedente(
     ok: true,
     ventana: v,
     efectos: {
-      avisos: [{ texto: `Recibimos $${m} más para tu apartado: ya quedaron en tu depósito.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider' }],
+      avisos: [{ texto: `Recibimos $${m} más para tu pedido: ya quedaron en tu depósito.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider' }],
       actividad: { accion: 'agregar_excedente_deposito', descripcion: `Excedente de $${m} agregado al depósito de ${v.usuarioNombre}` }
     }
   };
@@ -389,7 +389,7 @@ export function aprobarVip(ventana: Ventana, usuario: string, ahora = new Date()
     ventana: v,
     efectos: {
       // Igual que la página: es la única señal de que sus piezas ya quedaron apartadas.
-      avisos: [{ texto: '¡Tus piezas ya quedaron apartadas! Confirmamos tu apartado VIP.', link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider' }],
+      avisos: [{ texto: '¡Tus piezas ya quedaron aseguradas! Confirmamos tu pedido VIP.', link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider' }],
       actividad: { accion: 'aprobar_vip_ventana', descripcion: `Apartado VIP de ${v.usuarioNombre} aprobado` }
     }
   };
@@ -549,7 +549,7 @@ export function quitarPieza(ventana: Ventana, piezaId: string, motivo: string, u
     v.auditoria.push(historial(`$${abonado} ya abonados a esa pieza regresaron al depósito`, usuario, ahora));
   }
   const efectos: Efectos = {
-    avisos: [{ texto: `Quitamos "${p.producto}" de tu apartado. Motivo: ${motivo.replace(/[.\s]+$/, '')}.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider' }],
+    avisos: [{ texto: `Quitamos "${p.producto}" de tu pedido. Motivo: ${motivo.replace(/[.\s]+$/, '')}.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider' }],
     actividad: { accion: 'quitar_pieza_apartado', descripcion: `Pieza ${p.producto} quitada del apartado de ${v.usuarioNombre} — motivo: ${motivo}` }
   };
   if (!piezasActivas(v).length) {
@@ -583,7 +583,7 @@ export function descancelarPieza(ventana: Ventana, piezaId: string, usuario: str
   if (!p || p.estado !== 'cancelada' || !p.retiro) return { ok: false, error: 'Esa pieza no se quitó del apartado (solo se pueden descancelar piezas quitadas).' };
   const fecha = ahoraISO(ahora);
   const efectos: Efectos = {
-    avisos: [{ texto: `¡Buenas noticias! "${p.producto}" volvió a tu apartado.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider' }],
+    avisos: [{ texto: `¡Buenas noticias! "${p.producto}" volvió a tu pedido.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider' }],
     actividad: { accion: 'descancelar_pieza_apartado', descripcion: `Descanceló ${p.producto} en el apartado de ${v.usuarioNombre}` }
   };
   if (v.estado === 'cerrada') {
@@ -645,7 +645,7 @@ export function cancelarSinDeposito(ventana: Ventana, usuario: string, ahora = n
     efectos: {
       restaurarStock: activas.map(p => ({ productoId: p.productoId, varianteId: p.varianteId })),
       avisos: [{
-        texto: `Cancelamos tu apartado porque no recibimos tu depósito mínimo de $${depositoMinimo(v)}. Tus piezas quedaron liberadas; si todavía las quieres, puedes volver a apartarlas desde el catálogo.`,
+        texto: `Cancelamos tu pedido porque no recibimos tu depósito mínimo de $${depositoMinimo(v)}. Tus piezas quedaron liberadas; si todavía las quieres, puedes volver a seleccionarlas desde el catálogo.`,
         link: 'apartados',
         paraId: v.usuarioId,
         rolDestino: 'emprendedora_lider'
@@ -770,7 +770,7 @@ export function avisosDeVencimiento(ventana: Ventana, ahora = Date.now()): { ven
     if (!v.avisoVencimientoEnviado) {
       v.avisoVencimientoEnviado = true;
       avisos.push({
-        texto: `El apartado de ${n} ${plural(n, 'pieza')} de ${v.usuarioNombre} ya venció.`,
+        texto: `El pedido de ${n} ${plural(n, 'pieza')} de ${v.usuarioNombre} ya venció.`,
         link: `admin-apartados.html?buscar=${encodeURIComponent(v.usuarioNombre)}`,
         paraId: null,
         rolDestino: 'admin',
@@ -782,11 +782,11 @@ export function avisosDeVencimiento(ventana: Ventana, ahora = Date.now()): { ven
     const faltan = new Date(v.fechaVencimiento).getTime() - ahora;
     if (faltan <= 86400000 && !v.avisoVencimiento1DiaEnviado) {
       v.avisoVencimiento1DiaEnviado = true;
-      avisos.push({ texto: `Tu apartado de ${n} ${plural(n, 'pieza')} vence en menos de 1 día — si no se liquida o renueva, se pierde.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider', id: idAviso('vence1d') });
+      avisos.push({ texto: `Tu pedido de ${n} ${plural(n, 'pieza')} vence en menos de 1 día — si no se liquida o renueva, se pierde.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider', id: idAviso('vence1d') });
     }
     if (faltan <= 7200000 && !v.avisoVencimiento2HorasEnviado) {
       v.avisoVencimiento2HorasEnviado = true;
-      avisos.push({ texto: `Tu apartado de ${n} ${plural(n, 'pieza')} vence en menos de 2 horas.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider', id: idAviso('vence2h') });
+      avisos.push({ texto: `Tu pedido de ${n} ${plural(n, 'pieza')} vence en menos de 2 horas.`, link: 'apartados', paraId: v.usuarioId, rolDestino: 'emprendedora_lider', id: idAviso('vence2h') });
     }
   }
   return avisos.length ? { ventana: v, avisos } : null;

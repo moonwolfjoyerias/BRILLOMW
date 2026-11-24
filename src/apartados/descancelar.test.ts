@@ -23,7 +23,7 @@ describe('descancelar pieza quitada', () => {
     expect(p.retirosAnteriores).toEqual([expect.objectContaining({ motivo: 'Sin existencia', descancelada: T1.toISOString() })]);
     expect(r.ventana.estado).toBe('activa');
     expect(r.efectos.credito).toBeUndefined();
-    expect(r.efectos.avisos?.[0]).toMatchObject({ paraId: 'ana', texto: '¡Buenas noticias! "Anillo 1" volvió a tu apartado.' });
+    expect(r.efectos.avisos?.[0]).toMatchObject({ paraId: 'ana', texto: '¡Buenas noticias! "Anillo 1" volvió a tu pedido.' });
   });
 
   it('ventana cerrada por quitar la última pieza: se reabre y el crédito vuelve a ser su depósito', () => {

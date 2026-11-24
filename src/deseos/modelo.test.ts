@@ -37,7 +37,7 @@ describe('Lista de deseos', () => {
     if (!r.ok) throw new Error();
     expect(r.doc).toMatchObject({ estado: 'disponible', productoId: 'prod-1', comentarioEstado: 'llegó' });
     expect(s.estado).toBe('pendiente');
-    expect(r.efectos.avisos).toEqual([{ texto: '¡Buena noticia! Ya está disponible lo que pediste en tu lista de deseos: Cadena. Toca aquí para apartarlo.', link: 'catalogo', productoId: 'prod-1', paraId: 'p1', rolDestino: 'emprendedora_lider' }]);
+    expect(r.efectos.avisos).toEqual([{ texto: '¡Buena noticia! Ya está disponible lo que pediste en tu lista de deseos: Cadena. Toca aquí para seleccionarlo.', link: 'catalogo', productoId: 'prod-1', paraId: 'p1', rolDestino: 'emprendedora_lider' }]);
     expect(r.efectos.actividad.descripcion).toBe(`Lista de deseos ${s.id}: Pendiente → Disponible — llegó`);
     expect(r.efectos.historial).toMatchObject({ estadoAnterior: 'pendiente', estadoNuevo: 'disponible', comentario: 'llegó' });
   });

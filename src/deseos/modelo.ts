@@ -204,7 +204,7 @@ export function cambiarEstado(
   if (nuevo === 'disponible' && s.destinatario === 'emprendedora' && s.personaId) {
     const resumen = s.piezas.length ? resumenPiezas(s.piezas) : 'tu pieza';
     avisos.push({
-      texto: `¡Buena noticia! Ya está disponible lo que pediste en tu lista de deseos: ${resumen}. Toca aquí para apartarlo.`,
+      texto: `¡Buena noticia! Ya está disponible lo que pediste en tu lista de deseos: ${resumen}. Toca aquí para seleccionarlo.`,
       link: 'catalogo',
       productoId: d.productoId!,
       paraId: s.personaId,

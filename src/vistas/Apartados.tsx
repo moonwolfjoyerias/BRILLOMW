@@ -56,7 +56,7 @@ const fechaHora = (iso: string) =>
   new Date(iso).toLocaleString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 const plural = (n: number, s: string, p = s + 's') => (n === 1 ? s : p);
 
-const MENSAJE_WHATSAPP_VENCIDO = 'Tu apartado venció. Por favor contáctanos para revisar las opciones disponibles.';
+const MENSAJE_WHATSAPP_VENCIDO = 'Tu pedido venció. Por favor contáctanos para revisar las opciones disponibles.';
 
 /** wa.me necesita la lada: a los teléfonos de 10 dígitos se les antepone 52 (igual que la página). */
 export function numeroWhatsapp(telefono: string): string {
@@ -67,7 +67,7 @@ export function numeroWhatsapp(telefono: string): string {
 
 export function mensajeComprobanteDeposito(v: Ventana): string {
   const nombre = String(v.usuarioNombre || '').trim().split(/\s+/)[0];
-  return `¡Hola${nombre ? `, ${nombre}` : ''}! Vimos que apartaste piezas en la página, pero todavía no recibimos tu comprobante de depósito. Te recordamos que, para asegurar tus piezas, es necesario un depósito mínimo de $${depositoFaltante(v)}. Cuando lo tengas, envíanos tu comprobante por aquí. ¡Quedamos al pendiente!`;
+  return `¡Hola${nombre ? `, ${nombre}` : ''}! Vimos que seleccionaste piezas en la página, pero todavía no recibimos tu comprobante de depósito. Te recordamos que, para asegurar tus piezas, es necesario un depósito mínimo de $${depositoFaltante(v)}. Cuando lo tengas, envíanos tu comprobante por aquí. ¡Quedamos al pendiente!`;
 }
 
 const ESTADO_VENTANA: Record<string, { texto: string; clase: string }> = {
