@@ -187,7 +187,8 @@ export function pagadoDesdeApartado(v: Ventana, piezas: Pieza[], quien: { nombre
       colorOro: p.colorOro || '', material: p.material || '', precioEtiqueta: Number(p.precioEtiqueta) || 0, total: Number(p.total) || 0
     })),
     subtotal, envio: 0, envioGratis: false, total: subtotal,
-    estado: foranea ? 'confirmado' : 'en_bolsita',
+    // Normal: solo pasa directo a la caja de pagados si TODAS sus piezas ya estaban en su bolsita.
+    estado: foranea ? 'confirmado' : piezas.every(p => !!p.enBolsita) ? 'en_bolsita' : 'confirmado',
     historial: [{ estado: 'confirmado', por: quien.nombre, rol: quien.rol, en, nota: `Apartado ${v.id} liquidado` }],
     dia: hoyTienda(ahora), creadoEn: en, actualizadoEn: en
   };
