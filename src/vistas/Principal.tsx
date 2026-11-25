@@ -14,7 +14,6 @@ import { puede, veModulo } from '../sesion/permisos';
 import { db } from '../firebase';
 import { Stock } from './Stock';
 import { Vender } from './Vender';
-import { Apartados } from './Apartados';
 import { ListaDeseos } from './ListaDeseos';
 import { Actividad } from './Actividad';
 import { ActividadesStaff } from './ActividadesStaff';
@@ -30,6 +29,7 @@ import { Estadisticas } from './Estadisticas';
 import { useTema } from '../tema';
 import { PILOTO } from '../piloto';
 import { useTablasTarjetas } from './tablasTarjetas';
+import { Pedidos } from './Pagados';
 
 export type Seccion = 'inicio' | 'vender' | 'documentos' | 'tiposPago' | 'promociones' | 'usuarios' | 'catalogo' | 'inventario' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'planmw' | 'compras' | 'estadisticas' | 'cuenta';
 
@@ -225,7 +225,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
           {seccion === 'tiposPago' && <TiposPago perfil={perfil} />}
           {seccion === 'usuarios' && <Usuarios perfil={perfil} />}
           {seccion === 'promociones' && <Promociones perfil={perfil} />}
-          {seccion === 'apartados' && <Apartados perfil={perfil} />}
+          {seccion === 'apartados' && <Pedidos perfil={perfil} />}
           {seccion === 'compras' && <ConfirmarCompras perfil={perfil} />}
           {seccion === 'deseos' && <ListaDeseos perfil={perfil} />}
           {seccion === 'actividadesStaff' && <ActividadesStaff perfil={perfil} />}

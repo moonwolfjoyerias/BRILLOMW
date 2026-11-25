@@ -1260,3 +1260,27 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
   .barra-seccion { font-size: 1.05rem; }
   .barra-usuario .btn:not(.boton-tema) { padding: 0 12px; font-size: 0.9rem; }
 }
+
+/* ---------- Pedidos → Pagados (src/vistas/Pagados.tsx) ---------- */
+.num-pestana { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; margin-left: 6px; border-radius: 999px; background: var(--mw-purple); color: #fff; font-size: 0.75rem; font-weight: 600; }
+.pagados-resumen { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 14px 0; }
+.tarjeta-dato { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 12px 14px; border: 1px solid var(--mw-border); border-radius: var(--radius); background: var(--surface); color: var(--mw-text); font: inherit; cursor: pointer; }
+.tarjeta-dato strong { font-size: 1.5rem; color: var(--mw-purple-dark); }
+.tarjeta-dato.activo { border-color: var(--mw-purple); box-shadow: 0 0 0 2px var(--mw-lilac-soft); }
+.filtros-pagados { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 10px; margin-bottom: 14px; }
+.lista-pagados { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.tarjeta-pagado { display: flex; flex-direction: column; gap: 8px; }
+.tarjeta-pagado .fila-titulo { align-items: flex-start; }
+.piezas-pagado { list-style: none; margin: 0; padding: 0; font-size: 0.92rem; }
+.piezas-pagado li { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px dashed var(--mw-border); }
+.piezas-pagado .total-pagado { border-bottom: 0; }
+.piezas-pagado .total-pagado strong { color: var(--mw-purple-dark); font-size: 1.05rem; }
+.acciones-pagado { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 4px; }
+.acciones-pagado .btn { min-height: var(--toque); }
+.acciones-modal { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.comprobante-img { display: block; max-width: 100%; max-height: 55vh; margin: 8px auto 14px; border-radius: 10px; border: 1px solid var(--mw-border); }
+@media (max-width: 1000px), (max-width: 1100px) and (orientation: portrait) {
+  .pagados-resumen { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filtros-pagados { grid-template-columns: 1fr; }
+  .lista-pagados { grid-template-columns: 1fr; }
+}

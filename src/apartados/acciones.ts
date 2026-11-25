@@ -21,6 +21,7 @@ import type { PerfilUsuario } from '../sesion/perfil';
 import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';
 import { normalizarReferencia } from '../venta/carrito';
 import { nuevoAviso } from '../pagina/avisos';
+import { COL_PEDIDOS_PAGADOS, pagadoDesdeApartado } from '../pedidos/pagados';
 import { normalizarVentana, piezasActivas, type Aviso, type Resultado, type Ventana } from './modelo';
 import { COL_COMPRAS, docPieza, idCompraPieza, piezasRecienLiquidadas } from '../compras/modelo';
 
@@ -167,6 +168,10 @@ export async function ejecutarAccion(
       for (const r of efectos.restaurarStock ?? []) {
         const p = productos.get(r.productoId);
         if (p) anotarMovimiento(tx, db, { ...r, producto: { nombre: p.nombre, codigo: p.codigo, variantes: p.variantes }, tipo: 'cancelacion_apartado', cantidad: 1, referencia: nueva.id, nota: nueva.usuarioNombre, por: perfil.nombre }, ahora);
+      }
+      if (efectos.pagadas?.length) {
+        const pagado = pagadoDesdeApartado(nueva, efectos.pagadas, { nombre: perfil.nombre, rol: perfil.rol }, ahora);
+        tx.set(doc(db, COL_PEDIDOS_PAGADOS, pagado.id), pagado);
       }
       const registro = nuevoRegistroActividad(perfil, 'apartados', efectos.actividad.accion, conOrigen(efectos.actividad.descripcion, equipo), equipo, ahora);
       tx.set(doc(db, 'auditoria', registro.id), registro);

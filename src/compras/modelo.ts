@@ -187,7 +187,7 @@ export function compraDeVenta(v: { cliente: ClienteVenta; lineas: LineaVendida[]
   let normal = 0;
   let souvenir = 0;
   v.lineas.forEach(l => {
-    if (l.esServicio && l.tipoServicio === 'grabado') return;
+    if (l.esServicio && (l.tipoServicio === 'grabado' || l.tipoServicio === 'envio')) return;
     // Lo que se paga de una garantía (la diferencia) no cuenta para
     // recompensas ni comisiones: es un cambio, no una compra nueva.
     if (l.garantia) return;

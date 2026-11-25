@@ -111,6 +111,8 @@ export interface Efectos {
   /** Piezas cuya existencia regresa al catálogo. */
   restaurarStock?: { productoId: string; varianteId: string }[];
   avisos?: Aviso[];
+  /** Piezas liquidadas: pasan a Pedidos → Pagados (src/pedidos/pagados.ts). */
+  pagadas?: Pieza[];
   /** Registro en Actividad de la página (módulo apartados). */
   actividad: { accion: string; descripcion: string };
 }
@@ -483,7 +485,8 @@ export function liquidar(
   ));
 
   const efectos: Efectos = {
-    actividad: { accion: 'liquidar_ventana', descripcion: `Apartado de ${v.usuarioNombre} liquidado por $${c.monto} (${n} ${plural(n, 'pieza')})` }
+    actividad: { accion: 'liquidar_ventana', descripcion: `Apartado de ${v.usuarioNombre} liquidado por $${c.monto} (${n} ${plural(n, 'pieza')})` },
+    pagadas: v.apartados.filter(p => ids.has(p.id))
   };
   if (quedan === 0) {
     if (v.depositoApartadoDisponible > 0) {
