@@ -21,6 +21,7 @@ import { IVA_TASA, formatoRecibo } from '../venta/carrito';
 import { COL_COMPRAS, idCompraVenta } from '../compras/modelo';
 import { COL_TICKETS_PERSONA, idIndicePersona, resumenTicket } from '../venta/historial';
 import { escribirEnResumen, partesResumenTx } from '../pagina/resumenCatalogo';
+import { anotarMovimiento } from '../stock/acciones';
 import type { Pieza, Ventana } from '../apartados/modelo';
 
 export const COL_PEDIDOS_PAGADOS = 'pedidosPagados';
@@ -364,6 +365,12 @@ export async function vencerPedido(db: Firestore, pedido: PedidoPagado, ahora = 
         const cambio = { variantes, disponible: variantes.some(v => (Number(v.stock) || 0) > 0) };
         tx.update(doc(db, 'productos', id), cambio);
         escribirEnResumen(tx, db, partes, id, { ...datos, ...cambio });
+        for (const v of (datos.variantes as Record<string, unknown>[]) ?? []) {
+          const n = pedido.piezas.filter(p => p.productoId === id && p.varianteId === v.id).length;
+          if (!n) continue;
+          const antes = Number(v.stock) || 0;
+          anotarMovimiento(tx, db, { productoId: id, varianteId: String(v.id), producto: datos, tipo: 'cancelacion_apartado', cantidad: n, antes, despues: antes + n, referencia: pedido.id, nota: `Pedido pagado sin comprobante válido · ${pedido.personaNombre}`, por: 'Sistema' }, ahora);
+        }
       }
       const en = ahora.toISOString();
       tx.update(ref, {
