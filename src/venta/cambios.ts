@@ -144,6 +144,21 @@ export interface CambioEnVenta {
   /** Lo que sobró y se guardó como saldo a favor. */
   aSaldo: number;
   regresado: { por: string; en: string } | null;
+  /** Claves de las piezas que ya se regresaron (se pueden regresar de a poco). */
+  regresadas?: string[];
+}
+
+/** Piezas del cambio que ya se regresaron al inventario (antes se regresaban todas juntas). */
+export function piezasYaRegresadas(c: Pick<CambioEnVenta, 'piezas' | 'regresado' | 'regresadas'>): PiezaCambio[] {
+  const todas = piezasRegresables(c.piezas);
+  if (c.regresadas) return todas.filter(p => c.regresadas!.includes(p.clave));
+  return c.regresado ? todas : [];
+}
+
+/** Piezas del cambio que todavía faltan por regresar al inventario. */
+export function piezasPorRegresar(c: Pick<CambioEnVenta, 'piezas' | 'regresado' | 'regresadas'>): PiezaCambio[] {
+  const ya = new Set(piezasYaRegresadas(c).map(p => p.clave));
+  return piezasRegresables(c.piezas).filter(p => !ya.has(p.clave));
 }
 
 /** Piezas que sí pueden volver a la venta (las del catálogo). */

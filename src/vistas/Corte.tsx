@@ -13,7 +13,7 @@ import { TicketCorte } from '../caja/TicketCorte';
 import { nombreMetodo } from '../venta/carrito';
 import type { VentaRegistrada } from '../venta/registrarVenta';
 import type { AnchoTicket } from '../venta/Ticket';
-import { anchoGuardado, guardarAncho, imprimirTicket } from '../venta/imprimir';
+import { anchoGuardado, imprimirTicket } from '../venta/imprimir';
 import { MarcoModal, useEnvio } from './Modal';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
@@ -336,14 +336,7 @@ function ImprimirCorte({ datos, fecha, turnos, onCerrar }: { datos: Impresion; f
     <MarcoModal titulo="Imprimir corte" onCerrar={onCerrar}>
       <div className="ticket-vista">{ticket}</div>
       <div className="acciones">
-        <label className="campo-en-linea">
-          <span>Papel</span>
-          <select value={ancho} onChange={e => { const a = Number(e.target.value) as AnchoTicket; setAncho(a); guardarAncho(a); }}>
-            <option value={80}>80 mm</option>
-            <option value={58}>58 mm</option>
-          </select>
-        </label>
-        <button className="btn primario" onClick={() => imprimirTicket(ancho)} autoFocus>Imprimir</button>
+        <button className="btn primario" onClick={async () => { await imprimirTicket(); setAncho(anchoGuardado()); }} autoFocus>Imprimir</button>
       </div>
       {createPortal(<div className="ticket-impresion" aria-hidden="true">{ticket}</div>, document.body)}
     </MarcoModal>

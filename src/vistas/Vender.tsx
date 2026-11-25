@@ -32,9 +32,10 @@ import {
 } from '../venta/carrito';
 import { registrarVenta, type VentaRegistrada } from '../venta/registrarVenta';
 import { Ticket, type AnchoTicket } from '../venta/Ticket';
-import { anchoGuardado, guardarAncho, imprimirTicket } from '../venta/imprimir';
-import { aplicarCreditos, pagosDeCreditos, piezasRegresables, valorCambio } from '../venta/cambios';
-import { regresarAlInventario, useCambiosAbiertos, useSaldoAFavor } from '../venta/accionesVenta';
+import { anchoGuardado, imprimirTicket } from '../venta/imprimir';
+import { aplicarCreditos, pagosDeCreditos, piezasPorRegresar, valorCambio } from '../venta/cambios';
+import { RegresarInventarioModal, usePorRegresar } from './RegresarInventario';
+import { leerVenta, useCambiosAbiertos, useSaldoAFavor } from '../venta/accionesVenta';
 import { CambioFisicoModal, CambiosAbiertosModal, GarantiaModal, TicketPresupuesto, TicketVerificacion } from './CajaExtras';
 import { nombrePestana, tieneAlgo, useVentasAbiertas, type VentaAbierta } from '../venta/ventasAbiertas';
 import { PILOTO } from '../piloto';
@@ -81,7 +82,8 @@ export function Vender({ perfil, onVerDocumentos }: { perfil: PerfilUsuario; /**
   const [cobrando, setCobrando] = useState(false);
   const [ticket, setTicket] = useState<VentaRegistrada | null>(null);
   // Venta de la que salió el ticket: al terminar se cierra esa pestaña.
-  const [extra, setExtra] = useState<null | 'cambio' | 'abiertos' | 'garantia' | 'saldo'>(null);
+  const [extra, setExtra] = useState<null | 'cambio' | 'abiertos' | 'garantia' | 'saldo' | 'regresar'>(null);
+  const porRegresar = usePorRegresar();
   const cambiosAbiertos = useCambiosAbiertos(db);
   const saldo = useSaldoAFavor(db, cliente.tipo !== 'publico' ? cliente.personaId : null) ?? 0;
   // Presupuesto, preticket y verificación se imprimen sin salir de la venta.
@@ -217,6 +219,7 @@ export function Vender({ perfil, onVerDocumentos }: { perfil: PerfilUsuario; /**
               </button>
               <button className="btn" onClick={() => setExtra('abiertos')}>Cambios abiertos{cambiosAbiertos?.length ? ` (${cambiosAbiertos.length})` : ''}</button>
               <button className="btn" onClick={() => setExtra('garantia')}>Garantía</button>
+              <button className="btn" onClick={() => setExtra('regresar')}>Regresar al inventario{porRegresar?.length ? ` (${porRegresar.length})` : ''}</button>
               {cliente.tipo !== 'publico' && (
                 <button className="btn" onClick={() => setExtra('saldo')}>Saldo a favor{saldo > 0 ? ` (${dinero(saldo)})` : ''}</button>
               )}
@@ -418,6 +421,7 @@ export function Vender({ perfil, onVerDocumentos }: { perfil: PerfilUsuario; /**
           onImprimir={piezas => setParaImprimir(<TicketPresupuesto promos={promos} cliente={cliente} carrito={carrito} cambio={piezas} saldo={saldo} ancho={anchoGuardado()} />)}
         />
       )}
+      {extra === 'regresar' && <RegresarInventarioModal perfil={perfil} onCerrar={() => setExtra(null)} />}
       {extra === 'abiertos' && (
         <CambiosAbiertosModal
           cambios={cambiosAbiertos ?? []}
@@ -893,13 +897,8 @@ function Cobro({
 function VentaTerminada({ venta: inicial, perfil, onNueva }: { venta: VentaRegistrada; perfil: PerfilUsuario; onNueva: () => void }) {
   const [venta, setVenta] = useState(inicial);
   const [ancho, setAncho] = useState<AnchoTicket>(anchoGuardado);
-  const [regresando, setRegresando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const regresables = venta.cambioFisico ? piezasRegresables(venta.cambioFisico.piezas).length : 0;
-  function elegirAncho(a: AnchoTicket) {
-    setAncho(a);
-    guardarAncho(a);
-  }
+  const [regresar, setRegresar] = useState(false);
+  const faltan = venta.cambioFisico ? piezasPorRegresar(venta.cambioFisico).length : 0;
   return (
     <div className="modal-fondo">
       <div className="modal modal-ticket" role="dialog" aria-modal="true" aria-label="Venta registrada">
@@ -910,35 +909,26 @@ function VentaTerminada({ venta: inicial, perfil, onNueva }: { venta: VentaRegis
         {venta.saldoAFavor && venta.saldoAFavor.guardado > 0 && (
           <p className="nota-apartado small">Se guardaron <strong>{dinero(venta.saldoAFavor.guardado)}</strong> de saldo a favor a nombre de {venta.cliente.nombre}. Su saldo: {dinero(venta.saldoAFavor.saldoFinal)}.</p>
         )}
-        {venta.cambioFisico && regresables > 0 && (
-          venta.cambioFisico.regresado ? (
-            <p className="chip ok">Las piezas del cambio físico ya están a la venta.</p>
-          ) : (
-            <button className="btn ancho" disabled={regresando} onClick={async () => {
-              setRegresando(true);
-              const err = await regresarAlInventario(db, venta.folio, perfil, equipoActual());
-              setRegresando(false);
-              if (err) return setError(err);
-              setError(null);
-              setVenta(v => ({ ...v, cambioFisico: { ...v.cambioFisico!, regresado: { por: perfil.nombre, en: new Date().toISOString() } } }));
-            }}>
-              {regresando ? 'Regresando…' : `Regresar al inventario (${regresables} pieza${regresables === 1 ? '' : 's'} del cambio físico)`}
-            </button>
-          )
+        {venta.cambioFisico && (faltan > 0 ? (
+          <button className="btn ancho" onClick={() => setRegresar(true)}>
+            Regresar al inventario ({faltan} pieza{faltan === 1 ? '' : 's'} del cambio físico)
+          </button>
+        ) : venta.cambioFisico.piezas.some(p => p.productoId) ? (
+          <p className="chip ok">Las piezas del cambio físico ya están a la venta.</p>
+        ) : null)}
+        {regresar && (
+          <RegresarInventarioModal
+            perfil={perfil}
+            folio={venta.folio}
+            onCerrar={() => setRegresar(false)}
+            onListo={() => void leerVenta(db, venta.folio).then(v => v && setVenta(v))}
+          />
         )}
-        {error && <p className="error">{error}</p>}
         <div className="ticket-vista">
           <Ticket venta={venta} ancho={ancho} />
         </div>
         <div className="acciones">
-          <label className="campo-en-linea">
-            <span>Papel</span>
-            <select value={ancho} onChange={e => elegirAncho(Number(e.target.value) as AnchoTicket)}>
-              <option value={80}>80 mm</option>
-              <option value={58}>58 mm</option>
-            </select>
-          </label>
-          <button className="btn" onClick={() => imprimirTicket(ancho)}>Imprimir ticket</button>
+          <button className="btn" onClick={async () => { await imprimirTicket(); setAncho(anchoGuardado()); }}>Imprimir ticket</button>
           <button className="btn primario" onClick={onNueva} autoFocus>Nueva venta</button>
         </div>
       </div>

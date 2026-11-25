@@ -9,7 +9,7 @@ import type { PerfilUsuario } from '../sesion/perfil';
 import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';
 import { COLECCION_TURNOS } from '../caja/turno';
 import { COL_COMPRAS, idCompraVenta } from '../compras/modelo';
-import { COL_CAMBIOS, COL_SALDO_MOVIMIENTOS, COL_SALDOS, piezasRegresables, sumarExistencias, type CambioFisico, type PiezaCambio } from './cambios';
+import { COL_CAMBIOS, COL_SALDO_MOVIMIENTOS, COL_SALDOS, piezasPorRegresar, piezasYaRegresadas, sumarExistencias, type CambioFisico, type PiezaCambio } from './cambios';
 import { COL_GARANTIAS, type Garantia } from './garantias';
 import { COL_PROMOCIONES, COL_USOS_PROMOCION } from '../promociones/modelo';
 import { COL_TICKETS_PERSONA, idIndicePersona, type ResumenTicket } from './historial';
@@ -116,7 +116,12 @@ export async function leerVenta(db: Firestore, folio: string): Promise<VentaRegi
 }
 
 /** "Regresar al inventario": las piezas del cambio físico vuelven a la venta. */
-export function regresarAlInventario(db: Firestore, folio: string, perfil: PerfilUsuario, equipo: string): Promise<string | null> {
+/**
+ * Regresa al inventario piezas del cambio físico de una venta. Con `claves`
+ * solo esas (las que se eligieron); sin ellas, todas las que falten. La venta
+ * queda "regresada" cuando ya no falta ninguna.
+ */
+export function regresarAlInventario(db: Firestore, folio: string, perfil: PerfilUsuario, equipo: string, claves?: string[]): Promise<string | null> {
   return ejecutar(db, async tx => {
     const ref = doc(db, COLECCION_VENTAS, folio);
     const s = await tx.get(ref);
@@ -124,8 +129,10 @@ export function regresarAlInventario(db: Firestore, folio: string, perfil: Perfi
     const v = s.data() as VentaRegistrada;
     if (v.estado !== 'completada') throw new ErrorAccion('Esa venta está cancelada.');
     if (!v.cambioFisico) throw new ErrorAccion('Esa venta no tiene cambio físico.');
-    if (v.cambioFisico.regresado) throw new ErrorAccion('Esas piezas ya se regresaron al inventario.');
-    const piezas = piezasRegresables(v.cambioFisico.piezas);
+    const faltan = piezasPorRegresar(v.cambioFisico);
+    const piezas = claves ? faltan.filter(p => claves.includes(p.clave)) : faltan;
+    if (!faltan.length) throw new ErrorAccion('Esas piezas ya se regresaron al inventario.');
+    if (!piezas.length) throw new ErrorAccion('Esas piezas ya se habían regresado. Actualiza la lista.');
     const actuales = new Map<string, Record<string, unknown>[] | undefined>();
     const completos = new Map<string, Record<string, unknown>>();
     for (const id of new Set(piezas.map(p => p.productoId!))) {
@@ -146,7 +153,9 @@ export function regresarAlInventario(db: Firestore, folio: string, perfil: Perfi
     for (const p of piezas) {
       anotarMovimiento(tx, db, { productoId: p.productoId!, varianteId: p.varianteId!, producto: { nombre: p.nombre, codigo: p.codigo, variantes: actuales.get(p.productoId!) ?? [] }, tipo: 'regreso_cambio', cantidad: 1, referencia: folio, nota: `Cambio físico de ${v.cliente.nombre}`, por: perfil.nombre }, new Date(ahora));
     }
-    tx.update(ref, { cambioFisico: { ...v.cambioFisico, regresado: { por: perfil.nombre, en: ahora } } });
+    const regresadas = [...piezasYaRegresadas(v.cambioFisico).map(p => p.clave), ...piezas.map(p => p.clave)];
+    const completo = regresadas.length >= piezasPorRegresar(v.cambioFisico).length + piezasYaRegresadas(v.cambioFisico).length;
+    tx.update(ref, { cambioFisico: { ...v.cambioFisico, regresadas, regresado: completo ? { por: perfil.nombre, en: ahora } : null } });
     const reg = nuevoRegistroActividad(perfil, 'catalogo', 'regresar_inventario_cambio', conOrigen(`${piezas.length} pieza(s) del cambio físico de ${v.cliente.nombre} (ticket ${folio}) regresaron al inventario`, equipo), equipo);
     tx.set(doc(db, 'auditoria', reg.id), reg);
   });
@@ -185,7 +194,7 @@ export function cancelarVenta(db: Firestore, folio: string, motivo: string, hoy:
     // Existencias: lo vendido regresa; si las piezas del cambio ya se habían
     // regresado al inventario, salen otra vez (el cambio vuelve a quedar abierto).
     const vendidas = v.lineas.filter(l => !l.esServicio && l.productoId && l.varianteId);
-    const delCambio = v.cambioFisico?.regresado ? piezasRegresables(v.cambioFisico.piezas) : [];
+    const delCambio = v.cambioFisico ? piezasYaRegresadas(v.cambioFisico) : [];
     const actuales = new Map<string, Record<string, unknown>[] | undefined>();
     const completos = new Map<string, Record<string, unknown>>();
     for (const id of new Set([...vendidas.map(l => l.productoId!), ...delCambio.map(p => p.productoId!)])) {

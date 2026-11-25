@@ -1339,3 +1339,20 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
 }
 .barra-foto { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid var(--mw-border); flex: none; }
 @media (max-width: 720px) { .barra-foto { display: none; } }
+
+/* Pregunta de papel antes de imprimir un ticket (venta/imprimir.ts) */
+.pregunta-papel { z-index: 200; }
+.modal-papel { width: min(420px, 100%); }
+.modal-papel h2 { margin: 0 0 14px; font-size: 1.15rem; }
+.opciones-papel { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.opciones-papel .btn { min-height: 88px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.opciones-papel .btn strong { font-size: 1.35rem; }
+.opciones-papel .btn span { font-size: 0.8rem; opacity: 0.85; }
+
+/* Regresar al inventario (piezas de cambio físico) */
+.regresar-todas { margin: 8px 0; font-weight: 600; }
+.regresar-lista { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--mw-border); }
+.regresar-lista li { border-bottom: 1px solid var(--mw-border); }
+.regresar-lista label { display: flex; gap: 12px; align-items: flex-start; padding: 10px 4px; cursor: pointer; min-height: 44px; }
+.regresar-lista input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--mw-purple); flex: none; }
+.regresar-pieza { display: flex; flex-direction: column; gap: 2px; min-width: 0; }

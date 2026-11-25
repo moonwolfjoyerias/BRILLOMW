@@ -12,8 +12,9 @@ import { buscarPersonas, nombreCompleto, usePersonas, type Persona } from '../pa
 import { fechaLocal } from '../caja/turno';
 import { COLECCION_VENTAS, type VentaRegistrada } from '../venta/registrarVenta';
 import { COL_TICKETS_PERSONA, filtrarTickets, mesesEntre, type ResumenTicket } from '../venta/historial';
-import { cancelarVenta, leerVenta, puedeCancelarVentas, regresarAlInventario } from '../venta/accionesVenta';
-import { piezasRegresables } from '../venta/cambios';
+import { cancelarVenta, leerVenta, puedeCancelarVentas } from '../venta/accionesVenta';
+import { RegresarInventarioModal } from './RegresarInventario';
+import { piezasPorRegresar } from '../venta/cambios';
 import { Ticket, type AnchoTicket } from '../venta/Ticket';
 import { anchoGuardado, imprimirTicket } from '../venta/imprimir';
 import { fechaTicket } from '../venta/ticketFormato';
@@ -153,7 +154,8 @@ export function DetalleVenta({ venta, perfil, hoy, onCambio, onCerrar }: {
   const [motivo, setMotivo] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const regresables = venta.cambioFisico ? piezasRegresables(venta.cambioFisico.piezas).length : 0;
+  const regresables = venta.cambioFisico ? piezasPorRegresar(venta.cambioFisico).length : 0;
+  const [regresar, setRegresar] = useState(false);
   const recargar = async () => { const v = await leerVenta(db, venta.folio); if (v) onCambio(v); };
 
   return (
@@ -166,6 +168,7 @@ export function DetalleVenta({ venta, perfil, hoy, onCambio, onCerrar }: {
         {venta.estado === 'cancelada' && venta.cancelada && <p className="error">Cancelada por {venta.cancelada.por} ({fechaTicket(venta.cancelada.en)}): {venta.cancelada.motivo}</p>}
         <div className="ticket-vista"><Ticket venta={venta} ancho={ancho} /></div>
         {error && <p className="error">{error}</p>}
+        {regresar && <RegresarInventarioModal perfil={perfil} folio={venta.folio} onCerrar={() => setRegresar(false)} onListo={() => void recargar()} />}
         {cancelando ? (
           <form className="campo" onSubmit={async e => {
             e.preventDefault();
@@ -185,14 +188,8 @@ export function DetalleVenta({ venta, perfil, hoy, onCambio, onCerrar }: {
           </form>
         ) : (
           <div className="acciones">
-            {venta.estado === 'completada' && regresables > 0 && !venta.cambioFisico?.regresado && (
-              <button className="btn" disabled={enviando} onClick={async () => {
-                setEnviando(true);
-                const err = await regresarAlInventario(db, venta.folio, perfil, equipoActual());
-                setEnviando(false);
-                if (err) return setError(err);
-                await recargar();
-              }}>Regresar al inventario ({regresables})</button>
+            {venta.estado === 'completada' && regresables > 0 && (
+              <button className="btn" disabled={enviando} onClick={() => setRegresar(true)}>Regresar al inventario ({regresables})</button>
             )}
             {venta.estado === 'completada' && puedeCancelarVentas(perfil.rol) && venta.fechaDia === hoy && (
               <button className="btn peligro" onClick={() => setCancelando(true)}>Cancelar venta</button>

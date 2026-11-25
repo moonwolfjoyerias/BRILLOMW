@@ -1,3 +1,4 @@
+import { BotonRegresarInventario } from './RegresarInventario';
 import { claveFotoInterna, useFotoPerfil } from '../personas/fotos';
 import { Campana } from './Campana';
 import { Configuracion } from './Configuracion';
@@ -116,9 +117,12 @@ function Inventario({ perfil }: { perfil: PerfilUsuario }) {
   const [sub, setSub] = useState<'productos' | 'stock'>(opciones[0]?.[0] ?? 'productos');
   return (
     <section className="inventario">
-      <div className="encabezado-seccion">
-        <h1>Inventario</h1>
-        <p className="muted">Todas las piezas a la venta y su existencia por variante, con entradas, ajustes e historial.</p>
+      <div className="encabezado-seccion con-accion">
+        <div>
+          <h1>Inventario</h1>
+          <p className="muted">Todas las piezas a la venta y su existencia por variante, con entradas, ajustes e historial.</p>
+        </div>
+        {perfil.rol !== 'staff' && <BotonRegresarInventario perfil={perfil} />}
       </div>
       {opciones.length > 1 && (
         <nav className="pestanas" aria-label="Inventario">

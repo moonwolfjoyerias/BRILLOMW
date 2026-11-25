@@ -2,6 +2,7 @@
 // de fechas: ventas (también canceladas), cambios físicos, garantías y
 // cortes. Cada ticket se abre, se reimprime y (Administración, el mismo
 // día) se cancela, igual que en Caja → Ventas.
+import { BotonRegresarInventario } from './RegresarInventario';
 import { useState, type FormEvent } from 'react';
 import { collection, getDocs, limit, query, where } from '../datos/firestore';
 import { db } from '../firebase';
@@ -81,9 +82,12 @@ export function Documentos({ perfil }: { perfil: PerfilUsuario }) {
 
   return (
     <section>
-      <div className="encabezado-seccion">
-        <h1>Documentos</h1>
-        <p className="muted">Busca cualquier ticket: ventas, canceladas, cambios físicos, garantías y cortes de caja.</p>
+      <div className="encabezado-seccion con-accion">
+        <div>
+          <h1>Documentos</h1>
+          <p className="muted">Busca cualquier ticket: ventas, canceladas, cambios físicos, garantías y cortes de caja.</p>
+        </div>
+        <BotonRegresarInventario perfil={perfil} />
       </div>
       <nav className="pestanas" aria-label="Tipo de documento">
         {(Object.keys(TIPOS_DOCUMENTO) as TipoDocumento[]).map(t => (
