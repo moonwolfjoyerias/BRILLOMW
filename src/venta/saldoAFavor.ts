@@ -8,11 +8,12 @@ import type { PerfilUsuario } from '../sesion/perfil';
 import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';
 import { COL_SALDO_MOVIMIENTOS, COL_SALDOS } from './cambios';
 
-export type OrigenSaldo = 'cambio_fisico' | 'transferencia' | 'otro';
+export type OrigenSaldo = 'cambio_fisico' | 'transferencia' | 'comision' | 'otro';
 
 export const ORIGENES_SALDO: Record<OrigenSaldo, string> = {
   cambio_fisico: 'Sobrante de cambio físico',
   transferencia: 'Transferencia',
+  comision: 'Comisión guardada como saldo',
   otro: 'Otro'
 };
 

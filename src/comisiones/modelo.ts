@@ -50,7 +50,7 @@ export interface Ajuste {
   usuarioAdminId: string;
   fecha: string;
 }
-export interface Pago { estado: string; fechaPago?: string; registradoPor?: string; montoPagado?: number; periodo?: string }
+export interface Pago { estado: string; fechaPago?: string; registradoPor?: string; montoPagado?: number; montoDinero?: number; montoSaldo?: number; periodo?: string }
 export interface Bono { fechaPago: string; registradoPor: string }
 
 export interface DatosComisiones {

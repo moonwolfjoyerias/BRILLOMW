@@ -9,6 +9,7 @@ import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';
 import { nuevoAviso } from '../pagina/avisos';
 import type { Aronium, SubPeriodo } from '../planmw/modelo';
 import { mesLabel } from '../planmw/modelo';
+import { COL_SALDO_MOVIMIENTOS, COL_SALDOS } from '../venta/cambios';
 import { claveAjuste, clavePago, claveRangoManual, type Ajuste, type Bono, type DatosComisiones, type Pago, type VersionConfig } from './modelo';
 
 export const COL = {
@@ -16,8 +17,26 @@ export const COL = {
   historial: 'comisionesHistorialAjustes',
   pagos: 'comisionesPagos',
   bonos: 'comisionesBonos',
-  rangoManual: 'comisionesRangoManual'
+  rangoManual: 'comisionesRangoManual',
+  /** Cómo quiere recibir sus comisiones la líder ('pago' | 'saldo'); lo elige en la página. */
+  destino: 'comisionesDestino'
 } as const;
+
+export type DestinoComision = 'pago' | 'saldo';
+
+/** Lo que pidió la líder en la página (null = no ha elegido: se le paga; undefined = cargando). */
+export function useDestinoComision(db: Firestore, personaId: string): { destino: DestinoComision; en: string | null } | null | undefined {
+  const [v, setV] = useState<{ destino: DestinoComision; en: string | null } | null | undefined>(undefined);
+  useEffect(() => {
+    if (!personaId) return;
+    return onSnapshot(
+      doc(db, COL.destino, personaId),
+      s => setV(s.exists() ? { destino: s.data().destino === 'saldo' ? 'saldo' : 'pago', en: (s.data().actualizadoEn as string) ?? null } : null),
+      () => setV(null)
+    );
+  }, [db, personaId]);
+  return v;
+}
 
 export type EstadoComisiones = { estado: 'cargando' } | { estado: 'error' } | ({ estado: 'listo' } & DatosComisiones);
 
@@ -132,21 +151,55 @@ export function restaurarCalculo(db: Firestore, liderId: string, personaId: stri
   });
 }
 
-/** Registrar el pago de una quincena (el pago en sí se hace por fuera) y avisarle a la líder. */
-export function registrarPago(db: Firestore, liderId: string, periodoKey: string, sub: SubPeriodo, monto: number, perfil: PerfilUsuario, equipo: string) {
+/**
+ * Registrar el pago de una quincena (el pago en dinero se hace por fuera) y
+ * avisarle a la líder. Una parte (o todo) puede guardarse como saldo a favor
+ * para su próxima compra: se suma a brilloSaldos en la misma transacción.
+ */
+export function registrarPago(
+  db: Firestore,
+  liderId: string,
+  periodoKey: string,
+  sub: SubPeriodo,
+  enDinero: number,
+  perfil: PerfilUsuario,
+  equipo: string,
+  aSaldo = 0,
+  nombre = ''
+) {
   return ejecutar(db, async tx => {
-    if (!Number.isFinite(monto) || monto <= 0) throw new ErrorComision('Escribe el monto pagado.');
+    const r2 = (n: number) => Math.round(n * 100) / 100;
+    if (enDinero < 0 || aSaldo < 0) throw new ErrorComision('Los montos no pueden ser negativos.');
+    const dinero = Number.isFinite(enDinero) && enDinero > 0 ? r2(enDinero) : 0;
+    const saldo = Number.isFinite(aSaldo) && aSaldo > 0 ? r2(aSaldo) : 0;
+    const monto = r2(dinero + saldo);
+    if (!(monto > 0)) throw new ErrorComision('Escribe el monto pagado.');
     const ahora = new Date();
+    const fecha = ahora.toISOString();
     const ref = doc(db, COL.pagos, clavePago(liderId, periodoKey, sub));
     const actual = await tx.get(ref);
     if (actual.exists() && actual.data().estado === 'pagada') throw new ErrorComision('Ese periodo ya estaba registrado como pagado.');
-    tx.set(ref, { estado: 'pagada', fechaPago: ahora.toISOString(), registradoPor: perfil.nombre, montoPagado: monto, periodo: `${periodoKey}-${sub}` });
-    const r = actividad(perfil, equipo, 'registrar_pago', `Pago de comisión registrado (${periodoKey}-${sub}) por $${monto.toFixed(2)}`, ahora);
+    const saldoRef = saldo > 0 ? doc(db, COL_SALDOS, liderId) : null;
+    const saldoSnap = saldoRef ? await tx.get(saldoRef) : null;
+    const periodo = `${periodoKey}-${sub}`;
+    tx.set(ref, { estado: 'pagada', fechaPago: fecha, registradoPor: perfil.nombre, montoPagado: monto, montoDinero: dinero, montoSaldo: saldo, periodo });
+    if (saldoRef) {
+      const antes = Number(saldoSnap?.exists() ? saldoSnap.data().saldo : 0) || 0;
+      tx.set(saldoRef, { personaId: liderId, ...(nombre ? { personaNombre: nombre } : {}), saldo: r2(antes + saldo), actualizadoEn: fecha }, { merge: true });
+      tx.set(doc(db, COL_SALDO_MOVIMIENTOS, `comision__${liderId}__${periodo}`), {
+        personaId: liderId, tipo: 'abono', origen: 'comision', monto: saldo, referencia: `Comisión ${periodo}`, fecha, por: perfil.nombre
+      });
+    }
+    const partes = [dinero > 0 ? `$${dinero.toFixed(2)} en dinero` : '', saldo > 0 ? `$${saldo.toFixed(2)} a saldo a favor` : ''].filter(Boolean).join(' y ');
+    const r = actividad(perfil, equipo, 'registrar_pago', `Pago de comisión registrado (${periodo}) por $${monto.toFixed(2)}: ${partes}`, ahora);
     tx.set(doc(db, 'auditoria', r.id), r);
-    const n = nuevoAviso(
-      { texto: `Se pagó tu comisión del periodo ${mesLabel(periodoKey)} (${sub === 'p1' ? 'Periodo 1' : 'Periodo 2'}): $${monto.toFixed(2)} MXN.`, link: 'cuenta', paraId: liderId, rolDestino: 'emprendedora_lider', origen: 'admin' },
-      ahora
-    );
+    const cuando = `${mesLabel(periodoKey)} (${sub === 'p1' ? 'Periodo 1' : 'Periodo 2'})`;
+    const texto = saldo > 0 && dinero > 0
+      ? `Se pagó tu comisión del periodo ${cuando}: $${dinero.toFixed(2)} MXN en dinero y $${saldo.toFixed(2)} MXN se guardaron como saldo a favor.`
+      : saldo > 0
+        ? `Tu comisión del periodo ${cuando} ($${saldo.toFixed(2)} MXN) se guardó como saldo a favor para tu próxima compra.`
+        : `Se pagó tu comisión del periodo ${cuando}: $${dinero.toFixed(2)} MXN.`;
+    const n = nuevoAviso({ texto, link: 'cuenta', paraId: liderId, rolDestino: 'emprendedora_lider', origen: 'admin' }, ahora);
     tx.set(doc(db, 'notificaciones', n.id), n);
   });
 }

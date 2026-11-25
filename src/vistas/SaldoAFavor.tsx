@@ -152,7 +152,7 @@ function AgregarSaldo({ cliente, perfil, onListo }: { cliente: ClienteVenta; per
         <label className="campo">
           <span>Cómo tiene el saldo *</span>
           <select value={origen} onChange={e => setOrigen(e.target.value as OrigenSaldo)}>
-            {(Object.keys(ORIGENES_SALDO) as OrigenSaldo[]).map(o => <option key={o} value={o}>{ORIGENES_SALDO[o]}</option>)}
+            {(Object.keys(ORIGENES_SALDO) as OrigenSaldo[]).filter(o => o !== 'comision').map(o => <option key={o} value={o}>{ORIGENES_SALDO[o]}</option>)}
           </select>
         </label>
         {origen === 'transferencia' && <label className="campo"><span>Referencia *</span><input value={referencia} onChange={e => setReferencia(e.target.value)} /></label>}
