@@ -29,6 +29,7 @@ import { ConfirmarCompras } from './ConfirmarCompras';
 import { Estadisticas } from './Estadisticas';
 import { useTema } from '../tema';
 import { PILOTO } from '../piloto';
+import { useTablasTarjetas } from './tablasTarjetas';
 
 export type Seccion = 'inicio' | 'vender' | 'documentos' | 'tiposPago' | 'promociones' | 'usuarios' | 'catalogo' | 'inventario' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'planmw' | 'compras' | 'estadisticas' | 'cuenta';
 
@@ -141,6 +142,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
   useConfiguracion(db);
   // En pantallas angostas el menú se abre y cierra con el botón ☰.
   const [menuAbierto, setMenuAbierto] = useState(false);
+  useTablasTarjetas('.contenido');
   useEffect(() => {
     if (!menuAbierto) return;
     const alTeclear = (e: KeyboardEvent) => e.key === 'Escape' && setMenuAbierto(false);
