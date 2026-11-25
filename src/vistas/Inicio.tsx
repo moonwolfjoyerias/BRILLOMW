@@ -65,17 +65,38 @@ function ResumenCaja({ onIr }: { onIr: Ir }) {
   const ventas = useVentasDelDia(hoy);
   if (turnos.estado !== 'listo' || ventas.estado !== 'listo') return null;
   const total = ventas.ventas.filter(v => v.estado === 'completada').reduce((s, v) => s + v.totales.total, 0);
+  const enLinea = ventas.ventas.filter(v => v.estado === 'completada' && (v.caja as string) === 'en_linea');
+  const totalLinea = enLinea.reduce((s, v) => s + v.totales.total, 0);
+  const completadas = ventas.ventas.filter(v => v.estado === 'completada').length;
   const abiertas = turnos.turnos.filter(t => t.estado === 'abierta').length;
   const cerradas = turnos.turnos.filter(t => t.estado === 'cerrada').length;
   return (
     <>
       <h3>Caja de hoy</h3>
       <div className="resumen-apartados">
-        <Dato titulo="Vendido hoy" valor={MXN.format(total)} detalle={`${ventas.ventas.length} venta${ventas.ventas.length === 1 ? '' : 's'}`} onClick={() => onIr('vender')} />
+        <Dato titulo="Vendido hoy" valor={MXN.format(total)} detalle={`${completadas} venta${completadas === 1 ? '' : 's'}${enLinea.length ? ` · ${MXN.format(totalLinea)} en línea` : ''}`} onClick={() => onIr('vender')} />
         <Dato titulo="Cajas abiertas" valor={`${abiertas} de ${CAJAS.length}`} detalle={cerradas ? `${cerradas} ya con corte` : 'Ninguna con corte todavía'} onClick={() => onIr('vender')} />
       </div>
     </>
   );
+}
+
+/** Pedidos pagados abiertos (solo esos: menos lecturas que toda la colección). */
+function usePagadosAbiertos(): { porConfirmar: number; porEntregar: number } | null {
+  const [v, setV] = useState<{ porConfirmar: number; porEntregar: number } | null>(null);
+  useEffect(
+    () =>
+      onSnapshot(
+        query(collection(db, 'pedidosPagados'), where('estado', 'in', ['por_confirmar', 'confirmado', 'en_bolsita', 'empaquetado', 'enviado'])),
+        s => {
+          const estados = s.docs.map(d => String(d.data().estado));
+          setV({ porConfirmar: estados.filter(e => e === 'por_confirmar').length, porEntregar: estados.filter(e => e !== 'por_confirmar').length });
+        },
+        () => setV(null)
+      ),
+    []
+  );
+  return v;
 }
 
 function ResumenOperativo({ perfil, onIr }: { perfil: PerfilUsuario; onIr: Ir }) {
@@ -85,10 +106,13 @@ function ResumenOperativo({ perfil, onIr }: { perfil: PerfilUsuario; onIr: Ir })
   const lista = deseos.estado === 'listo' ? deseos.deseos : [];
   const activos = lista.filter(d => d.estado === 'pendiente' || d.estado === 'en_seguimiento').length;
   const porConfirmar = useComprasPorConfirmar();
+  const pagados = usePagadosAbiertos();
   return (
     <>
       <h3>Resumen operativo</h3>
       <div className="resumen-apartados">
+        <Dato titulo="Pagos por confirmar" valor={pagados ? pagados.porConfirmar : '…'} detalle="Pedidos pagados en la página" onClick={() => onIr('apartados')} />
+        <Dato titulo="Pagados por entregar" valor={pagados ? pagados.porEntregar : '…'} detalle="Bolsita, paquete o envío" onClick={() => onIr('apartados')} />
         <Dato titulo="Pendientes de depósito" valor={apartados.estado === 'listo' ? ventanas.filter(v => v.estado === 'pendiente_deposito').length : '…'} onClick={() => onIr('apartados')} />
         <Dato titulo="Pedidos vencidos" valor={apartados.estado === 'listo' ? ventanas.filter(v => v.estado === 'activa' && estaVencida(v)).length : '…'} detalle="Por gestionar" onClick={() => onIr('apartados')} />
         <Dato
