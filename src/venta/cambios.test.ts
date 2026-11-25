@@ -124,3 +124,25 @@ describe('garantía capturada con Público general y después se elige a la e/l'
     expect(G.garantiaParaCliente(conAna, PUBLICO_GENERAL, [anillo, pulsera]).garantia!.diferencia).toBe(400);
   });
 });
+
+describe('Regresar al inventario de a poco', () => {
+  const pz = (clave: string, productoId: string | null = 'P1') => ({ clave, productoId, varianteId: productoId ? 'v1' : null, codigo: clave, nombre: clave, categoria: '', colorOro: '', variante: '', precioEtiqueta: 100, descuento: 60, valor: 40 });
+  it('sin regresar: faltan todas las del catálogo (las manuales no)', async () => {
+    const { piezasPorRegresar, piezasYaRegresadas } = await import('./cambios');
+    const c = { piezas: [pz('A'), pz('B'), pz('M', null)], regresado: null };
+    expect(piezasPorRegresar(c).map(p => p.clave)).toEqual(['A', 'B']);
+    expect(piezasYaRegresadas(c)).toEqual([]);
+  });
+  it('regresadas en parte: faltan las demás', async () => {
+    const { piezasPorRegresar, piezasYaRegresadas } = await import('./cambios');
+    const c = { piezas: [pz('A'), pz('B')], regresado: null, regresadas: ['A'] };
+    expect(piezasPorRegresar(c).map(p => p.clave)).toEqual(['B']);
+    expect(piezasYaRegresadas(c).map(p => p.clave)).toEqual(['A']);
+  });
+  it('ventas viejas regresadas todas juntas (sin lista): no falta ninguna', async () => {
+    const { piezasPorRegresar, piezasYaRegresadas } = await import('./cambios');
+    const c = { piezas: [pz('A'), pz('B')], regresado: { por: 'X', en: '2026-11-01' } };
+    expect(piezasPorRegresar(c)).toEqual([]);
+    expect(piezasYaRegresadas(c).map(p => p.clave)).toEqual(['A', 'B']);
+  });
+});
