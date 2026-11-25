@@ -1,7 +1,7 @@
 // Guarda productos en `productos` (la colección de la página) y deja el
 // registro en `auditoria`, que es la pestaña "Actividad" de la página,
 // en la MISMA operación: o se guardan los dos o ninguno.
-import { escribirEnResumen, partesResumen, partesResumenTx } from './resumenCatalogo';
+import { escribirEnResumen, partesResumen, partesResumenTx, productoLigero } from './resumenCatalogo';
 import { FirebaseError } from 'firebase/app';
 import { collection, doc, getDocs, runTransaction, writeBatch, type Firestore } from '../datos/firestore';
 import type { PerfilUsuario } from '../sesion/perfil';
@@ -38,6 +38,16 @@ function mensajeError(e: unknown): string {
 }
 
 const sinConexion = () => typeof navigator !== 'undefined' && navigator.onLine === false;
+
+/**
+ * ¿El producto del servidor es el mismo que se abrió? Sin contar fotos: el
+ * catálogo de BRILLO sale del resumen (sin fotos) y las fotos viven en
+ * productosFotos.
+ */
+function mismoProducto(alAbrir: Producto, servidor: Record<string, unknown>): boolean {
+  const sinFotos = (p: Producto) => textoEstable({ ...p, galeria: [], imagen: '' });
+  return sinFotos(normalizarProducto(alAbrir.id, productoLigero(servidor))) === sinFotos(alAbrir);
+}
 
 export async function crearProducto(
   db: Firestore,
@@ -100,7 +110,7 @@ export async function editarProducto(
       const snap = await tx.get(ref);
       if (!snap.exists()) throw new Error('no-existe');
       const actual = snap.data();
-      if (textoEstable(normalizarProducto(alAbrir.id, actual)) !== textoEstable(alAbrir)) {
+      if (!mismoProducto(alAbrir, actual)) {
         throw new Error('cambio-externo');
       }
       const partes = await partesResumenTx(tx, db);
@@ -163,7 +173,7 @@ export async function eliminarProducto(
     await runTransaction(db, async tx => {
       const snap = await tx.get(ref);
       if (!snap.exists()) throw new Error('no-existe');
-      if (textoEstable(normalizarProducto(alAbrir.id, snap.data())) !== textoEstable(alAbrir)) {
+      if (!mismoProducto(alAbrir, snap.data())) {
         throw new Error('cambio-externo');
       }
       const partes = await partesResumenTx(tx, db);
