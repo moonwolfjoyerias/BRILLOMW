@@ -1,3 +1,4 @@
+import { claveFotoInterna, useFotoPerfil } from '../personas/fotos';
 import { Campana } from './Campana';
 import { Configuracion } from './Configuracion';
 import { useConfiguracion } from '../config/configuracion';
@@ -46,60 +47,66 @@ interface Item { id: Seccion; nombre: string }
  * - Bitácora (quién hizo qué) va en Configuración (Admin) o Resultados.
  */
 function menuPara(perfil: PerfilUsuario): { titulo: string | null; items: Item[] }[] {
+  // Por uso diario: lo de todos los días arriba y lo de Administración abajo.
+  // Cada sección sigue apareciendo solo para quien tiene permiso.
   const cobra = puede(perfil, 'cobrar');
   const admin = perfil.rol === 'admin';
+  const staff = perfil.rol === 'staff';
   const ve = (id: string) => veModulo(perfil, id);
   const grupos: { titulo: string | null; items: Item[] }[] = [
     { titulo: null, items: [{ id: 'inicio', nombre: 'Inicio' }] },
     {
-      titulo: 'Tienda',
+      titulo: 'Ventas',
       items: [
         // Caja y venta van juntas: abrir la caja del día y cobrar en la misma pestaña (Staff no cobra).
         ...(cobra && ve('vender') ? [{ id: 'vender' as const, nombre: 'Caja' }] : []),
-        ...(cobra && ve('documentos') ? [{ id: 'documentos' as const, nombre: 'Documentos' }] : []),
-        ...(ve('catalogo') ? [{ id: 'catalogo' as const, nombre: 'Catálogo' }] : []),
-        ...(ve('productos') || ve('stock') ? [{ id: 'inventario' as const, nombre: 'Inventario' }] : []),
         ...(ve('apartados') ? [{ id: 'apartados' as const, nombre: 'Pedidos' }] : []),
-        ...(perfil.rol !== 'staff' && ve('promociones') ? [{ id: 'promociones' as const, nombre: 'Promociones' }] : []),
-        // Lo liquidado en la página cuenta para el Plan MW hasta que se confirma aquí.
-        ...(ve('compras') ? [{ id: 'compras' as const, nombre: 'Compras por confirmar' }] : []),
-        ...(ve('deseos') ? [{ id: 'deseos' as const, nombre: 'Lista de deseos' }] : [])
+        ...(cobra && ve('documentos') ? [{ id: 'documentos' as const, nombre: 'Documentos' }] : [])
       ]
     },
     {
-      titulo: 'Equipo',
+      titulo: 'Productos',
       items: [
-        ...(ve('calendario') ? [{ id: 'calendario' as const, nombre: 'Calendario' }] : []),
-        ...(ve('actividadesStaff') ? [{ id: 'actividadesStaff' as const, nombre: perfil.rol === 'staff' ? 'Mis actividades' : 'Actividades del Staff' }] : []),
-        // Nómina: Encargado y Administrativo, como en la página (Staff ve su recibo en Mi cuenta).
-        ...(perfil.rol !== 'staff' && ve('nomina') ? [{ id: 'nomina' as const, nombre: 'Nómina' }] : [])
+        ...(ve('catalogo') ? [{ id: 'catalogo' as const, nombre: 'Catálogo' }] : []),
+        ...(ve('productos') || ve('stock') ? [{ id: 'inventario' as const, nombre: 'Inventario' }] : []),
+        ...(!staff && ve('promociones') ? [{ id: 'promociones' as const, nombre: 'Promociones' }] : []),
+        ...(ve('deseos') ? [{ id: 'deseos' as const, nombre: 'Lista de deseos' }] : [])
       ]
     },
     {
       titulo: 'Emprendedoras',
       items: [
         ...(admin || ve('clientes') ? [{ id: 'emprendedoras' as const, nombre: 'Emprendedoras y Líderes' }] : []),
-        ...(admin ? [{ id: 'solicitudes' as const, nombre: 'Solicitudes' }, { id: 'planmw' as const, nombre: 'Plan MW' }] : [])
+        ...(admin ? [{ id: 'solicitudes' as const, nombre: 'Solicitudes' }] : []),
+        // Lo liquidado en la página cuenta para el Plan MW hasta que se confirma aquí.
+        ...(ve('compras') ? [{ id: 'compras' as const, nombre: 'Compras por confirmar' }] : []),
+        ...(admin ? [{ id: 'planmw' as const, nombre: 'Plan MW' }] : [])
+      ]
+    },
+    {
+      titulo: 'Equipo',
+      items: [
+        ...(ve('calendario') ? [{ id: 'calendario' as const, nombre: 'Calendario' }] : []),
+        ...(ve('actividadesStaff') ? [{ id: 'actividadesStaff' as const, nombre: staff ? 'Mis actividades' : 'Actividades del Staff' }] : []),
+        // Nómina: Encargado y Administrativo, como en la página (Staff ve su recibo en Mi cuenta).
+        ...(!staff && ve('nomina') ? [{ id: 'nomina' as const, nombre: 'Nómina' }] : [])
+      ]
+    },
+    {
+      titulo: 'Administración',
+      items: [
+        ...(!staff && ve('estadisticas') ? [{ id: 'estadisticas' as const, nombre: 'Estadísticas' }] : []),
+        ...(admin || ve('actividad') ? [{ id: 'actividad' as const, nombre: 'Bitácora' }] : []),
+        ...(admin
+          ? [
+              { id: 'configuracion' as const, nombre: 'Configuración' },
+              { id: 'usuarios' as const, nombre: 'Cuentas y seguridad' },
+              { id: 'tiposPago' as const, nombre: 'Tipos de pago' }
+            ]
+          : [])
       ]
     }
   ];
-  // Resultados: Estadísticas (Administración y Encargado) y, fuera de Admin, la Bitácora.
-  const resultados: Item[] = [
-    ...(perfil.rol !== 'staff' && ve('estadisticas') ? [{ id: 'estadisticas' as const, nombre: 'Estadísticas' }] : []),
-    ...(!admin && ve('actividad') ? [{ id: 'actividad' as const, nombre: 'Bitácora' }] : [])
-  ];
-  grupos.push({ titulo: 'Resultados', items: resultados });
-  if (admin) {
-    grupos.push({
-      titulo: 'Configuración',
-      items: [
-        { id: 'configuracion', nombre: 'General' },
-        { id: 'usuarios', nombre: 'Cuentas y seguridad' },
-        { id: 'tiposPago', nombre: 'Tipos de pago' },
-        { id: 'actividad', nombre: 'Bitácora' }
-      ]
-    });
-  }
   return grupos.filter(g => g.items.length);
 }
 
@@ -145,6 +152,15 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
   useConfiguracion(db);
   // En pantallas angostas el menú se abre y cierra con el botón ☰.
   const [menuAbierto, setMenuAbierto] = useState(false);
+  // En computadora el menú se puede ocultar con ☰ (se recuerda en este equipo).
+  const [menuOculto, setMenuOculto] = useState(() => { try { return localStorage.getItem('brillo-menu-oculto') === '1'; } catch { return false; } });
+  const pantallaAngosta = () => window.matchMedia('(max-width: 1000px), (max-width: 1100px) and (orientation: portrait)').matches;
+  const alternarMenu = () => {
+    if (pantallaAngosta()) { setMenuAbierto(!menuAbierto); return; }
+    const nuevo = !menuOculto;
+    setMenuOculto(nuevo);
+    try { localStorage.setItem('brillo-menu-oculto', nuevo ? '1' : '0'); } catch { /* sin almacenamiento */ }
+  };
   useTablasTarjetas('.contenido');
   useEffect(() => {
     if (!menuAbierto) return;
@@ -152,6 +168,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
     window.addEventListener('keydown', alTeclear);
     return () => window.removeEventListener('keydown', alTeclear);
   }, [menuAbierto]);
+  const miFoto = useFotoPerfil(db, claveFotoInterna(perfil));
   const grupos = menuPara(perfil);
   const disponibles = new Set<Seccion>([...grupos.flatMap(g => g.items.map(i => i.id)), 'cuenta']);
   const actual = [...grupos.flatMap(g => g.items), { id: 'cuenta', nombre: 'Mi cuenta' }].find(i => i.id === seccion);
@@ -174,7 +191,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
   return (
     <div className="app">
       <header className="barra">
-        <button className="btn boton-menu" aria-label="Abrir el menú" aria-expanded={menuAbierto} onClick={() => setMenuAbierto(!menuAbierto)}>
+        <button className="btn boton-menu" aria-label={menuOculto ? 'Mostrar el menú' : 'Menú'} title={menuOculto ? 'Mostrar el menú' : 'Ocultar el menú'} aria-expanded={menuAbierto || !menuOculto} onClick={alternarMenu}>
           ☰
         </button>
         <div className="barra-marca">
@@ -188,6 +205,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
             <strong>{perfil.nombre}</strong>
             <span>{ETIQUETA_ROL[perfil.rol]}</span>
           </div>
+          {miFoto && <img className="barra-foto" src={miFoto} alt="" />}
           <Campana perfil={perfil} onIr={s => { if (disponibles.has(s)) ir(s); }} />
           <button
             className="btn boton-tema"
@@ -209,7 +227,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
           </button>
         </div>
       </header>
-      <div className="cuerpo">
+      <div className={menuOculto ? 'cuerpo menu-oculto' : 'cuerpo'}>
         {menuAbierto && <div className="menu-fondo" onClick={() => setMenuAbierto(false)} aria-hidden="true" />}
         <nav className={menuAbierto ? 'menu-lateral abierto' : 'menu-lateral'} aria-label="Secciones">
           {grupos.map(g => (

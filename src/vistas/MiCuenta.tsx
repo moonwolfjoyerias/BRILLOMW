@@ -5,6 +5,7 @@ import { useRef, useState, type ChangeEvent } from 'react';
 import { db } from '../firebase';
 import { ETIQUETA_ROL, type PerfilUsuario } from '../sesion/perfil';
 import { comprimirFoto } from '../pagina/fotos';
+import { claveFotoInterna, guardarMiFoto, quitarMiFoto, useFotoPerfil } from '../personas/fotos';
 import { avisarOlvideAcceso, firmarRecibo, guardarMiCuenta, useMiCuenta, type DatosCuenta } from '../cuenta/acciones';
 import {
   CARGOS_NOMINA,
@@ -56,6 +57,11 @@ export function MiCuenta({ perfil }: { perfil: PerfilUsuario }) {
 
 function Perfil({ perfil, cuenta, empleado, avisar }: { perfil: PerfilUsuario; cuenta: DatosCuenta; empleado: EmpleadoNomina | null; avisar: (m: string) => void }) {
   const esAdmin = perfil.rol === 'admin';
+  // Encargado y Administración tienen foto (la misma de la página); Staff no.
+  const conFoto = claveFotoInterna(perfil) !== null;
+  const fotoNueva = useFotoPerfil(db, claveFotoInterna(perfil));
+  // Antes BRILLO la guardaba en la ficha del usuario: se sigue mostrando mientras no suban otra.
+  const foto = fotoNueva || cuenta.fotoUrl;
   const [editar, setEditar] = useState<'telefono' | 'correo' | null>(null);
   const [subiendo, setSubiendo] = useState(false);
   const [pidiendo, setPidiendo] = useState(false);
@@ -68,7 +74,7 @@ function Perfil({ perfil, cuenta, empleado, avisar }: { perfil: PerfilUsuario; c
     if (!f.type.startsWith('image/')) return avisar('Selecciona un archivo de imagen válido.');
     setSubiendo(true);
     try {
-      const err = await guardarMiCuenta(db, perfil, { fotoUrl: await comprimirFoto(f, 400, 0.8) });
+      const err = await guardarMiFoto(db, perfil, await comprimirFoto(f, 400, 0.8));
       avisar(err ?? 'Foto de perfil actualizada.');
     } catch {
       avisar('No se pudo procesar esa imagen. Intenta con otra.');
@@ -87,7 +93,7 @@ function Perfil({ perfil, cuenta, empleado, avisar }: { perfil: PerfilUsuario; c
   return (
     <article className="tarjeta-caja perfil">
       <div className="perfil-foto">
-        {cuenta.fotoUrl ? <img src={cuenta.fotoUrl} alt={`Foto de ${perfil.nombre}`} /> : <span>{perfil.nombre.trim().charAt(0).toUpperCase() || '?'}</span>}
+        {foto ? <img src={foto} alt={`Foto de ${perfil.nombre}`} /> : <span>{perfil.nombre.trim().charAt(0).toUpperCase() || '?'}</span>}
       </div>
       <h2>{perfil.nombre}</h2>
       <p className="muted">{ETIQUETA_ROL[perfil.rol]}{empleado?.numeroEmpleado ? ` · ${empleado.numeroEmpleado}` : ''}</p>
@@ -98,12 +104,14 @@ function Perfil({ perfil, cuenta, empleado, avisar }: { perfil: PerfilUsuario; c
         <dt>Correo</dt>
         <dd>{cuenta.correo || 'Sin registrar'} {esAdmin && <button className="btn mini" onClick={() => setEditar('correo')}>Cambiar</button>}</dd>
       </dl>
-      {esAdmin ? (
+      {conFoto && (
         <div className="acciones">
-          <button className="btn" onClick={() => archivo.current?.click()} disabled={subiendo}>{subiendo ? 'Guardando…' : 'Cambiar foto'}</button>
+          <button className="btn" onClick={() => archivo.current?.click()} disabled={subiendo}>{subiendo ? 'Guardando…' : foto ? 'Cambiar foto' : 'Subir foto'}</button>
+          {fotoNueva && <button className="btn" disabled={subiendo} onClick={async () => { setSubiendo(true); avisar((await quitarMiFoto(db, perfil)) ?? 'Foto quitada.'); setSubiendo(false); }}>Quitar foto</button>}
           <input ref={archivo} type="file" accept="image/*" hidden onChange={cambiarFoto} />
         </div>
-      ) : (
+      )}
+      {esAdmin ? null : (
         <>
           <p className="muted small">Tu usuario, contraseña y datos de contacto los cambia Administración.</p>
           <div className="acciones">
