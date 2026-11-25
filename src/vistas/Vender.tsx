@@ -479,6 +479,7 @@ function BuscadorProductos({
   const [q, setQ] = useState('');
   const [elegir, setElegir] = useState<Producto | null>(null);
   const [servicio, setServicio] = useState(false);
+  const [sinExistencia, setSinExistencia] = useState<string | null>(null);
   const entrada = useRef<HTMLInputElement>(null);
 
   const resultados = useMemo(() => {
@@ -489,6 +490,9 @@ function BuscadorProductos({
 
   function tomar(p: Producto) {
     const conStock = p.variantes.filter(v => v.stock > 0);
+    // Escaneado o escrito con todo agotado: se avisa (antes abría un "Elige la variante" vacío).
+    if (!conStock.length) { setSinExistencia(`${p.nombre}${p.codigo ? ` (${p.codigo})` : ''}: ya no hay existencia.`); return; }
+    setSinExistencia(null);
     if (conStock.length === 1) onAgregar(lineaDeProducto(p, conStock[0].id));
     else setElegir(p);
   }
@@ -515,7 +519,7 @@ function BuscadorProductos({
     if (usuarioDeTarjeta(texto) && onTarjeta) { onTarjeta(texto); setQ(''); return; }
     const codigo = normal(limpiarCodigo(texto));
     const exacto = productos.find(p => p.codigo && normal(p.codigo) === codigo);
-    if (exacto && stockTotal(exacto) > 0) {
+    if (exacto) {
       tomar(exacto);
       setQ('');
     } else setQ(limpiarCodigo(texto));
@@ -532,7 +536,7 @@ function BuscadorProductos({
           type="search"
           placeholder="Buscar o escanear código"
           value={q}
-          onChange={e => setQ(e.target.value)}
+          onChange={e => { setQ(e.target.value); setSinExistencia(null); }}
           aria-label="Buscar producto"
           autoFocus
         />
@@ -541,6 +545,7 @@ function BuscadorProductos({
           + Servicio
         </button>
       </form>
+      {sinExistencia && <p className="error" role="alert">{sinExistencia}</p>}
       {cargando ? (
         <p className="muted">Cargando catálogo…</p>
       ) : (
