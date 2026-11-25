@@ -1284,3 +1284,31 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
   .filtros-pagados { grid-template-columns: 1fr; }
   .lista-pagados { grid-template-columns: 1fr; }
 }
+
+/* Configuración (Administración) */
+.configuracion .config-grupo { margin-top: 16px; background: var(--surface); border: 1px solid var(--mw-border); border-radius: var(--radius); padding: 16px; }
+.configuracion .config-grupo h2 { font-size: 1.05rem; margin: 0 0 8px; }
+.config-lista { list-style: none; margin: 0; padding: 0; }
+.config-lista li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--mw-border); }
+.config-lista li:first-child { border-top: 0; }
+.config-nombre, .config-valor { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.config-valor { align-items: flex-end; text-align: right; }
+.config-valor .chip { margin-top: 4px; white-space: normal; }
+.config-porcentajes th[scope='row'] { text-align: left; }
+.btn-celda { background: none; border: 1px solid transparent; border-radius: 6px; padding: 4px 8px; font: inherit; color: inherit; cursor: pointer; min-height: 36px; min-width: 56px; }
+.btn-celda:hover, .btn-celda:focus-visible { border-color: var(--mw-purple); background: var(--mw-lilac-soft); }
+.config-campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 16px; }
+.config-campos .campo.ancho { grid-column: 1 / -1; }
+.config-campos input, .config-campos textarea { width: 100%; }
+.config-avisos { list-style: none; margin: 0; padding: 0; }
+.config-avisos li { padding: 8px 0; border-top: 1px solid var(--mw-border); }
+.config-avisos li:first-child { border-top: 0; }
+.config-avisos .interruptor { white-space: normal; align-items: flex-start; }
+.config-historial { margin-top: 16px; }
+.config-historial ul { list-style: none; margin: 8px 0 0; padding: 0; }
+.config-historial li { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--mw-border); }
+@media (max-width: 720px) {
+  .config-lista li { grid-template-columns: minmax(0, 1fr) auto; }
+  .config-lista li .btn { grid-column: 1 / -1; justify-self: start; }
+  .config-valor { align-items: flex-start; text-align: left; grid-column: 1 / -1; grid-row: 2; }
+}

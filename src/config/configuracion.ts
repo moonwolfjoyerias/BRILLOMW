@@ -4,7 +4,7 @@
 // (useConfiguracion en Principal) y la deja aquí para que los modelos la
 // lean sin pasarla de mano en mano. Sin configuración guardada se usan los
 // valores de siempre (los mismos que siembra la página).
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { collection, onSnapshot, type Firestore } from '../datos/firestore';
 import { HITOS_CONSTANCIA, RANGOS_MW } from '../personas/modelo';
 import type { VersionConfig } from '../comisiones/modelo';
@@ -33,6 +33,16 @@ export function versionesConfig(): VersionConfig[] {
   return versiones;
 }
 
+// Quien quiera volver a pintarse cuando cambie la configuración (Configuración de BRILLO).
+const oyentes = new Set<() => void>();
+/** Versiones de la configuración; se actualiza sola (la escucha vive en Principal). */
+export function useVersionesConfig(): VersionConfig[] {
+  return useSyncExternalStore(
+    f => { oyentes.add(f); return () => oyentes.delete(f); },
+    () => versiones
+  );
+}
+
 // Valores originales para poder volver a ellos si Admin borra una versión.
 const RANGOS_ORIGINALES = RANGOS_MW.map(r => ({ ...r }));
 const HITOS_ORIGINALES = HITOS_CONSTANCIA.map(h => ({ ...h }));
@@ -55,6 +65,7 @@ export function fijarConfiguracion(lista: VersionConfig[]) {
     const premio = valorConfig('constancia', `hito_${h.meses}_meses`);
     h.premio = typeof premio === 'string' && premio.trim() ? premio : HITOS_ORIGINALES[i].premio;
   });
+  oyentes.forEach(f => f());
 }
 
 /** Escucha la configuración (una vez, en Principal). Devuelve cuántas versiones hay, para volver a pintar. */
@@ -65,7 +76,7 @@ export function useConfiguracion(db: Firestore): number {
       onSnapshot(
         collection(db, 'configuracionVersiones'),
         s => {
-          fijarConfiguracion(s.docs.map(d => ({ ...(d.data() as VersionConfig) })));
+          fijarConfiguracion(s.docs.map(d => ({ ...(d.data() as VersionConfig), id: d.id })));
           setN(c => c + 1);
         },
         () => {}

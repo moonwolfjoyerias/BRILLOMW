@@ -24,7 +24,21 @@ export const IVA_DIVISOR = 1.16;
  * Si Admin cambió porcentajes, IVA o bonos, aquí se usan los mismos
  * valores que en la página, con la fecha en que entraron en vigor.
  */
-export interface VersionConfig { tipo: string; parametro: string; valor: unknown; vigenteDesde: string; vigenteHasta?: string | null }
+export interface VersionConfig {
+  tipo: string;
+  parametro: string;
+  valor: unknown;
+  vigenteDesde: string;
+  vigenteHasta?: string | null;
+  id?: string;
+  seccion?: string;
+  etiqueta?: string;
+  valorAnterior?: unknown;
+  motivo?: string;
+  usuarioAdminId?: string;
+  usuarioAdminNombre?: string;
+  fechaModificacion?: string;
+}
 
 /** Valor numérico vigente en esa fecha ('YYYY-MM-DD'), como obtenerValorVigente(). */
 export function valorVigente(config: VersionConfig[] | undefined, tipo: string, parametro: string, fecha: string): number | undefined {
