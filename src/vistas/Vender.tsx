@@ -771,6 +771,10 @@ function Cobro({
 }) {
   const [comentarios, setComentarios] = useState('');
   const [usarSaldo, setUsarSaldo] = useState(saldo > 0);
+  // El saldo puede llegar después de abrir el cobro: mientras el cajero no
+  // toque la casilla, sigue al saldo (antes se quedaba sin marcar).
+  const tocoSaldo = useRef(false);
+  useEffect(() => { if (!tocoSaldo.current) setUsarSaldo(saldo > 0); }, [saldo]);
   const creditos = aplicarCreditos(totalVenta, aFavor, saldo, usarSaldo);
   // Lo que falta después del cambio físico y el saldo: es lo que se cobra en dinero.
   const total = creditos.porPagar;
@@ -826,6 +830,7 @@ function Cobro({
                 <dt>
                   <label className="check">
                     <input type="checkbox" checked={usarSaldo} onChange={e => {
+                      tocoSaldo.current = true;
                       setUsarSaldo(e.target.checked);
                       const c = aplicarCreditos(totalVenta, aFavor, saldo, e.target.checked);
                       setFilas([{ metodo: 'efectivo', monto: String(c.porPagar), referencia: '' }]);

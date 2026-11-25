@@ -171,8 +171,16 @@ export function cancelarVenta(db: Firestore, folio: string, motivo: string, hoy:
     const v = s.data() as VentaRegistrada;
     if (v.estado !== 'completada') throw new ErrorAccion('Esa venta ya estaba cancelada.');
     if (v.fechaDia !== hoy) throw new ErrorAccion('Solo se cancelan ventas del día. Para una venta anterior, haz un cambio físico.');
-    const turno = await tx.get(doc(db, COLECCION_TURNOS, v.turnoId));
-    if (!turno.exists() || turno.data().estado !== 'abierta') throw new ErrorAccion('La caja de esa venta ya se cerró; no se puede cancelar.');
+    // Caja en línea (pedido pagado por transferencia): no tiene turno ni corte;
+    // al cancelarla, el pedido queda cancelado también.
+    const enLinea = (v.caja as string) === 'en_linea';
+    if (!enLinea) {
+      const turno = await tx.get(doc(db, COLECCION_TURNOS, v.turnoId));
+      if (!turno.exists() || turno.data().estado !== 'abierta') throw new ErrorAccion('La caja de esa venta ya se cerró; no se puede cancelar.');
+    }
+    const pedidoId = (v as unknown as { pedidoId?: string }).pedidoId;
+    const pedidoRef = enLinea && pedidoId ? doc(db, 'pedidosPagados', pedidoId) : null;
+    const pedidoSnap = pedidoRef ? await tx.get(pedidoRef) : null;
 
     // Existencias: lo vendido regresa; si las piezas del cambio ya se habían
     // regresado al inventario, salen otra vez (el cambio vuelve a quedar abierto).
@@ -267,6 +275,10 @@ export function cancelarVenta(db: Firestore, folio: string, motivo: string, hoy:
     }
     const ahora = new Date().toISOString();
     tx.update(ref, { estado: 'cancelada', cancelada: { por: perfil.nombre, en: ahora, motivo: motivo.trim() } });
+    if (pedidoRef && pedidoSnap?.exists()) {
+      const hist = (pedidoSnap.data().historial as unknown[]) ?? [];
+      tx.update(pedidoRef, { estado: 'cancelado', actualizadoEn: ahora, historial: [...hist, { estado: 'cancelado', por: perfil.nombre, rol: perfil.rol, en: ahora, nota: `Venta ${folio} cancelada: ${motivo.trim()}` }] });
+    }
     const reg = nuevoRegistroActividad(perfil, 'caja', 'cancelar_venta', conOrigen(`Venta ${folio} de ${v.cliente.nombre} ($${v.totales.total.toFixed(2)}) cancelada — ${motivo.trim()}`, equipo), equipo);
     tx.set(doc(db, 'auditoria', reg.id), reg);
   });
