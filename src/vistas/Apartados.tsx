@@ -807,8 +807,8 @@ function NuevaVentana({
         <label className="campo">
           <span>Categoría</span>
           <select value={categoria} onChange={e => setCategoria(e.target.value)}>
-            <option value="normal">Emprendedora normal (3 días)</option>
-            <option value="foranea">Emprendedora foránea (15 días)</option>
+            <option value="normal">Emprendedora normal ({regla('normal').dias} días)</option>
+            <option value="foranea">Emprendedora foránea ({regla('foranea').dias} días)</option>
             <option value="vip">Líder VIP (sin depósito, sin vencimiento)</option>
           </select>
         </label>

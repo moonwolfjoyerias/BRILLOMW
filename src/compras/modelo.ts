@@ -194,8 +194,9 @@ export function compraDeVenta(v: { cliente: ClienteVenta; lineas: LineaVendida[]
     if (l.material === 'souvenirs') souvenir += l.importe;
     else normal += l.importe;
   });
-  // Cuentan los tipos de pago marcados así en Tipos de pago (por omisión efectivo, tarjeta y transferencia).
-  const cuentan = metodosQueCuentan();
+  // Cuentan los tipos de pago marcados así en Tipos de pago (por omisión efectivo, tarjeta y transferencia)
+  // y lo pagado con saldo a favor (por ejemplo, comisiones guardadas como saldo): sí es compra.
+  const cuentan: string[] = [...metodosQueCuentan(), 'saldo_favor'];
   const pagado = v.pagos.filter(p => cuentan.includes(p.metodo)).reduce((s, p) => s + p.monto, 0); // el efectivo ya viene neto (sin el cambio)
   const factor = v.totales.total > 0 ? Math.max(0, Math.min(1, pagado / v.totales.total)) : 0;
   normal = r2(normal * factor);

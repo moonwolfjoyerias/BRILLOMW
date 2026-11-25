@@ -20,6 +20,8 @@ import { HistorialModal } from './Stock';
 import { BotonCamara } from '../escaner/EscanerQR';
 import { limpiarCodigo } from '../pagina/codigoProducto';
 import { descargarProductos } from '../exportar/productos';
+import { eliminarProducto } from '../pagina/guardarProducto';
+import { MarcoModal } from './Modal';
 
 const MXN = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 const normal = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
@@ -37,6 +39,21 @@ export function Productos({ perfil, embebido = false }: { perfil: PerfilUsuario;
   const [historial, setHistorial] = useState<Producto | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [guardando, setGuardando] = useState<string | null>(null);
+  const [porEliminar, setPorEliminar] = useState<Producto | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+  const [errorEliminar, setErrorEliminar] = useState<string | null>(null);
+
+  async function eliminar(p: Producto) {
+    setEliminando(true);
+    setErrorEliminar(null);
+    const err = await eliminarProducto(db, p, perfil, equipoActual());
+    setEliminando(false);
+    if (err) setErrorEliminar(err);
+    else {
+      setPorEliminar(null);
+      setAviso(`${p.nombre} se eliminó.`);
+    }
+  }
 
   const productos = catalogo.estado === 'listo' ? catalogo.productos : [];
   const filtrados = useMemo(() => {
@@ -133,6 +150,7 @@ export function Productos({ perfil, embebido = false }: { perfil: PerfilUsuario;
                     <td><div className="acciones-fila">
                       {puede(perfil, 'editarProductos') && <button className="btn mini" onClick={() => setEditando(p.id)}>Editar</button>}
                       <button className="btn mini" onClick={() => setHistorial(p)}>Historial</button>
+                      {puede(perfil, 'editarProductos') && <button className="btn mini peligro" onClick={() => { setErrorEliminar(null); setPorEliminar(p); }}>Eliminar</button>}
                     </div></td>
                   </tr>
                 );
@@ -154,6 +172,19 @@ export function Productos({ perfil, embebido = false }: { perfil: PerfilUsuario;
         />
       )}
       {historial && <HistorialModal producto={historial} onCerrar={() => setHistorial(null)} />}
+      {porEliminar && (
+        <MarcoModal titulo="Eliminar producto" onCerrar={() => setPorEliminar(null)} enviando={eliminando}>
+          <p>
+            ¿Eliminar <strong>{porEliminar.nombre}</strong>{porEliminar.codigo ? ` (${porEliminar.codigo})` : ''}? Se quitará de BRILLO y de la página, con todas sus
+            variantes y fotos. <strong>No se puede deshacer.</strong>
+          </p>
+          {errorEliminar && <p className="error" role="alert">{errorEliminar}</p>}
+          <div className="acciones">
+            <button className="btn" onClick={() => setPorEliminar(null)} disabled={eliminando}>No, conservar</button>
+            <button className="btn peligro-lleno" onClick={() => void eliminar(porEliminar)} disabled={eliminando}>{eliminando ? 'Eliminando…' : 'Sí, eliminar'}</button>
+          </div>
+        </MarcoModal>
+      )}
     </section>
   );
 }

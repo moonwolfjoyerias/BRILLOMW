@@ -59,7 +59,7 @@ describe('Emprendedoras/Líderes (mismas reglas que la página)', () => {
     const ahora = new Date('2026-10-27T12:00:00Z');
     const activa = normalizarVentana('V', { usuarioId: 'E1', categoria: 'normal', estado: 'activa', fechaInicio: '2026-10-26T12:00:00Z', fechaVencimiento: '2026-10-29T12:00:00Z', depositoApartadoDisponible: 50 });
     const f = cambiarCategoriaVentana(activa, 'foranea', 'Admin', ahora)!;
-    expect(f.fechaVencimiento).toBe('2026-11-10T12:00:00.000Z');
+    expect(f.fechaVencimiento).toBe('2026-10-31T12:00:00.000Z');
     expect(f.auditoria.at(-1)!.texto).toMatch(/de Normal a Foránea/);
     const vip = cambiarCategoriaVentana(normalizarVentana('V', { categoria: 'normal', estado: 'pendiente_deposito' }), 'vip', 'Admin', ahora)!;
     expect(vip.estado).toBe('pendiente_aprobacion');

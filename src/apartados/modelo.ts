@@ -17,7 +17,7 @@ export type Categoria = 'normal' | 'foranea' | 'vip';
 
 export const CATEGORIAS: Record<Categoria, { etiqueta: string; dias: number | null; requiereDeposito: boolean; requiereAprobacion?: boolean }> = {
   normal: { etiqueta: 'Normal', dias: 3, requiereDeposito: true },
-  foranea: { etiqueta: 'Foránea', dias: 15, requiereDeposito: true },
+  foranea: { etiqueta: 'Foránea', dias: 5, requiereDeposito: true },
   vip: { etiqueta: 'VIP', dias: null, requiereDeposito: false, requiereAprobacion: true }
 };
 
@@ -25,7 +25,7 @@ export const CATEGORIAS: Record<Categoria, { etiqueta: string; dias: number | nu
 export function regla(categoria: string) {
   const base = CATEGORIAS[categoria as Categoria] ?? CATEGORIAS.normal;
   if (base === CATEGORIAS.normal) return { ...base, dias: numeroConfig('apartado', 'ventana_normal_dias', base.dias ?? 3) };
-  if (base === CATEGORIAS.foranea) return { ...base, dias: numeroConfig('apartado', 'ventana_foranea_dias', base.dias ?? 15) };
+  if (base === CATEGORIAS.foranea) return { ...base, dias: numeroConfig('apartado', 'ventana_foranea_dias', base.dias ?? 5) };
   return base;
 }
 

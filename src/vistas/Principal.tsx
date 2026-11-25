@@ -1,3 +1,5 @@
+import { Campana } from './Campana';
+import { Configuracion } from './Configuracion';
 import { useConfiguracion } from '../config/configuracion';
 import { useEffect, useState } from 'react';
 import { cerrarSesion } from '../sesion/sesion';
@@ -31,7 +33,7 @@ import { PILOTO } from '../piloto';
 import { useTablasTarjetas } from './tablasTarjetas';
 import { Pedidos } from './Pagados';
 
-export type Seccion = 'inicio' | 'vender' | 'documentos' | 'tiposPago' | 'promociones' | 'usuarios' | 'catalogo' | 'inventario' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'planmw' | 'compras' | 'estadisticas' | 'cuenta';
+export type Seccion = 'inicio' | 'vender' | 'documentos' | 'tiposPago' | 'promociones' | 'usuarios' | 'catalogo' | 'inventario' | 'apartados' | 'deseos' | 'actividad' | 'actividadesStaff' | 'calendario' | 'nomina' | 'emprendedoras' | 'solicitudes' | 'planmw' | 'compras' | 'estadisticas' | 'cuenta' | 'configuracion';
 
 interface Item { id: Seccion; nombre: string }
 
@@ -91,6 +93,7 @@ function menuPara(perfil: PerfilUsuario): { titulo: string | null; items: Item[]
     grupos.push({
       titulo: 'Configuración',
       items: [
+        { id: 'configuracion', nombre: 'General' },
         { id: 'usuarios', nombre: 'Cuentas y seguridad' },
         { id: 'tiposPago', nombre: 'Tipos de pago' },
         { id: 'actividad', nombre: 'Bitácora' }
@@ -150,6 +153,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
     return () => window.removeEventListener('keydown', alTeclear);
   }, [menuAbierto]);
   const grupos = menuPara(perfil);
+  const disponibles = new Set<Seccion>([...grupos.flatMap(g => g.items.map(i => i.id)), 'cuenta']);
   const actual = [...grupos.flatMap(g => g.items), { id: 'cuenta', nombre: 'Mi cuenta' }].find(i => i.id === seccion);
   const ir = (s: Seccion) => {
     setSeccion(s);
@@ -184,6 +188,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
             <strong>{perfil.nombre}</strong>
             <span>{ETIQUETA_ROL[perfil.rol]}</span>
           </div>
+          <Campana perfil={perfil} onIr={s => { if (disponibles.has(s)) ir(s); }} />
           <button
             className="btn boton-tema"
             onClick={alternarTema}
@@ -223,6 +228,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
           {seccion === 'inventario' && <Inventario perfil={perfil} />}
           {seccion === 'documentos' && <Documentos perfil={perfil} />}
           {seccion === 'tiposPago' && <TiposPago perfil={perfil} />}
+          {seccion === 'configuracion' && perfil.rol === 'admin' && <Configuracion perfil={perfil} />}
           {seccion === 'usuarios' && <Usuarios perfil={perfil} />}
           {seccion === 'promociones' && <Promociones perfil={perfil} />}
           {seccion === 'apartados' && <Pedidos perfil={perfil} />}

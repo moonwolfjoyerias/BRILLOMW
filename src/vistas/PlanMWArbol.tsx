@@ -6,7 +6,7 @@
 //   su Mi cuenta en la página), registrar el pago de cada quincena (se le
 //   avisa en su portal), el bono por rango la primera vez que lo logra y el
 //   comprobante para imprimir o guardar en PDF.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { db, dbEquipo } from '../firebase';
 import { useArbol } from '../arbol/acciones';
@@ -17,7 +17,7 @@ import type { PerfilUsuario } from '../sesion/perfil';
 import { MarcoModal, useEnvio } from './Modal';
 import { usePersonasAdmin } from '../personas/acciones';
 import { HITOS_CONSTANCIA, nombreCompletoPersona } from '../personas/modelo';
-import { pagarBono, registrarPago, useComisiones } from '../comisiones/acciones';
+import { pagarBono, registrarPago, useComisiones, useDestinoComision } from '../comisiones/acciones';
 import { clavePago, infoSubPeriodo, montoBonoRango } from '../comisiones/modelo';
 import { boletosPorPuntos, buscarPersonaEnArbol, comisionesDelMes, etiquetaMes, mesKey, puntosPeriodo, rangoDelMes, subarbol, type ComisionPeriodo, type Miembro } from '../arbol/modelo';
 import { ascensoPrimeraVez, logrosDelMes, personasPorMiembro, proximosRangos, rangoSiguiente, requisitosPara } from '../arbol/planmw';
@@ -119,7 +119,7 @@ export function PagoComprobante({ miembros, liderId, mk, perfil, onCerrar }: { m
             <p className="muted small">{nombreCompletoPersona(persona)} todavía no registró sus datos bancarios en su Mi cuenta.</p>
           )}
           {com.estado === 'listo' && (['p1', 'p2'] as Sub[]).map(sub => (
-            <BloquePago key={sub} sub={sub} mk={mk} periodo={sub === 'p1' ? c.periodo1 : c.periodo2} personaId={persona.id} pago={com.pagos[clavePago(persona.id, mk, sub)]} perfil={perfil} />
+            <BloquePago key={sub} sub={sub} mk={mk} periodo={sub === 'p1' ? c.periodo1 : c.periodo2} personaId={persona.id} nombre={nombreCompletoPersona(persona)} pago={com.pagos[clavePago(persona.id, mk, sub)]} perfil={perfil} />
           ))}
           {bono && <BloqueBono bono={bono} perfil={perfil} />}
         </>
@@ -146,10 +146,26 @@ export function PagoComprobante({ miembros, liderId, mk, perfil, onCerrar }: { m
   );
 }
 
-function BloquePago({ sub, mk, periodo, personaId, pago, perfil }: { sub: Sub; mk: string; periodo: ComisionPeriodo; personaId: string; pago?: { estado: string; fechaPago?: string; registradoPor?: string; montoPagado?: number }; perfil: PerfilUsuario }) {
-  const [monto, setMonto] = useState((Math.round(periodo.totalComision * 100) / 100).toFixed(2));
+function BloquePago({ sub, mk, periodo, personaId, nombre, pago, perfil }: { sub: Sub; mk: string; periodo: ComisionPeriodo; personaId: string; nombre: string; pago?: { estado: string; fechaPago?: string; registradoPor?: string; montoPagado?: number; montoDinero?: number; montoSaldo?: number }; perfil: PerfilUsuario }) {
+  const total = (Math.round(periodo.totalComision * 100) / 100).toFixed(2);
+  const pidio = useDestinoComision(db, personaId);
+  // Lo que pidió la líder en la página llena los montos; Admin lo puede cambiar o dividir.
+  const [dinero, setDinero] = useState(total);
+  const [saldo, setSaldo] = useState('0.00');
+  const [tocado, setTocado] = useState(false);
+  useEffect(() => {
+    if (tocado || pidio === undefined) return;
+    if (pidio?.destino === 'saldo') { setDinero('0.00'); setSaldo(total); } else { setDinero(total); setSaldo('0.00'); }
+  }, [pidio, total, tocado]);
   const { enviando, error, enviar } = useEnvio();
   const info = infoSubPeriodo(mk, sub);
+  const nDinero = parseFloat(dinero) || 0;
+  const nSaldo = parseFloat(saldo) || 0;
+  const suma = Math.round((nDinero + nSaldo) * 100) / 100;
+  const confirmar = () => {
+    const partes = [nDinero > 0 ? `${mxn(nDinero)} en dinero` : '', nSaldo > 0 ? `${mxn(nSaldo)} a su saldo a favor` : ''].filter(Boolean).join(' y ');
+    return window.confirm(`¿Registrar el pago de ${info.label}: ${partes}? Se le avisa a la líder.`);
+  };
   return (
     <div className="bloque-pago">
       <h3>{info.label} <span className="muted small">· se paga el {info.fechaPago}</span></h3>
@@ -159,14 +175,27 @@ function BloquePago({ sub, mk, periodo, personaId, pago, perfil }: { sub: Sub; m
           <dt>Fecha de pago</dt><dd>{fecha(pago.fechaPago)}</dd>
           <dt>Registrado por</dt><dd>{pago.registradoPor}</dd>
           <dt>Monto pagado</dt><dd>{mxn(pago.montoPagado ?? 0)}</dd>
+          {!!pago.montoSaldo && <><dt>En dinero</dt><dd>{mxn(pago.montoDinero ?? 0)}</dd><dt>A saldo a favor</dt><dd>{mxn(pago.montoSaldo)}</dd></>}
         </dl>
       ) : (
         <>
           <p className="small">Comisión del árbol: <strong>{mxn(periodo.totalComision)}</strong>{periodo.gated && <span className="error small"> · sin compra mínima ({pts(periodo.compraLiderPeriodo)} de {pts(periodo.minRequerido)})</span>}</p>
-          <div className="acciones izquierda">
-            <input type="number" step="0.01" min="0" value={monto} onChange={e => setMonto(e.target.value)} aria-label={`Monto pagado ${info.label}`} />
-            <button className="btn primario" disabled={enviando || !(parseFloat(monto) > 0)} onClick={() => window.confirm(`¿Registrar el pago de ${info.label} por ${mxn(parseFloat(monto))}? Se le avisa a la líder.`) && void enviar(() => registrarPago(db, personaId, mk, sub, parseFloat(monto), perfil, equipoActual()))}>Registrar pago</button>
+          <p className="small">
+            {pidio === undefined ? 'Revisando qué pidió la líder…'
+              : pidio?.destino === 'saldo' ? <>La líder pidió <strong>guardarla como saldo a favor</strong>{pidio.en ? ` (el ${fecha(pidio.en)})` : ''}.</>
+                : pidio ? <>La líder pidió <strong>que se le pague</strong>{pidio.en ? ` (el ${fecha(pidio.en)})` : ''}.</>
+                  : 'La líder no ha elegido: se le paga en dinero.'}
+          </p>
+          <div className="acciones izquierda pago-dividido">
+            <label className="campo"><span>En dinero</span>
+              <input type="number" step="0.01" min="0" value={dinero} onChange={e => { setTocado(true); setDinero(e.target.value); }} aria-label={`Monto en dinero ${info.label}`} />
+            </label>
+            <label className="campo"><span>A saldo a favor</span>
+              <input type="number" step="0.01" min="0" value={saldo} onChange={e => { setTocado(true); setSaldo(e.target.value); }} aria-label={`Monto a saldo a favor ${info.label}`} />
+            </label>
+            <button className="btn primario" disabled={enviando || !(suma > 0) || nDinero < 0 || nSaldo < 0} onClick={() => confirmar() && void enviar(() => registrarPago(db, personaId, mk, sub, nDinero, perfil, equipoActual(), nSaldo, nombre))}>Registrar pago</button>
           </div>
+          {suma > 0 && Math.abs(suma - periodo.totalComision) > 0.009 && <p className="muted small">Total a registrar: {mxn(suma)} (la comisión calculada es {mxn(periodo.totalComision)}).</p>}
         </>
       )}
       {error && <p className="error" role="alert">{error}</p>}

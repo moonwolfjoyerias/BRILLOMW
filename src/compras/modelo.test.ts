@@ -69,6 +69,8 @@ describe('Compras en la caja de BRILLO', () => {
   it('solo lo pagado con efectivo, tarjeta o transferencia; Gala/Regalo/Souvenir no', () => {
     expect(C.compraDeVenta(venta([linea(1000)], [{ metodo: 'tarjeta', monto: 600 }, { metodo: 'regalo', monto: 400 }]))).toEqual({ normal: 600, souvenir: 0 });
     expect(C.compraDeVenta(venta([linea(1000)], [{ metodo: 'gala', monto: 1000 }]))).toBeNull();
+    // Lo pagado con saldo a favor (p. ej. comisión guardada como saldo) sí cuenta como compra.
+    expect(C.compraDeVenta(venta([linea(1000)], [{ metodo: 'saldo_favor', monto: 700 }, { metodo: 'efectivo', monto: 300 }]))).toEqual({ normal: 1000, souvenir: 0 });
   });
 
   it('lo que se paga de una garantía no cuenta para recompensas ni comisiones', () => {

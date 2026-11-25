@@ -1284,3 +1284,48 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
   .filtros-pagados { grid-template-columns: 1fr; }
   .lista-pagados { grid-template-columns: 1fr; }
 }
+
+/* Configuración (Administración) */
+.configuracion .config-grupo { margin-top: 16px; background: var(--surface); border: 1px solid var(--mw-border); border-radius: var(--radius); padding: 16px; }
+.configuracion .config-grupo h2 { font-size: 1.05rem; margin: 0 0 8px; }
+.config-lista { list-style: none; margin: 0; padding: 0; }
+.config-lista li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--mw-border); }
+.config-lista li:first-child { border-top: 0; }
+.config-nombre, .config-valor { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.config-valor { align-items: flex-end; text-align: right; }
+.config-valor .chip { margin-top: 4px; white-space: normal; }
+.config-porcentajes th[scope='row'] { text-align: left; }
+.btn-celda { background: none; border: 1px solid transparent; border-radius: 6px; padding: 4px 8px; font: inherit; color: inherit; cursor: pointer; min-height: 36px; min-width: 56px; }
+.btn-celda:hover, .btn-celda:focus-visible { border-color: var(--mw-purple); background: var(--mw-lilac-soft); }
+.config-campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 16px; }
+.config-campos .campo.ancho { grid-column: 1 / -1; }
+.config-campos input, .config-campos textarea { width: 100%; }
+.config-avisos { list-style: none; margin: 0; padding: 0; }
+.config-avisos li { padding: 8px 0; border-top: 1px solid var(--mw-border); }
+.config-avisos li:first-child { border-top: 0; }
+.config-avisos .interruptor { white-space: normal; align-items: flex-start; }
+.config-historial { margin-top: 16px; }
+.config-historial ul { list-style: none; margin: 8px 0 0; padding: 0; }
+.config-historial li { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--mw-border); }
+@media (max-width: 720px) {
+  .config-lista li { grid-template-columns: minmax(0, 1fr) auto; }
+  .config-lista li .btn { grid-column: 1 / -1; justify-self: start; }
+  .config-valor { align-items: flex-start; text-align: left; grid-column: 1 / -1; grid-row: 2; }
+}
+
+/* Campana de avisos (Staff, Encargado y Administración) */
+.campana { position: relative; }
+.boton-campana { position: relative; min-width: var(--toque); padding: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--mw-purple-dark); }
+.campana-numero { position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--mw-purple); color: #fff; font-size: 0.72rem; font-weight: 600; line-height: 20px; text-align: center; }
+.campana-panel { position: absolute; right: 0; top: calc(100% + 8px); width: min(380px, calc(100vw - 24px)); max-height: min(70vh, 560px); display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--mw-border); border-radius: var(--radius); box-shadow: 0 12px 40px var(--sombra-panel); z-index: 60; }
+.campana-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--mw-border); }
+.campana-vacio { padding: 16px 14px; margin: 0; }
+.campana-lista { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
+.campana-aviso { display: flex; flex-direction: column; gap: 4px; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--mw-border); padding: 10px 14px 10px 24px; font: inherit; color: inherit; cursor: pointer; position: relative; }
+.campana-aviso:hover, .campana-aviso:focus-visible { background: var(--mw-lilac-soft); }
+.campana-aviso.nuevo .campana-texto { font-weight: 600; }
+.campana-aviso.nuevo::before { content: ''; position: absolute; left: 10px; top: 16px; width: 8px; height: 8px; border-radius: 50%; background: var(--mw-purple); }
+.campana-texto { overflow-wrap: anywhere; }
+@media (max-width: 720px) {
+  .campana-panel { position: fixed; left: 12px; right: 12px; top: 64px; width: auto; }
+}
