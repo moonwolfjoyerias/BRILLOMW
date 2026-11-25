@@ -9,7 +9,7 @@ describe('Configuración de Admin en BRILLO', () => {
   afterEach(() => fijarConfiguracion([]));
   it('sin configuración usa los valores de siempre', () => {
     expect([depositoMinimo({ categoria: 'normal' }), depositoMinimo({ categoria: 'foranea' })]).toEqual([50, 200]);
-    expect([regla('normal').dias, regla('foranea').dias, regla('vip').dias]).toEqual([3, 15, null]);
+    expect([regla('normal').dias, regla('foranea').dias, regla('vip').dias]).toEqual([3, 5, null]);
   });
   it('usa la versión vigente hoy (no la vieja ni la futura)', () => {
     fijarConfiguracion([
