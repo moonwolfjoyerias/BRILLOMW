@@ -184,7 +184,7 @@ export type Correr = (
   exito: string
 ) => Promise<string | null>;
 
-export function Apartados({ perfil }: { perfil: PerfilUsuario }) {
+export function Apartados({ perfil, pestanas }: { perfil: PerfilUsuario; pestanas?: ReactNode }) {
   const datos = useApartados(db);
   const catalogo = useCatalogo();
   const personas = usePersonas();
@@ -271,6 +271,7 @@ export function Apartados({ perfil }: { perfil: PerfilUsuario }) {
           + Nueva ventana de apartado
         </button>
       </div>
+      {pestanas}
 
       {aviso && <p className="aviso-ok" role="status">{aviso}</p>}
 

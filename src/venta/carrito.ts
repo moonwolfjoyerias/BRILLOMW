@@ -87,12 +87,13 @@ export function lineaDeProducto(p: Producto, varianteId: string): LineaCarrito {
   };
 }
 
-export type TipoServicio = 'reparacion' | 'ajuste' | 'grabado' | 'articulo';
+export type TipoServicio = 'reparacion' | 'ajuste' | 'grabado' | 'articulo' | 'envio';
 export const TIPOS_SERVICIO: Record<TipoServicio, string> = {
   reparacion: 'Reparación',
   ajuste: 'Ajuste',
   grabado: 'Grabado',
-  articulo: 'Artículo sin inventario'
+  articulo: 'Artículo sin inventario',
+  envio: 'Envío (paquetería)'
 };
 
 export function lineaDeServicio(id: string, descripcion: string, precio: number, tipoServicio: TipoServicio = 'articulo'): LineaCarrito {

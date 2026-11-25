@@ -12,6 +12,8 @@ export const CAJAS = [
 export type IdCaja = (typeof CAJAS)[number]['id'];
 
 export function nombreCaja(id: string): string {
+  // 'en_linea': pedidos pagados por transferencia desde la página (src/pedidos/pagados.ts).
+  if (id === 'en_linea') return 'Caja en línea';
   return CAJAS.find(c => c.id === id)?.nombre ?? id;
 }
 

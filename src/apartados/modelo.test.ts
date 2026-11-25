@@ -62,6 +62,8 @@ describe('liquidar (carrito)', () => {
     expect(r.ventana.estado).toBe('activa');
     expect(r.ventana.depositoApartadoDisponible).toBe(50);
     expect(r.ventana.apartados[0]).toMatchObject({ estado: 'liquidada', saldo: 0 });
+    // Lo liquidado pasa a Pedidos → Pagados.
+    expect(r.efectos.pagadas?.map(p => p.id)).toEqual([v.apartados[0].id]);
   });
   it('pagar todo aplicando el depósito: se cobra el total menos $50 y se cierra', () => {
     const v = ventanaActiva();
