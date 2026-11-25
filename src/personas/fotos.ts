@@ -90,3 +90,33 @@ export async function quitarFotoPerfil(db: Firestore, personaId: string, nombre:
     return 'No se pudo quitar la foto. Revisa tu conexión e inténtalo de nuevo.';
   }
 }
+
+// ------------------------------------------------------------ foto propia (Encargado y Administración)
+
+/** Clave de la foto propia, igual que la página: "interna-{uid}". Staff no tiene (cuenta compartida). */
+export const claveFotoInterna = (perfil: Pick<PerfilUsuario, 'rol' | 'uid'>) => (perfil.rol === 'staff' || !perfil.uid ? null : `interna-${perfil.uid}`);
+
+export async function guardarMiFoto(db: Firestore, perfil: PerfilUsuario, fotoUrl: string): Promise<string | null> {
+  const clave = claveFotoInterna(perfil);
+  if (!clave) return 'Las cuentas de Staff no llevan foto (son compartidas).';
+  if (!esFotoValida(fotoUrl) || fotoUrl.length >= 250000) return 'La imagen no es válida o es muy grande. Intenta con otra.';
+  try {
+    await setDoc(doc(db, COLECCION_FOTOS, clave), { fotoUrl, usuario: String(perfil.usuario || '').trim().toUpperCase(), nombre: String(perfil.nombre || '').slice(0, 120), actualizadoEn: new Date().toISOString() });
+    avisar(clave, fotoUrl);
+    return null;
+  } catch {
+    return 'No se pudo guardar la foto. Revisa tu conexión e inténtalo de nuevo.';
+  }
+}
+
+export async function quitarMiFoto(db: Firestore, perfil: PerfilUsuario): Promise<string | null> {
+  const clave = claveFotoInterna(perfil);
+  if (!clave) return null;
+  try {
+    await deleteDoc(doc(db, COLECCION_FOTOS, clave));
+    avisar(clave, '');
+    return null;
+  } catch {
+    return 'No se pudo quitar la foto. Revisa tu conexión e inténtalo de nuevo.';
+  }
+}

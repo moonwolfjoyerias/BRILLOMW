@@ -193,7 +193,15 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 .barra-marca .marca { font-size: 1.15rem; letter-spacing: 0.05em; }
 .barra-seccion { flex: 1; min-width: 0; font-weight: 600; color: var(--mw-purple-dark); display: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .boton-tema { min-width: var(--toque); padding: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--mw-purple-dark); }
-.boton-menu { display: none; min-width: var(--toque); padding: 0; font-size: 1.3rem; }
+.boton-menu { display: inline-flex; align-items: center; justify-content: center; min-width: var(--toque); padding: 0; font-size: 1.3rem; }
+/* Computadora: menú oculto con ☰ */
+@media (min-width: 1001px) {
+  .cuerpo.menu-oculto { grid-template-columns: minmax(0, 1fr); }
+  .cuerpo.menu-oculto .menu-lateral { display: none; }
+}
+@media (min-width: 1001px) and (max-width: 1100px) and (orientation: portrait) {
+  .cuerpo.menu-oculto .menu-lateral { display: flex; }
+}
 
 /* Menú lateral agrupado (Tienda, Equipo, Emprendedoras). */
 .cuerpo { display: grid; grid-template-columns: 264px minmax(0, 1fr); align-items: start; }
@@ -1329,3 +1337,5 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
 @media (max-width: 720px) {
   .campana-panel { position: fixed; left: 12px; right: 12px; top: 64px; width: auto; }
 }
+.barra-foto { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid var(--mw-border); flex: none; }
+@media (max-width: 720px) { .barra-foto { display: none; } }

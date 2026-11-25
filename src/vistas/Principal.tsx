@@ -1,3 +1,4 @@
+import { claveFotoInterna, useFotoPerfil } from '../personas/fotos';
 import { Campana } from './Campana';
 import { Configuracion } from './Configuracion';
 import { useConfiguracion } from '../config/configuracion';
@@ -145,6 +146,15 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
   useConfiguracion(db);
   // En pantallas angostas el menú se abre y cierra con el botón ☰.
   const [menuAbierto, setMenuAbierto] = useState(false);
+  // En computadora el menú se puede ocultar con ☰ (se recuerda en este equipo).
+  const [menuOculto, setMenuOculto] = useState(() => { try { return localStorage.getItem('brillo-menu-oculto') === '1'; } catch { return false; } });
+  const pantallaAngosta = () => window.matchMedia('(max-width: 1000px), (max-width: 1100px) and (orientation: portrait)').matches;
+  const alternarMenu = () => {
+    if (pantallaAngosta()) { setMenuAbierto(!menuAbierto); return; }
+    const nuevo = !menuOculto;
+    setMenuOculto(nuevo);
+    try { localStorage.setItem('brillo-menu-oculto', nuevo ? '1' : '0'); } catch { /* sin almacenamiento */ }
+  };
   useTablasTarjetas('.contenido');
   useEffect(() => {
     if (!menuAbierto) return;
@@ -152,6 +162,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
     window.addEventListener('keydown', alTeclear);
     return () => window.removeEventListener('keydown', alTeclear);
   }, [menuAbierto]);
+  const miFoto = useFotoPerfil(db, claveFotoInterna(perfil));
   const grupos = menuPara(perfil);
   const disponibles = new Set<Seccion>([...grupos.flatMap(g => g.items.map(i => i.id)), 'cuenta']);
   const actual = [...grupos.flatMap(g => g.items), { id: 'cuenta', nombre: 'Mi cuenta' }].find(i => i.id === seccion);
@@ -174,7 +185,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
   return (
     <div className="app">
       <header className="barra">
-        <button className="btn boton-menu" aria-label="Abrir el menú" aria-expanded={menuAbierto} onClick={() => setMenuAbierto(!menuAbierto)}>
+        <button className="btn boton-menu" aria-label={menuOculto ? 'Mostrar el menú' : 'Menú'} title={menuOculto ? 'Mostrar el menú' : 'Ocultar el menú'} aria-expanded={menuAbierto || !menuOculto} onClick={alternarMenu}>
           ☰
         </button>
         <div className="barra-marca">
@@ -188,6 +199,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
             <strong>{perfil.nombre}</strong>
             <span>{ETIQUETA_ROL[perfil.rol]}</span>
           </div>
+          {miFoto && <img className="barra-foto" src={miFoto} alt="" />}
           <Campana perfil={perfil} onIr={s => { if (disponibles.has(s)) ir(s); }} />
           <button
             className="btn boton-tema"
@@ -209,7 +221,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
           </button>
         </div>
       </header>
-      <div className="cuerpo">
+      <div className={menuOculto ? 'cuerpo menu-oculto' : 'cuerpo'}>
         {menuAbierto && <div className="menu-fondo" onClick={() => setMenuAbierto(false)} aria-hidden="true" />}
         <nav className={menuAbierto ? 'menu-lateral abierto' : 'menu-lateral'} aria-label="Secciones">
           {grupos.map(g => (
