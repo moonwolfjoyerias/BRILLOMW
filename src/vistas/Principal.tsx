@@ -47,60 +47,66 @@ interface Item { id: Seccion; nombre: string }
  * - Bitácora (quién hizo qué) va en Configuración (Admin) o Resultados.
  */
 function menuPara(perfil: PerfilUsuario): { titulo: string | null; items: Item[] }[] {
+  // Por uso diario: lo de todos los días arriba y lo de Administración abajo.
+  // Cada sección sigue apareciendo solo para quien tiene permiso.
   const cobra = puede(perfil, 'cobrar');
   const admin = perfil.rol === 'admin';
+  const staff = perfil.rol === 'staff';
   const ve = (id: string) => veModulo(perfil, id);
   const grupos: { titulo: string | null; items: Item[] }[] = [
     { titulo: null, items: [{ id: 'inicio', nombre: 'Inicio' }] },
     {
-      titulo: 'Tienda',
+      titulo: 'Ventas',
       items: [
         // Caja y venta van juntas: abrir la caja del día y cobrar en la misma pestaña (Staff no cobra).
         ...(cobra && ve('vender') ? [{ id: 'vender' as const, nombre: 'Caja' }] : []),
-        ...(cobra && ve('documentos') ? [{ id: 'documentos' as const, nombre: 'Documentos' }] : []),
-        ...(ve('catalogo') ? [{ id: 'catalogo' as const, nombre: 'Catálogo' }] : []),
-        ...(ve('productos') || ve('stock') ? [{ id: 'inventario' as const, nombre: 'Inventario' }] : []),
         ...(ve('apartados') ? [{ id: 'apartados' as const, nombre: 'Pedidos' }] : []),
-        ...(perfil.rol !== 'staff' && ve('promociones') ? [{ id: 'promociones' as const, nombre: 'Promociones' }] : []),
-        // Lo liquidado en la página cuenta para el Plan MW hasta que se confirma aquí.
-        ...(ve('compras') ? [{ id: 'compras' as const, nombre: 'Compras por confirmar' }] : []),
-        ...(ve('deseos') ? [{ id: 'deseos' as const, nombre: 'Lista de deseos' }] : [])
+        ...(cobra && ve('documentos') ? [{ id: 'documentos' as const, nombre: 'Documentos' }] : [])
       ]
     },
     {
-      titulo: 'Equipo',
+      titulo: 'Productos',
       items: [
-        ...(ve('calendario') ? [{ id: 'calendario' as const, nombre: 'Calendario' }] : []),
-        ...(ve('actividadesStaff') ? [{ id: 'actividadesStaff' as const, nombre: perfil.rol === 'staff' ? 'Mis actividades' : 'Actividades del Staff' }] : []),
-        // Nómina: Encargado y Administrativo, como en la página (Staff ve su recibo en Mi cuenta).
-        ...(perfil.rol !== 'staff' && ve('nomina') ? [{ id: 'nomina' as const, nombre: 'Nómina' }] : [])
+        ...(ve('catalogo') ? [{ id: 'catalogo' as const, nombre: 'Catálogo' }] : []),
+        ...(ve('productos') || ve('stock') ? [{ id: 'inventario' as const, nombre: 'Inventario' }] : []),
+        ...(!staff && ve('promociones') ? [{ id: 'promociones' as const, nombre: 'Promociones' }] : []),
+        ...(ve('deseos') ? [{ id: 'deseos' as const, nombre: 'Lista de deseos' }] : [])
       ]
     },
     {
       titulo: 'Emprendedoras',
       items: [
         ...(admin || ve('clientes') ? [{ id: 'emprendedoras' as const, nombre: 'Emprendedoras y Líderes' }] : []),
-        ...(admin ? [{ id: 'solicitudes' as const, nombre: 'Solicitudes' }, { id: 'planmw' as const, nombre: 'Plan MW' }] : [])
+        ...(admin ? [{ id: 'solicitudes' as const, nombre: 'Solicitudes' }] : []),
+        // Lo liquidado en la página cuenta para el Plan MW hasta que se confirma aquí.
+        ...(ve('compras') ? [{ id: 'compras' as const, nombre: 'Compras por confirmar' }] : []),
+        ...(admin ? [{ id: 'planmw' as const, nombre: 'Plan MW' }] : [])
+      ]
+    },
+    {
+      titulo: 'Equipo',
+      items: [
+        ...(ve('calendario') ? [{ id: 'calendario' as const, nombre: 'Calendario' }] : []),
+        ...(ve('actividadesStaff') ? [{ id: 'actividadesStaff' as const, nombre: staff ? 'Mis actividades' : 'Actividades del Staff' }] : []),
+        // Nómina: Encargado y Administrativo, como en la página (Staff ve su recibo en Mi cuenta).
+        ...(!staff && ve('nomina') ? [{ id: 'nomina' as const, nombre: 'Nómina' }] : [])
+      ]
+    },
+    {
+      titulo: 'Administración',
+      items: [
+        ...(!staff && ve('estadisticas') ? [{ id: 'estadisticas' as const, nombre: 'Estadísticas' }] : []),
+        ...(admin || ve('actividad') ? [{ id: 'actividad' as const, nombre: 'Bitácora' }] : []),
+        ...(admin
+          ? [
+              { id: 'configuracion' as const, nombre: 'Configuración' },
+              { id: 'usuarios' as const, nombre: 'Cuentas y seguridad' },
+              { id: 'tiposPago' as const, nombre: 'Tipos de pago' }
+            ]
+          : [])
       ]
     }
   ];
-  // Resultados: Estadísticas (Administración y Encargado) y, fuera de Admin, la Bitácora.
-  const resultados: Item[] = [
-    ...(perfil.rol !== 'staff' && ve('estadisticas') ? [{ id: 'estadisticas' as const, nombre: 'Estadísticas' }] : []),
-    ...(!admin && ve('actividad') ? [{ id: 'actividad' as const, nombre: 'Bitácora' }] : [])
-  ];
-  grupos.push({ titulo: 'Resultados', items: resultados });
-  if (admin) {
-    grupos.push({
-      titulo: 'Configuración',
-      items: [
-        { id: 'configuracion', nombre: 'General' },
-        { id: 'usuarios', nombre: 'Cuentas y seguridad' },
-        { id: 'tiposPago', nombre: 'Tipos de pago' },
-        { id: 'actividad', nombre: 'Bitácora' }
-      ]
-    });
-  }
   return grupos.filter(g => g.items.length);
 }
 
