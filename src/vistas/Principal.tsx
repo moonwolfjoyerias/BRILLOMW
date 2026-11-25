@@ -1,3 +1,4 @@
+import { Campana } from './Campana';
 import { Configuracion } from './Configuracion';
 import { useConfiguracion } from '../config/configuracion';
 import { useEffect, useState } from 'react';
@@ -152,6 +153,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
     return () => window.removeEventListener('keydown', alTeclear);
   }, [menuAbierto]);
   const grupos = menuPara(perfil);
+  const disponibles = new Set<Seccion>([...grupos.flatMap(g => g.items.map(i => i.id)), 'cuenta']);
   const actual = [...grupos.flatMap(g => g.items), { id: 'cuenta', nombre: 'Mi cuenta' }].find(i => i.id === seccion);
   const ir = (s: Seccion) => {
     setSeccion(s);
@@ -186,6 +188,7 @@ export function Principal({ perfil }: { perfil: PerfilUsuario }) {
             <strong>{perfil.nombre}</strong>
             <span>{ETIQUETA_ROL[perfil.rol]}</span>
           </div>
+          <Campana perfil={perfil} onIr={s => { if (disponibles.has(s)) ir(s); }} />
           <button
             className="btn boton-tema"
             onClick={alternarTema}

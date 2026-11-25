@@ -1312,3 +1312,20 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
   .config-lista li .btn { grid-column: 1 / -1; justify-self: start; }
   .config-valor { align-items: flex-start; text-align: left; grid-column: 1 / -1; grid-row: 2; }
 }
+
+/* Campana de avisos (Staff, Encargado y Administración) */
+.campana { position: relative; }
+.boton-campana { position: relative; min-width: var(--toque); padding: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--mw-purple-dark); }
+.campana-numero { position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--mw-purple); color: #fff; font-size: 0.72rem; font-weight: 600; line-height: 20px; text-align: center; }
+.campana-panel { position: absolute; right: 0; top: calc(100% + 8px); width: min(380px, calc(100vw - 24px)); max-height: min(70vh, 560px); display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--mw-border); border-radius: var(--radius); box-shadow: 0 12px 40px var(--sombra-panel); z-index: 60; }
+.campana-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--mw-border); }
+.campana-vacio { padding: 16px 14px; margin: 0; }
+.campana-lista { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
+.campana-aviso { display: flex; flex-direction: column; gap: 4px; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--mw-border); padding: 10px 14px 10px 24px; font: inherit; color: inherit; cursor: pointer; position: relative; }
+.campana-aviso:hover, .campana-aviso:focus-visible { background: var(--mw-lilac-soft); }
+.campana-aviso.nuevo .campana-texto { font-weight: 600; }
+.campana-aviso.nuevo::before { content: ''; position: absolute; left: 10px; top: 16px; width: 8px; height: 8px; border-radius: 50%; background: var(--mw-purple); }
+.campana-texto { overflow-wrap: anywhere; }
+@media (max-width: 720px) {
+  .campana-panel { position: fixed; left: 12px; right: 12px; top: 64px; width: auto; }
+}
