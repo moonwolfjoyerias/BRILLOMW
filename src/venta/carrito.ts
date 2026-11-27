@@ -46,6 +46,8 @@ export interface LineaCarrito {
   tipoServicio?: TipoServicio;
   /** Existencias de la variante al agregarla (tope de cantidad). null en servicios. */
   disponible: number | null;
+  /** No cuenta para comisiones ni compras del Plan MW. */
+  noComisionable?: boolean;
   /** Cambio por garantía: la pieza nueva sale del inventario y solo se paga la diferencia. */
   garantia?: LineaGarantia;
 }
@@ -82,8 +84,11 @@ export function lineaDeProducto(p: Producto, varianteId: string): LineaCarrito {
     cantidad: 1,
     precioEtiqueta: p.precioEtiqueta,
     descuentoMayoreo: p.descuento,
-    esServicio: false,
-    disponible: v.stock
+    // Servicios del inventario (reparaciones): se cobran sin existencia.
+    esServicio: p.servicio === true,
+    ...(p.servicio ? { tipoServicio: 'reparacion' as const } : {}),
+    disponible: p.servicio ? null : v.stock,
+    ...(p.noComisionable ? { noComisionable: true } : {})
   };
 }
 

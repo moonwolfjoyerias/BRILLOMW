@@ -2,6 +2,7 @@ import { Miniatura } from './Miniatura';
 import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type SetStateAction } from 'react';
 import { db } from '../firebase';
 import { equipoActual } from '../plataforma';
+import { moverStock, puedeMoverStock } from '../stock/acciones';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { useCatalogo } from '../pagina/useCatalogo';
 import { etiquetaVariante, stockTotal, type Producto } from '../pagina/producto';
@@ -210,7 +211,7 @@ export function Vender({ perfil, onVerDocumentos }: { perfil: PerfilUsuario; /**
     <>
       {pestanas}
         <div className="vender-columnas">
-          <BuscadorProductos productos={productos} cargando={catalogo.estado === 'cargando'} enCarrito={carrito} onAgregar={agregar} onTarjeta={tarjetaEscaneada} />
+          <BuscadorProductos perfil={perfil} productos={productos} cargando={catalogo.estado === 'cargando'} enCarrito={carrito} onAgregar={agregar} onTarjeta={tarjetaEscaneada} />
           <div className="panel-venta">
             <SelectorCliente cliente={cliente} onCambiar={cambiarCliente} />
             <div className="acciones-caja">
@@ -466,13 +467,52 @@ export function Vender({ perfil, onVerDocumentos }: { perfil: PerfilUsuario; /**
 
 // ------------------------------------------------------------ productos
 
+/** Pieza agotada en la caja: se avisa y, si se puede, se ingresa al stock para venderla (nunca queda en negativo). */
+function SinExistencia({ producto, perfil, onCerrar, onIngresado }: { producto: Producto; perfil: PerfilUsuario; onCerrar: () => void; onIngresado: (varianteId: string, n: number) => void }) {
+  const [varianteId, setVarianteId] = useState(producto.variantes[0]?.id ?? '');
+  const [cantidad, setCantidad] = useState('1');
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const puede = puedeMoverStock(perfil);
+  async function ingresar() {
+    const n = Number(cantidad);
+    if (!Number.isInteger(n) || n < 1) { setError('Escribe cuántas piezas ingresas (1 o más).'); return; }
+    setGuardando(true); setError(null);
+    const e = await moverStock(db, { productoId: producto.id, varianteId, tipo: 'entrada', cambio: { sumar: n }, nota: 'Ingresada desde la caja para venderla' }, perfil, equipoActual());
+    setGuardando(false);
+    if (e) setError(e);
+    else onIngresado(varianteId, n);
+  }
+  return (
+    <div className="aviso-sin-stock" role="alert">
+      <p><strong>Ya no hay stock de este producto</strong>: {producto.nombre}{producto.codigo ? ` (${producto.codigo})` : ''}.{' '}
+        {puede ? 'Si deseas venderlo, ingrésalo al stock.' : 'Para venderlo, pide a Encargado o Administración que lo ingrese al stock.'}</p>
+      {puede && (
+        <div className="fila-sin-stock">
+          {producto.variantes.length > 1 && (
+            <select value={varianteId} onChange={e => setVarianteId(e.target.value)} aria-label="Variante">
+              {producto.variantes.map(v => <option key={v.id} value={v.id}>{etiquetaVariante(v)}</option>)}
+            </select>
+          )}
+          <input type="number" min={1} step={1} inputMode="numeric" value={cantidad} onChange={e => setCantidad(e.target.value)} aria-label="Piezas a ingresar" />
+          <button type="button" className="btn primario" disabled={guardando} onClick={() => void ingresar()}>{guardando ? 'Ingresando…' : 'Ingresar al stock y vender'}</button>
+        </div>
+      )}
+      {error && <p className="error">{error}</p>}
+      <button type="button" className="btn mini" onClick={onCerrar} disabled={guardando}>Cerrar</button>
+    </div>
+  );
+}
+
 function BuscadorProductos({
+  perfil,
   productos,
   cargando,
   enCarrito,
   onAgregar,
   onTarjeta
 }: {
+  perfil: PerfilUsuario;
   productos: Producto[];
   cargando: boolean;
   enCarrito: LineaCarrito[];
@@ -483,19 +523,23 @@ function BuscadorProductos({
   const [q, setQ] = useState('');
   const [elegir, setElegir] = useState<Producto | null>(null);
   const [servicio, setServicio] = useState(false);
-  const [sinExistencia, setSinExistencia] = useState<string | null>(null);
+  const [sinExistencia, setSinExistencia] = useState<Producto | null>(null);
   const entrada = useRef<HTMLInputElement>(null);
 
   const resultados = useMemo(() => {
     const t = normal(q);
     const lista = t ? productos.filter(p => normal(`${p.nombre} ${p.codigo} ${p.categoria}`).includes(t)) : productos;
-    return lista.filter(p => stockTotal(p) > 0).slice(0, 40);
+    const venta = (p: Producto) => stockTotal(p) > 0 || p.servicio === true;
+    // Al buscar también salen (al final) las piezas agotadas, para poder ingresarlas al stock y venderlas.
+    return [...lista.filter(venta), ...(t ? lista.filter(p => !venta(p)) : [])].slice(0, 40);
   }, [productos, q]);
 
   function tomar(p: Producto) {
+    // Servicios del inventario (reparaciones): se cobran sin existencia.
+    if (p.servicio) { setSinExistencia(null); onAgregar(lineaDeProducto(p, p.variantes[0].id)); return; }
     const conStock = p.variantes.filter(v => v.stock > 0);
-    // Escaneado o escrito con todo agotado: se avisa (antes abría un "Elige la variante" vacío).
-    if (!conStock.length) { setSinExistencia(`${p.nombre}${p.codigo ? ` (${p.codigo})` : ''}: ya no hay existencia.`); return; }
+    // Escaneado o escrito con todo agotado: nunca se vende en negativo; se ofrece ingresarlo al stock.
+    if (!conStock.length) { setSinExistencia(p); return; }
     setSinExistencia(null);
     if (conStock.length === 1) onAgregar(lineaDeProducto(p, conStock[0].id));
     else setElegir(p);
@@ -549,7 +593,19 @@ function BuscadorProductos({
           + Servicio
         </button>
       </form>
-      {sinExistencia && <p className="error" role="alert">{sinExistencia}</p>}
+      {sinExistencia && (
+        <SinExistencia
+          producto={sinExistencia}
+          perfil={perfil}
+          onCerrar={() => { setSinExistencia(null); entrada.current?.focus(); }}
+          onIngresado={(varianteId, n) => {
+            // El catálogo tarda un instante en traer la nueva existencia: la línea ya lleva lo que se ingresó.
+            onAgregar({ ...lineaDeProducto(sinExistencia, varianteId), disponible: n });
+            setSinExistencia(null);
+            entrada.current?.focus();
+          }}
+        />
+      )}
       {cargando ? (
         <p className="muted">Cargando catálogo…</p>
       ) : (
@@ -566,7 +622,7 @@ function BuscadorProductos({
                   </span>
                   <span className="item-precio">
                     {dinero(p.precioEtiqueta)}
-                    <span className="muted small">{stockTotal(p)} disp.{ya ? ` · ${ya} en venta` : ''}</span>
+                    <span className="muted small">{p.servicio ? 'servicio' : `${stockTotal(p)} disp.`}{ya ? ` · ${ya} en venta` : ''}</span>
                   </span>
                 </button>
               </li>

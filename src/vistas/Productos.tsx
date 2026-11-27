@@ -13,6 +13,7 @@ import { NOMBRE_MATERIAL, nombreMaterial, stockTotal, type Producto } from '../p
 import { CATEGORIAS } from '../pagina/opciones';
 import { enCategoriaFiltro, etiquetaCategoria, opcionesFiltroCategoria } from '../pagina/subcategoria';
 import { cambiarMostrarEnCatalogo } from '../pagina/mostrarEnCatalogo';
+import { cargarMiniatura } from '../pagina/fotosProducto';
 import { estadoStock, minimoDe } from '../stock/modelo';
 import { useStockMinimo } from '../stock/acciones';
 import { ProductoForm } from './ProductoForm';
@@ -69,6 +70,13 @@ export function Productos({ perfil, embebido = false }: { perfil: PerfilUsuario;
 
   async function alternar(p: Producto) {
     setGuardando(p.id);
+    // Para mostrarse en el catálogo necesita foto: si no tiene, se abre para subirla.
+    if (!p.mostrarEnCatalogo && !(await cargarMiniatura(p))) {
+      setGuardando(null);
+      setAviso(`${p.nombre} no tiene foto. Sube al menos una foto y marca "Mostrar en catálogo" para que salga en el catálogo.`);
+      setEditando(p.id);
+      return;
+    }
     const err = await cambiarMostrarEnCatalogo(db, p, !p.mostrarEnCatalogo, perfil, equipoActual());
     setGuardando(null);
     setAviso(err ?? `${p.nombre}: ${!p.mostrarEnCatalogo ? 'ahora se muestra en el catálogo.' : 'ya no se muestra en el catálogo (sigue a la venta en la tienda).'}`);

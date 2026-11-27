@@ -128,6 +128,11 @@ export function ProductoForm({
   async function guardar(e: FormEvent) {
     e.preventDefault();
     const r = validarBorrador(b, catalogo, producto?.id);
+    // Al pasar a "Mostrar en catálogo" (algo que era solo de tienda o es nuevo) se pide al menos una foto.
+    if (r.ok && b.mostrarEnCatalogo && !producto?.mostrarEnCatalogo && !b.galeria.length) {
+      setError('Para mostrarlo en el catálogo sube al menos una foto.');
+      return;
+    }
     if (!r.ok) {
       setError(r.error);
       return;
