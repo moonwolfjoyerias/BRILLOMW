@@ -52,6 +52,7 @@ export function TicketCorte({
       <div className="t-linea" />
       <Fila izq="Precio etiqueta:" der={$(c.totalEtiqueta)} />
       <Fila izq="Descuento mayoreo:" der={`-${$(c.descuentoMayoreo)}`} />
+      {c.descuentoManual > 0 && <Fila izq="Descuentos manuales:" der={`-${$(c.descuentoManual)}`} />}
       <Fila izq="Subtotal:" der={$(c.baseSinIva)} />
       <Fila izq="Impuestos 16%:" der={$(c.iva)} />
       <Fila izq="TOTAL VENDIDO:" der={$(c.total)} fuerte />

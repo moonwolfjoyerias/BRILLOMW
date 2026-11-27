@@ -79,12 +79,14 @@ export function Ticket({ venta: v, ancho = 80 }: { venta: VentaRegistrada; ancho
       <div className="t-fuerte">Cliente:</div>
       <div>{v.cliente.nombre.toUpperCase()}</div>
       {v.cliente.membresia && <div>{v.cliente.membresia}</div>}
+      {v.cliente.sinAlta && <div>Emprendedora sin alta · Tel. {v.cliente.sinAlta.telefono}</div>}
       {v.cliente.codigoTarjeta && <div><span className="t-fuerte">Código:</span> {v.cliente.codigoTarjeta}</div>}
       <div className="t-linea" />
       {normales.map((l, i) => (
         <div key={i} className="t-art">
           <div>{renglonPieza({ categoria: l.categoria, colorOro: l.colorOro, nombre: l.nombre, variante: l.variante })}</div>
           <Fila izq={renglonCantidad(l)} der={MXN.format(l.importe)} />
+          {l.descuentoManual && <div>Desc. {l.descuentoManual.porcentaje}% · {l.descuentoManual.motivo}</div>}
         </div>
       ))}
       {garantias.length > 0 && (

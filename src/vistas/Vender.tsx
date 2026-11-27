@@ -1,4 +1,5 @@
 import { Miniatura } from './Miniatura';
+import { MarcoModal } from './Modal';
 import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type SetStateAction } from 'react';
 import { db } from '../firebase';
 import { equipoActual } from '../plataforma';
@@ -19,6 +20,12 @@ import {
   calcularTotales,
   cambiarCantidad,
   clienteDesdePersona,
+  clienteSinAlta,
+  aplicarDescuento,
+  validarDescuento,
+  PORCENTAJES_DESCUENTO,
+  MOTIVOS_DESCUENTO,
+  type DescuentoManual,
   lineaDeProducto,
   lineaDeServicio,
   TIPOS_SERVICIO,
@@ -84,6 +91,9 @@ export function Vender({ perfil, onVerDocumentos }: { perfil: PerfilUsuario; /**
   const [ticket, setTicket] = useState<VentaRegistrada | null>(null);
   // Venta de la que salió el ticket: al terminar se cierra esa pestaña.
   const [extra, setExtra] = useState<null | 'cambio' | 'abiertos' | 'garantia' | 'saldo' | 'regresar'>(null);
+  /** Descuento manual abierto: a una pieza (su clave) o a todo el ticket. */
+  const [descuentoDe, setDescuentoDe] = useState<string | 'todas' | null>(null);
+  const daDescuentos = perfil.rol === 'admin' || perfil.rol === 'encargado';
   const porRegresar = usePorRegresar();
   const cambiosAbiertos = useCambiosAbiertos(db);
   const saldo = useSaldoAFavor(db, cliente.tipo !== 'publico' ? cliente.personaId : null) ?? 0;
@@ -215,14 +225,17 @@ export function Vender({ perfil, onVerDocumentos }: { perfil: PerfilUsuario; /**
           <div className="panel-venta">
             <SelectorCliente cliente={cliente} onCambiar={cambiarCliente} />
             <div className="acciones-caja">
-              <button className="btn" disabled={cliente.tipo === 'publico'} title={cliente.tipo === 'publico' ? 'Solo emprendedoras y líderes' : undefined} onClick={() => setExtra('cambio')}>
+              <button className="btn" disabled={!cliente.personaId} title={!cliente.personaId ? 'Solo emprendedoras y líderes dadas de alta' : undefined} onClick={() => setExtra('cambio')}>
                 Cambio físico{cambio ? ` (${dinero(aFavor)})` : ''}
               </button>
               <button className="btn" onClick={() => setExtra('abiertos')}>Cambios abiertos{cambiosAbiertos?.length ? ` (${cambiosAbiertos.length})` : ''}</button>
               <button className="btn" onClick={() => setExtra('garantia')}>Garantía</button>
               <button className="btn" onClick={() => setExtra('regresar')}>Regresar al inventario{porRegresar?.length ? ` (${porRegresar.length})` : ''}</button>
-              {cliente.tipo !== 'publico' && (
+              {cliente.personaId && (
                 <button className="btn" onClick={() => setExtra('saldo')}>Saldo a favor{saldo > 0 ? ` (${dinero(saldo)})` : ''}</button>
+              )}
+              {daDescuentos && (
+                <button className="btn" disabled={!carrito.some(l => !l.garantia)} onClick={() => setDescuentoDe('todas')}>Descuento al ticket</button>
               )}
               <button className="btn" disabled={!hayVenta} onClick={() => setParaImprimir(<TicketPresupuesto promos={promos} cliente={cliente} carrito={carrito} cambio={cambio?.piezas ?? []} saldo={saldo} ancho={anchoGuardado()} />)}>
                 Ticket falso
@@ -259,7 +272,9 @@ export function Vender({ perfil, onVerDocumentos }: { perfil: PerfilUsuario; /**
                         <span className="muted small">
                           {l.codigo && `${l.codigo} · `}
                           {pu !== l.precioEtiqueta && <s>{dinero(l.precioEtiqueta)}</s>} {dinero(pu)} c/u
+                          {l.descuentoManual && <> · <span className="chip pendiente">−{l.descuentoManual.porcentaje}% {l.descuentoManual.motivo}</span></>}
                         </span>
+                        {daDescuentos && <button className="btn mini enlace" onClick={() => setDescuentoDe(l.clave)}>{l.descuentoManual ? 'Cambiar descuento' : 'Descuento'}</button>}
                       </div>
                       <div className="cantidad">
                         <button className="btn mini" aria-label="Quitar uno" onClick={() => { const r = cambiarCantidad(carrito, l.clave, l.cantidad - 1); setCarrito(r.carrito); setAviso(r.error ?? null); }}>−</button>
@@ -282,6 +297,12 @@ export function Vender({ perfil, onVerDocumentos }: { perfil: PerfilUsuario; /**
                   <dd>{dinero(totales.totalEtiqueta)}</dd>
                   <dt>Descuento mayoreo</dt>
                   <dd>−{dinero(totales.descuentoMayoreo)}</dd>
+                </>
+              )}
+              {(totales.descuentoManual ?? 0) > 0 && (
+                <>
+                  <dt>Descuentos manuales</dt>
+                  <dd>−{dinero(totales.descuentoManual!)}</dd>
                 </>
               )}
               {promos.aplicadas.map(a => (
@@ -455,6 +476,16 @@ export function Vender({ perfil, onVerDocumentos }: { perfil: PerfilUsuario; /**
             setExtra(null);
             return null;
           }}
+        />
+      )}
+      {descuentoDe && (
+        <ModalDescuento
+          titulo={descuentoDe === 'todas' ? 'Descuento a todo el ticket' : `Descuento: ${carrito.find(l => l.clave === descuentoDe)?.descripcion ?? ''}`}
+          actual={descuentoDe === 'todas' ? null : carrito.find(l => l.clave === descuentoDe)?.descuentoManual ?? null}
+          esMayoreo={cliente.tipo !== 'publico'}
+          por={perfil.nombre}
+          onCerrar={() => setDescuentoDe(null)}
+          onAplicar={d => { setCarrito(c => aplicarDescuento(c, descuentoDe === 'todas' ? 'todas' : [descuentoDe], d)); setDescuentoDe(null); }}
         />
       )}
       {extra === 'saldo' && cliente.personaId && (
@@ -727,6 +758,7 @@ function SelectorCliente({ cliente, onCambiar }: { cliente: ClienteVenta; onCamb
   const [buscando, setBuscando] = useState(false);
   const [q, setQ] = useState('');
   const [errorTarjeta, setErrorTarjeta] = useState<string | null>(null);
+  const [sinAlta, setSinAlta] = useState<{ nombre: string; telefono: string; error: string | null } | null>(null);
   const personas = usePersonas();
   const resultados = personas.estado === 'listo' ? buscarPersonas(personas.personas, q.replace(/^\s*MWE\s*:/i, '')) : [];
 
@@ -753,7 +785,8 @@ function SelectorCliente({ cliente, onCambiar }: { cliente: ClienteVenta; onCamb
             {cliente.nombre}
             {cliente.membresia && <span className="muted"> · {cliente.membresia}</span>}
           </strong>
-          {cliente.tipo !== 'publico' && <span className="chip ok">{cliente.tipo === 'lider' ? 'Líder' : 'Emprendedora'} · precio mayoreo</span>}
+          {cliente.sinAlta && <span className="muted small bloque">Tel. {cliente.sinAlta.telefono}</span>}
+          {cliente.tipo !== 'publico' && <span className="chip ok">{cliente.sinAlta ? 'Emprendedora sin alta' : cliente.tipo === 'lider' ? 'Líder' : 'Emprendedora'} · precio mayoreo</span>}
         </div>
         <div className="acciones">
           {cliente.tipo !== 'publico' && (
@@ -762,9 +795,32 @@ function SelectorCliente({ cliente, onCambiar }: { cliente: ClienteVenta; onCamb
           <button className="btn mini" onClick={() => setBuscando(true)}>
             {cliente.tipo === 'publico' ? 'Emprendedora / líder' : 'Cambiar'}
           </button>
+          {cliente.tipo === 'publico' && <button className="btn mini" onClick={() => setSinAlta({ nombre: '', telefono: '', error: null })}>Mayoreo sin alta</button>}
           {camara}
         </div>
         {errorTarjeta && <p className="error small" role="alert">{errorTarjeta}</p>}
+        {sinAlta && (
+          <MarcoModal
+            titulo="Precio de mayoreo sin alta"
+            onCerrar={() => setSinAlta(null)}
+            onEnviar={e => {
+              e.preventDefault();
+              if (!sinAlta.nombre.trim()) return setSinAlta({ ...sinAlta, error: 'Escribe su nombre.' });
+              if (sinAlta.telefono.replace(/\D/g, '').length < 10) return setSinAlta({ ...sinAlta, error: 'Escribe su teléfono a 10 dígitos.' });
+              onCambiar(clienteSinAlta(sinAlta.nombre, sinAlta.telefono));
+              setSinAlta(null);
+            }}
+          >
+            <p className="muted small">Para una emprendedora que todavía no está dada de alta: lleva el descuento de mayoreo de cada pieza (60% oro, 40% acero…). Su nombre y teléfono quedan en el ticket. No cuenta para comisiones ni Plan MW hasta que tenga cuenta.</p>
+            <label className="campo"><span>Nombre completo</span><input value={sinAlta.nombre} onChange={e => setSinAlta({ ...sinAlta, nombre: e.target.value, error: null })} autoFocus /></label>
+            <label className="campo"><span>Teléfono</span><input inputMode="tel" value={sinAlta.telefono} onChange={e => setSinAlta({ ...sinAlta, telefono: e.target.value, error: null })} /></label>
+            {sinAlta.error && <p className="error" role="alert">{sinAlta.error}</p>}
+            <div className="acciones">
+              <button type="button" className="btn" onClick={() => setSinAlta(null)}>Cancelar</button>
+              <button type="submit" className="btn primario">Aplicar mayoreo</button>
+            </div>
+          </MarcoModal>
+        )}
       </div>
     );
   }
@@ -1018,5 +1074,54 @@ function CampoCupon({ cupones, onCambio, avisos }: { cupones: string[]; onCambio
       )}
       {avisos.map(a => <p key={a} className="aviso-pendiente small">{a}</p>)}
     </div>
+  );
+}
+
+/** Descuento manual (Encargado/Admin): porcentajes de siempre o uno personalizado, con motivo. */
+function ModalDescuento({ titulo, actual, esMayoreo, por, onCerrar, onAplicar }: {
+  titulo: string;
+  actual: DescuentoManual | null;
+  esMayoreo: boolean;
+  por: string;
+  onCerrar: () => void;
+  onAplicar: (d: DescuentoManual | null) => void;
+}) {
+  const [porcentaje, setPorcentaje] = useState(actual ? String(actual.porcentaje) : '');
+  const motivoInicial = actual ? (MOTIVOS_DESCUENTO.includes(actual.motivo) ? actual.motivo : 'Otro') : '';
+  const [motivo, setMotivo] = useState(motivoInicial);
+  const [otro, setOtro] = useState(actual && motivoInicial === 'Otro' ? actual.motivo : '');
+  const [error, setError] = useState<string | null>(null);
+  const aplicar = (e: FormEvent) => {
+    e.preventDefault();
+    const m = motivo === 'Otro' ? otro.trim() : motivo;
+    const p = Number(porcentaje);
+    const err = validarDescuento(p, m);
+    if (err) { setError(err); return; }
+    onAplicar({ porcentaje: Math.round(p * 100) / 100, motivo: m, por });
+  };
+  return (
+    <MarcoModal titulo={titulo} onCerrar={onCerrar} onEnviar={aplicar}>
+      <p className="muted small">{esMayoreo ? 'Se descuenta sobre el precio de mayoreo.' : 'Se descuenta sobre el precio etiqueta.'} Queda en el ticket y en Actividad con su motivo.</p>
+      <div className="opciones-descuento">
+        {PORCENTAJES_DESCUENTO.map(n => (
+          <button key={n} type="button" className={Number(porcentaje) === n ? 'btn primario' : 'btn'} onClick={() => { setPorcentaje(String(n)); setError(null); }}>{n}%</button>
+        ))}
+      </div>
+      <label className="campo"><span>Otro porcentaje</span><input inputMode="decimal" value={porcentaje} onChange={e => { setPorcentaje(e.target.value); setError(null); }} placeholder="Ej. 12" /></label>
+      <label className="campo">
+        <span>Motivo</span>
+        <select value={motivo} onChange={e => { setMotivo(e.target.value); setError(null); }}>
+          <option value="">Elige el motivo…</option>
+          {MOTIVOS_DESCUENTO.map(m => <option key={m} value={m}>{m}</option>)}
+        </select>
+      </label>
+      {motivo === 'Otro' && <label className="campo"><span>¿Cuál?</span><input value={otro} onChange={e => { setOtro(e.target.value); setError(null); }} maxLength={80} /></label>}
+      {error && <p className="error" role="alert">{error}</p>}
+      <div className="acciones">
+        {actual && <button type="button" className="btn peligro" onClick={() => onAplicar(null)}>Quitar descuento</button>}
+        <button type="button" className="btn" onClick={onCerrar}>Cancelar</button>
+        <button type="submit" className="btn primario">Aplicar descuento</button>
+      </div>
+    </MarcoModal>
   );
 }

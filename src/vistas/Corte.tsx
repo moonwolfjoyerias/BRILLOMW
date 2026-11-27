@@ -165,6 +165,12 @@ function Resumen({ r }: { r: ResumenCorte }) {
     <dl className="totales">
       <dt>Ventas</dt>
       <dd>{r.ventas} · {r.piezas} art.</dd>
+      {r.descuentoManual > 0 && (
+        <>
+          <dt>Descuentos manuales</dt>
+          <dd>−{$(r.descuentoManual)}</dd>
+        </>
+      )}
       {r.descuentoMayoreo > 0 && (
         <>
           <dt>Descuento mayoreo</dt>

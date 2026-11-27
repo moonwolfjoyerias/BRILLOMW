@@ -15,7 +15,19 @@ export interface ClienteVenta {
   membresia: string | null;
   /** Código de su tarjeta de cliente (el número de cliente de Aronium, ej. 000188). */
   codigoTarjeta?: string | null;
+  /** Emprendedora que todavía no está dada de alta: lleva precio de mayoreo pero no cuenta para comisiones. */
+  sinAlta?: { telefono: string };
 }
+
+/** Emprendedora sin alta: precio de mayoreo; queda su nombre y teléfono en el ticket. */
+export function clienteSinAlta(nombre: string, telefono: string): ClienteVenta {
+  return { tipo: 'emprendedora', personaId: null, nombre: nombre.trim(), membresia: null, sinAlta: { telefono: telefono.trim() } };
+}
+
+/** Descuento manual de una pieza (Encargado/Admin), sobre el precio que ya le toca. */
+export interface DescuentoManual { porcentaje: number; motivo: string; por: string }
+export const PORCENTAJES_DESCUENTO = [5, 10, 15, 20, 30, 40, 60];
+export const MOTIVOS_DESCUENTO = ['Clienta frecuente', 'Pieza con detalle', 'Autorizado por Administración', 'Promoción en tienda', 'Otro'];
 
 export const PUBLICO_GENERAL: ClienteVenta = { tipo: 'publico', personaId: null, nombre: 'Público general', membresia: null };
 
@@ -48,6 +60,8 @@ export interface LineaCarrito {
   disponible: number | null;
   /** No cuenta para comisiones ni compras del Plan MW. */
   noComisionable?: boolean;
+  /** Descuento manual sobre el precio (etiqueta o mayoreo). */
+  descuentoManual?: DescuentoManual;
   /** Cambio por garantía: la pieza nueva sale del inventario y solo se paga la diferencia. */
   garantia?: LineaGarantia;
 }
@@ -143,13 +157,36 @@ export function cambiarCantidad(carrito: LineaCarrito[], clave: string, cantidad
 }
 
 /** Precio unitario para esta clienta: mayoreo automático si es emprendedora o líder. */
-export function precioUnitario(l: LineaCarrito, cliente: ClienteVenta): number {
+/** Precio antes del descuento manual: etiqueta (público, servicios) o mayoreo (e/l). */
+export function precioSinManual(l: LineaCarrito, cliente: ClienteVenta): number {
   if (l.garantia) return l.garantia.diferencia;
   if (cliente.tipo === 'publico' || l.esServicio) return l.precioEtiqueta;
   return precioMayoreo({ precioEtiqueta: l.precioEtiqueta, descuento: l.descuentoMayoreo });
 }
 
-const r2 = (n: number) => Math.round(n * 100) / 100;
+export function precioUnitario(l: LineaCarrito, cliente: ClienteVenta): number {
+  const base = precioSinManual(l, cliente);
+  if (l.garantia || !l.descuentoManual) return base;
+  return r2(base * (1 - Math.min(100, Math.max(0, l.descuentoManual.porcentaje)) / 100));
+}
+
+/** Pone (o quita, con null) el descuento manual a unas piezas; las garantías no llevan descuento. */
+export function aplicarDescuento(carrito: LineaCarrito[], claves: string[] | 'todas', d: DescuentoManual | null): LineaCarrito[] {
+  return carrito.map(l => {
+    if (l.garantia || (claves !== 'todas' && !claves.includes(l.clave))) return l;
+    if (!d) { const { descuentoManual: _, ...resto } = l; return resto; }
+    return { ...l, descuentoManual: d };
+  });
+}
+
+/** Valida un descuento escrito: porcentaje 1–100 y motivo. */
+export function validarDescuento(porcentaje: number, motivo: string): string | null {
+  if (!Number.isFinite(porcentaje) || porcentaje <= 0 || porcentaje > 100) return 'Escribe un porcentaje entre 1 y 100.';
+  if (!motivo.trim()) return 'Escribe el motivo del descuento.';
+  return null;
+}
+
+function r2(n: number) { return Math.round(n * 100) / 100; }
 
 export interface Totales {
   piezas: number;
@@ -165,6 +202,8 @@ export interface Totales {
   totalSouvenirs: number;
   /** Descuento de promociones (ya restado del total). */
   descuentoPromociones?: number;
+  /** Descuentos manuales (ya restados del total). */
+  descuentoManual?: number;
 }
 
 /** promos: descuento de promociones por renglón (ver promociones/modelo.ts). */
@@ -177,11 +216,13 @@ export function calcularTotales(carrito: LineaCarrito[], cliente: ClienteVenta, 
   const totalSouvenirs = r2(
     carrito.filter(l => l.material === 'souvenirs').reduce((s, l) => s + precioUnitario(l, cliente) * l.cantidad - descPromo(l), 0)
   );
+  const manual = r2(carrito.reduce((s, l) => s + (precioSinManual(l, cliente) - precioUnitario(l, cliente)) * l.cantidad, 0));
   return {
     piezas: carrito.reduce((s, l) => s + l.cantidad, 0),
     totalEtiqueta,
     total,
-    descuentoMayoreo: r2(totalEtiqueta - total - (promos?.total ?? 0)),
+    descuentoMayoreo: r2(totalEtiqueta - total - (promos?.total ?? 0) - manual),
+    ...(manual > 0 ? { descuentoManual: manual } : {}),
     baseSinIva,
     iva: r2(total - baseSinIva),
     totalSouvenirs,

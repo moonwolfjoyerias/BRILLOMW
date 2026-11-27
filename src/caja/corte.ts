@@ -30,6 +30,8 @@ export interface ResumenCorte {
   total: number;
   totalEtiqueta: number;
   descuentoMayoreo: number;
+  /** Descuentos manuales de Encargado/Admin. */
+  descuentoManual: number;
   baseSinIva: number;
   iva: number;
   souvenirs: number;
@@ -58,6 +60,7 @@ function vacio(): ResumenCorte {
     total: 0,
     totalEtiqueta: 0,
     descuentoMayoreo: 0,
+    descuentoManual: 0,
     baseSinIva: 0,
     iva: 0,
     souvenirs: 0,
@@ -88,6 +91,7 @@ export function calcularCorte(
     c.total += v.totales.total;
     c.totalEtiqueta += v.totales.totalEtiqueta;
     c.descuentoMayoreo += v.totales.descuentoMayoreo;
+    c.descuentoManual += v.totales.descuentoManual ?? 0;
     c.baseSinIva += v.totales.baseSinIva;
     c.iva += v.totales.iva;
     c.souvenirs += v.totales.totalSouvenirs;
@@ -115,7 +119,7 @@ function sumaMovimientos(movs: MovimientoEfectivo[], tipo: MovimientoEfectivo['t
 
 function redondear(c: ResumenCorte): ResumenCorte {
   const n = (k: keyof ResumenCorte) => ((c[k] as number) = r2(c[k] as number));
-  (['total', 'totalEtiqueta', 'descuentoMayoreo', 'baseSinIva', 'iva', 'souvenirs', 'totalMayoreo', 'totalPublico', 'cambioEntregado', 'fondoInicial', 'ingresos', 'retiros'] as const).forEach(n);
+  (['total', 'totalEtiqueta', 'descuentoMayoreo', 'descuentoManual', 'baseSinIva', 'iva', 'souvenirs', 'totalMayoreo', 'totalPublico', 'cambioEntregado', 'fondoInicial', 'ingresos', 'retiros'] as const).forEach(n);
   Object.keys(c.porMetodo).forEach(m => (c.porMetodo[m].monto = r2(c.porMetodo[m].monto)));
   c.efectivoEsperado = r2(c.fondoInicial + c.porMetodo.efectivo.monto + c.ingresos - c.retiros);
   return c;
@@ -125,8 +129,8 @@ function redondear(c: ResumenCorte): ResumenCorte {
 export function sumarCortes(cortes: ResumenCorte[]): ResumenCorte {
   const g = vacio();
   for (const c of cortes) {
-    for (const k of ['ventas', 'piezas', 'total', 'totalEtiqueta', 'descuentoMayoreo', 'baseSinIva', 'iva', 'souvenirs', 'totalMayoreo', 'totalPublico', 'cambioEntregado', 'fondoInicial', 'ingresos', 'retiros'] as const) {
-      g[k] += c[k];
+    for (const k of ['ventas', 'piezas', 'total', 'totalEtiqueta', 'descuentoMayoreo', 'descuentoManual', 'baseSinIva', 'iva', 'souvenirs', 'totalMayoreo', 'totalPublico', 'cambioEntregado', 'fondoInicial', 'ingresos', 'retiros'] as const) {
+      g[k] += Number(c[k]) || 0;
     }
     new Set([...METODOS, ...Object.keys(c.porMetodo)]).forEach(m => {
       const t = (g.porMetodo[m] ??= { monto: 0, pagos: 0 });

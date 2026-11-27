@@ -6,12 +6,14 @@ import { escribirEnResumen, partesResumenTx } from '../pagina/resumenCatalogo';
 import { FirebaseError } from 'firebase/app';
 import { doc, runTransaction, serverTimestamp, type Firestore } from '../datos/firestore';
 import type { PerfilUsuario } from '../sesion/perfil';
+import { conOrigen, nuevoRegistroActividad } from '../pagina/actividad';
 import { COLECCION_TURNOS, idTurno, type IdCaja } from '../caja/turno';
 import {
   calcularTotales,
   formatoRecibo,
   precioUnitario,
   type ClienteVenta,
+  type DescuentoManual,
   type LineaCarrito,
   type LineaGarantia,
   type PagoRegistrado,
@@ -52,6 +54,7 @@ export interface LineaVendida {
   tipoServicio?: TipoServicio;
   garantia?: LineaGarantia;
   noComisionable?: boolean;
+  descuentoManual?: DescuentoManual;
 }
 
 export interface VentaRegistrada {
@@ -110,7 +113,8 @@ export function lineasVendidas(carrito: LineaCarrito[], cliente: ClienteVenta, p
       esServicio: l.esServicio,
       ...(l.esServicio ? { tipoServicio: l.tipoServicio ?? 'articulo' } : {}),
       ...(l.garantia ? { garantia: l.garantia, descuentoAplicado: 0 } : {}),
-      ...(l.noComisionable ? { noComisionable: true } : {})
+      ...(l.noComisionable ? { noComisionable: true } : {}),
+      ...(l.descuentoManual && !l.garantia ? { descuentoManual: l.descuentoManual } : {})
     };
   });
 }
@@ -316,6 +320,13 @@ export async function registrarVenta(
       tx.update(doc(db, COLECCION_TURNOS, turnoId), { numVentas: (Number(turno.data().numVentas) || 0) + 1 });
       tx.set(recibosRef, { siguiente: numero + 1 }, { merge: true });
       tx.set(ordenesRef, { siguiente: orden + 1 }, { merge: true });
+      // Descuentos manuales: quedan en Actividad con su motivo.
+      const conDescuento = v.lineas.filter(l => l.descuentoManual);
+      if (conDescuento.length) {
+        const texto = conDescuento.map(l => `${l.nombre} −${l.descuentoManual!.porcentaje}% (${l.descuentoManual!.motivo})`).join('; ');
+        const reg = nuevoRegistroActividad(perfil, 'caja', 'descuento_manual', conOrigen(`Ticket ${folio} a ${cliente.nombre}: descuento manual de ${v.totales.descuentoManual ?? 0} pesos — ${texto}`, datos.equipo), datos.equipo, new Date());
+        tx.set(doc(db, 'auditoria', reg.id), reg);
+      }
       tx.set(doc(db, COLECCION_VENTAS, folio), { ...v, fecha: serverTimestamp() });
       // Venta a una emprendedora o líder: cuenta como su compra (comisiones,
       // rango, constancia, rifa) desde ya; la página la lee de comprasBrillo.
