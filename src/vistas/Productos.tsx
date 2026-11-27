@@ -9,11 +9,12 @@ import { db } from '../firebase';
 import { equipoActual } from '../plataforma';
 import type { PerfilUsuario } from '../sesion/perfil';
 import { useCatalogo } from '../pagina/useCatalogo';
-import { NOMBRE_MATERIAL, nombreMaterial, stockTotal, type Producto } from '../pagina/producto';
+import { completoEnCatalogo, faltantesCatalogo, NOMBRE_MATERIAL, nombreMaterial, stockTotal, type Producto } from '../pagina/producto';
 import { CATEGORIAS } from '../pagina/opciones';
 import { enCategoriaFiltro, etiquetaCategoria, opcionesFiltroCategoria } from '../pagina/subcategoria';
 import { cambiarMostrarEnCatalogo } from '../pagina/mostrarEnCatalogo';
 import { cargarMiniatura } from '../pagina/fotosProducto';
+import { Paginas, usePaginas } from './Paginas';
 import { estadoStock, minimoDe } from '../stock/modelo';
 import { useStockMinimo } from '../stock/acciones';
 import { ProductoForm } from './ProductoForm';
@@ -36,6 +37,8 @@ export function Productos({ perfil, embebido = false }: { perfil: PerfilUsuario;
   const [categoria, setCategoria] = useState('');
   const [enCatalogo, setEnCatalogo] = useState<'' | 'si' | 'no'>('');
   const [existencia, setExistencia] = useState<'' | 'con' | 'sin'>('');
+  /** "Catálogo" (en catálogo y completo) o "Inventario e incompletos" (solo tienda, importado o le falta algo). */
+  const [vista, setVista] = useState<'catalogo' | 'inventario'>('catalogo');
   const [editando, setEditando] = useState<string | null | undefined>(undefined);
   const [historial, setHistorial] = useState<Producto | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -67,6 +70,9 @@ export function Productos({ perfil, embebido = false }: { perfil: PerfilUsuario;
       (!existencia || (existencia === 'con') === stockTotal(p) > 0)
     );
   }, [productos, q, material, categoria, enCatalogo, existencia]);
+  const enVista = useMemo(() => filtrados.filter(p => completoEnCatalogo(p) === (vista === 'catalogo')), [filtrados, vista]);
+  const cuantosCatalogo = useMemo(() => filtrados.filter(completoEnCatalogo).length, [filtrados]);
+  const pag = usePaginas(enVista, [q, material, categoria, enCatalogo, existencia, vista].join('|'));
 
   async function alternar(p: Producto) {
     setGuardando(p.id);
@@ -123,7 +129,11 @@ export function Productos({ perfil, embebido = false }: { perfil: PerfilUsuario;
           <option value="sin">Agotados</option>
         </select>
       </div>
-      {!filtrados.length ? (
+      <div className="pestanas" role="tablist" aria-label="Vista">
+        <button role="tab" aria-selected={vista === 'catalogo'} className={vista === 'catalogo' ? 'nav-boton activo' : 'nav-boton'} onClick={() => setVista('catalogo')}>Catálogo ({cuantosCatalogo.toLocaleString('es-MX')})</button>
+        <button role="tab" aria-selected={vista === 'inventario'} className={vista === 'inventario' ? 'nav-boton activo' : 'nav-boton'} onClick={() => setVista('inventario')}>Inventario e incompletos ({(filtrados.length - cuantosCatalogo).toLocaleString('es-MX')})</button>
+      </div>
+      {!enVista.length ? (
         <p className="muted vacio">No hay productos con ese filtro.</p>
       ) : (
         <div className="tabla-scroll">
@@ -132,14 +142,14 @@ export function Productos({ perfil, embebido = false }: { perfil: PerfilUsuario;
               <tr><th aria-label="Foto" /><th>Código</th><th>Producto</th><th className="num">Precio</th><th className="num">Existencia</th><th>Catálogo</th><th aria-label="Acciones" /></tr>
             </thead>
             <tbody>
-              {filtrados.slice(0, 300).map(p => {
+              {pag.visibles.map(p => {
                 const total = stockTotal(p);
                 // Agotado si no queda nada; poco si alguna variante llegó al mínimo.
                 const est = total <= 0 ? 'agotado' : p.variantes.some(v => estadoStock(v.stock, minimoDe(p, minimo)) !== 'ok') ? 'poco' : 'ok';
                 return (
                   <tr key={p.id}>
                     <td><Miniatura producto={p} className="miniatura" /></td>
-                    <td className="mono">{p.codigo}</td>
+                    <td className="mono">{p.codigo}{vista === 'inventario' && faltantesCatalogo(p).length > 0 && <span className="chip pendiente bloque">Falta: {faltantesCatalogo(p).join(', ')}</span>}</td>
                     <td>
                       <strong>{p.nombre}</strong>
                       <span className="muted small bloque">{nombreMaterial(p.material)}{p.categoria ? ` · ${etiquetaCategoria(p)}` : ''} · {p.variantes.length} {p.variantes.length === 1 ? 'variante' : 'variantes'}</span>
@@ -165,9 +175,9 @@ export function Productos({ perfil, embebido = false }: { perfil: PerfilUsuario;
               })}
             </tbody>
           </table>
-          {filtrados.length > 300 && <p className="muted small">Se muestran 300 de {filtrados.length}. Usa el buscador.</p>}
         </div>
       )}
+      {enVista.length > 0 && <Paginas p={pag} />}
       {editando !== undefined && (
         <ProductoForm
           producto={editando ? productos.find(p => p.id === editando) ?? null : null}
