@@ -176,3 +176,16 @@ export function nombreMaterial(material: string): string {
 export function fotoMostrable(src: string): string {
   return /^(data:image\/|https?:\/\/|blob:)/i.test(src) ? src : '';
 }
+
+/** Qué le falta para salir en el catálogo: foto, descripción o categoría (igual que la página). */
+export function faltantesCatalogo(p: Pick<Producto, 'galeria' | 'fotosIds' | 'descripcion' | 'categoria'>): string[] {
+  const f: string[] = [];
+  const sinFoto = !p.galeria.some(x => x.src) && Array.isArray(p.fotosIds) && !p.fotosIds.length;
+  if (sinFoto) f.push('foto');
+  if (!p.descripcion.trim()) f.push('descripción');
+  if (!p.categoria.trim()) f.push('categoría');
+  return f;
+}
+
+/** Está en el catálogo y completo (vista "Catálogo"); lo demás va en "Inventario e incompletos". */
+export const completoEnCatalogo = (p: Producto) => p.mostrarEnCatalogo && !faltantesCatalogo(p).length;

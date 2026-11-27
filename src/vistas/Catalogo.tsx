@@ -1,5 +1,6 @@
 import { useGaleria, useMiniatura } from '../pagina/fotosProducto';
 import { useEffect, useMemo, useState } from 'react';
+import { Paginas, usePaginas } from './Paginas';
 import { puede } from '../sesion/permisos';
 import { useCatalogo } from '../pagina/useCatalogo';
 import type { PerfilUsuario } from '../sesion/perfil';
@@ -63,6 +64,7 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
       // "lo más nuevo arriba" se conserva dentro de cada grupo).
       .sort((a, b) => Number(!a.disponible || stockTotal(a) <= 0) - Number(!b.disponible || stockTotal(b) <= 0));
   }, [productos, busqueda, material, categoria, soloConExistencias]);
+  const pag = usePaginas(filtrados, [busqueda, material, categoria, soloConExistencias].join('|'));
 
   if (catalogo.estado === 'cargando') return <p className="muted">Cargando catálogo…</p>;
   if (catalogo.estado === 'error') return <p className="error">{catalogo.mensaje}</p>;
@@ -138,7 +140,7 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
         </p>
       ) : (
         <ul className="rejilla">
-          {filtrados.map(p => (
+          {pag.visibles.map(p => (
             <li key={p.id}>
               <button className="tarjeta" onClick={() => setAbierto(p)}>
                 <Foto producto={p} alt={p.nombre} />
@@ -155,6 +157,7 @@ export function Catalogo({ perfil }: { perfil: PerfilUsuario }) {
           ))}
         </ul>
       )}
+      {filtrados.length > 0 && <Paginas p={pag} />}
 
       {abierto && (
         <Detalle

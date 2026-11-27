@@ -1375,3 +1375,8 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
 /* Caja: descuentos manuales */
 .opciones-descuento { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .btn.enlace { justify-self: start; align-self: flex-start; background: none; border: 0; padding: 2px 0; text-decoration: underline; color: var(--mw-primary, inherit); min-height: 0; }
+
+/* Páginas de 24 y vistas de Productos */
+.paginas { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 12px 0; }
+.paginas-botones { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.paginas-num { display: inline-flex; gap: 4px; align-items: center; }
