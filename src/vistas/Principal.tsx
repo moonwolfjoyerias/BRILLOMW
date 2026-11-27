@@ -1,4 +1,6 @@
 import { BotonRegresarInventario } from './RegresarInventario';
+import { BotonImportarAronium } from './ImportarAronium';
+import { puedeMoverStock } from '../stock/acciones';
 import { claveFotoInterna, useFotoPerfil } from '../personas/fotos';
 import { Campana } from './Campana';
 import { Configuracion } from './Configuracion';
@@ -122,7 +124,10 @@ function Inventario({ perfil }: { perfil: PerfilUsuario }) {
           <h1>Inventario</h1>
           <p className="muted">Todas las piezas a la venta y su existencia por variante, con entradas, ajustes e historial.</p>
         </div>
-        {perfil.rol !== 'staff' && <BotonRegresarInventario perfil={perfil} />}
+        <div className="acciones-encabezado">
+          {puedeMoverStock(perfil) && <BotonImportarAronium perfil={perfil} />}
+          {perfil.rol !== 'staff' && <BotonRegresarInventario perfil={perfil} />}
+        </div>
       </div>
       {opciones.length > 1 && (
         <nav className="pestanas" aria-label="Inventario">

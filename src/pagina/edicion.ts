@@ -115,7 +115,8 @@ export function validarBorrador(
   if (!b.codigo.trim()) return { ok: false, error: 'Escribe el código del producto.' };
   const mismo = productoConCodigo(catalogo, b.codigo, idEditando);
   if (mismo) return { ok: false, error: `El código "${b.codigo.trim()}" ya lo tiene "${mismo.nombre}". Usa un código distinto.` };
-  if (!descripcion) return { ok: false, error: 'Agrega una descripción.' };
+  // La descripción solo es obligatoria si sale en el catálogo (lo de "solo tienda", como lo importado de Aronium, puede no tenerlas).
+  if (!descripcion && b.mostrarEnCatalogo) return { ok: false, error: 'Agrega una descripción.' };
   if (!b.material) return { ok: false, error: 'Elige el material.' };
   if (!b.variantes.length) return { ok: false, error: 'Agrega al menos una variante.' };
   if (b.variantes.some(v => !esEnteroNoNegativo(v.stock))) {
@@ -184,7 +185,11 @@ export function armarDocumento(
   ultimaAccion: UltimaAccion,
   actual: Record<string, unknown> = {}
 ): Record<string, unknown> {
-  return { ...actual, id, ...datos, ultimaAccion };
+  const documento: Record<string, unknown> = { ...actual, id, ...datos, ultimaAccion };
+  // `fotosIds: []` dice "no tiene fotos" (así lo dejan los productos importados,
+  // para no descargar nada). Si ahora se le pusieron fotos, ya no aplica.
+  if (datos.galeria.length && Array.isArray(documento.fotosIds) && !(documento.fotosIds as unknown[]).length) delete documento.fotosIds;
+  return documento;
 }
 
 const NOMBRES_CAMPOS: [keyof DatosProducto, string][] = [

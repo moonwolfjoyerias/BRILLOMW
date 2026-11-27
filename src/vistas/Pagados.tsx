@@ -9,7 +9,7 @@ import type { PerfilUsuario } from '../sesion/perfil';
 import { Apartados } from './Apartados';
 import { MarcoModal } from './Modal';
 import {
-  ESTADOS_PAGADO, TERMINADOS, avanzarPedido, confirmarPago, esForanea, leerComprobante, pasosDisponibles,
+  ESTADOS_PAGADO, TERMINADOS, avanzarPedido, confirmarBolsitaPedido, confirmarPago, esForanea, leerComprobante, pasosDisponibles,
   puedeConfirmarPagos, rechazarPago, rechazoVencido, usePedidosPagados, vencerPedido,
   type EstadoPagado, type PedidoPagado
 } from '../pedidos/pagados';
@@ -47,6 +47,7 @@ export function Pedidos({ perfil }: { perfil: PerfilUsuario }) {
 
 const FILTROS: Record<string, { texto: string; f: (p: PedidoPagado) => boolean }> = {
   activos: { texto: 'En curso', f: p => !TERMINADOS.includes(p.estado) },
+  esperando_bolsita: { texto: 'Esperando bolsita', f: p => p.estado === 'esperando_bolsita' },
   por_confirmar: { texto: 'Por confirmar pago', f: p => p.estado === 'por_confirmar' || p.estado === 'rechazado' },
   por_preparar: { texto: 'Por preparar', f: p => p.estado === 'confirmado' || p.estado === 'empaquetado' },
   en_bolsita: { texto: 'En caja de pagados', f: p => p.estado === 'en_bolsita' },
@@ -88,11 +89,19 @@ export function Pagados({ pedidos, perfil }: { pedidos: PedidoPagado[]; perfil: 
   }, [pedidos, filtro, busqueda]);
   const cuenta = (f: (p: PedidoPagado) => boolean) => pedidos.filter(f).length;
   const resumen: [string, number, string][] = [
+    ['Esperando bolsita', cuenta(p => p.estado === 'esperando_bolsita'), 'esperando_bolsita'],
     ['Por confirmar pago', cuenta(p => p.estado === 'por_confirmar'), 'por_confirmar'],
     ['Por preparar', cuenta(p => p.estado === 'confirmado' || p.estado === 'empaquetado'), 'por_preparar'],
     ['En caja de pagados', cuenta(p => p.estado === 'en_bolsita'), 'en_bolsita'],
     ['Enviados', cuenta(p => p.estado === 'enviado'), 'enviado']
   ];
+
+  const confirmarBolsita = async (p: PedidoPagado) => {
+    setOcupado(p.id);
+    const err = await confirmarBolsitaPedido(db, p, perfil);
+    setOcupado(null);
+    setAviso(err ?? 'Todas las piezas quedaron confirmadas en bolsita. A ella le aparece el monto para pagar.');
+  };
 
   const avanzar = async (p: PedidoPagado, estado: EstadoPagado) => {
     if (estado === 'enviado') { setModal({ tipo: 'enviar', p }); return; }
@@ -146,7 +155,12 @@ export function Pagados({ pedidos, perfil }: { pedidos: PedidoPagado[]; perfil: 
               {p.comprobante?.referencia && <p className="small muted">Referencia: <strong>{p.comprobante.referencia}</strong></p>}
               {p.estado === 'rechazado' && <p className="small muted">Rechazado: {p.rechazo?.motivo}. Puede mandar otro comprobante hoy; si no, las piezas regresan al catálogo.</p>}
               {p.envioInfo && <p className="small">Guía {p.envioInfo.paqueteria} <strong>{p.envioInfo.guia}</strong></p>}
+              {p.estado === 'esperando_bolsita' && <p className="small muted">Guarda todas las piezas en su bolsita y confírmalas: entonces a ella le aparece el monto para pagar.</p>}
+              {p.estado === 'pago_disponible' && <p className="small muted">Ya puede pagar: falta que suba su comprobante.</p>}
               <div className="acciones-pagado">
+                {p.estado === 'esperando_bolsita' && (
+                  <button className="btn primario" disabled={ocupado === p.id} onClick={() => void confirmarBolsita(p)}>Confirmar todas en bolsita</button>
+                )}
                 {p.estado === 'por_confirmar' && (
                   <>
                     <button className="btn primario" disabled={!puedeConfirmarPagos(perfil)} title={puedeConfirmarPagos(perfil) ? undefined : 'Lo confirma Encargado o Administración'} onClick={() => setModal({ tipo: 'confirmar', p })}>Revisar y confirmar pago</button>
@@ -156,7 +170,7 @@ export function Pagados({ pedidos, perfil }: { pedidos: PedidoPagado[]; perfil: 
                 {pasosDisponibles(p).map(paso => (
                   <button key={paso.estado} className={paso.estado === 'entregado' ? 'btn' : 'btn primario'} disabled={ocupado === p.id} onClick={() => void avanzar(p, paso.estado)}>{paso.boton}</button>
                 ))}
-                {p.origen === 'carrito' && p.estado !== 'por_confirmar' && <button className="btn" onClick={() => setModal({ tipo: 'ver', p })}>Ver comprobante</button>}
+                {p.origen === 'carrito' && !['por_confirmar', 'esperando_bolsita', 'pago_disponible'].includes(p.estado) && <button className="btn" onClick={() => setModal({ tipo: 'ver', p })}>Ver comprobante</button>}
               </div>
             </article>
           );

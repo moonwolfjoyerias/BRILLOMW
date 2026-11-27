@@ -30,9 +30,11 @@ export const COL_COMPROBANTES = 'comprobantesPedidos';
 export const CAJA_EN_LINEA = 'en_linea';
 
 export type EstadoPagado =
-  | 'por_confirmar' | 'rechazado' | 'confirmado' | 'en_bolsita' | 'empaquetado' | 'enviado' | 'entregado' | 'vencido' | 'cancelado';
+  | 'esperando_bolsita' | 'pago_disponible' | 'por_confirmar' | 'rechazado' | 'confirmado' | 'en_bolsita' | 'empaquetado' | 'enviado' | 'entregado' | 'vencido' | 'cancelado';
 
 export const ESTADOS_PAGADO: Record<EstadoPagado, { texto: string; tono: 'aviso' | 'error' | 'ok' | 'neutro' }> = {
+  esperando_bolsita: { texto: 'Esperando confirmación en bolsita', tono: 'aviso' },
+  pago_disponible: { texto: 'Listo para pagar (esperando su comprobante)', tono: 'neutro' },
   por_confirmar: { texto: 'Por confirmar pago', tono: 'aviso' },
   rechazado: { texto: 'Comprobante rechazado', tono: 'error' },
   confirmado: { texto: 'Pago confirmado', tono: 'ok' },
@@ -307,6 +309,30 @@ export async function rechazarPago(db: Firestore, pedido: PedidoPagado, motivo: 
       if (!actual.exists() || actual.data().estado !== 'por_confirmar') throw new ErrorPagado('Este pago ya se revisó.');
       tx.update(ref, { estado: 'rechazado', rechazo, historial: [...((actual.data().historial as PasoHistorial[]) ?? []), paso('rechazado', perfil, en, rechazo.motivo)], actualizadoEn: en });
       avisoPersona(tx, db, pedido, `Tu comprobante de pago (${pesos(pedido.total)}) no se pudo validar: ${rechazo.motivo}. Sube otro hoy antes de las 11:59 p.m. o tus piezas regresarán al catálogo.`, ahora);
+    });
+    return null;
+  } catch (e) {
+    return e instanceof ErrorPagado ? e.message : 'No se pudo guardar. Revisa tu conexión.';
+  }
+}
+
+/**
+ * El equipo confirma que TODAS las piezas del pedido ya están en su bolsita:
+ * se habilita el pago y a la e/l le aparece el monto y los datos bancarios
+ * (mismo paso que "Confirmar todas en bolsita" de la página).
+ */
+export async function confirmarBolsitaPedido(db: Firestore, pedido: PedidoPagado, perfil: PerfilUsuario, ahora = new Date()): Promise<string | null> {
+  const en = ahora.toISOString();
+  const ref = doc(db, COL_PEDIDOS_PAGADOS, pedido.id);
+  try {
+    await runTransaction(db, async tx => {
+      const actual = await tx.get(ref);
+      if (!actual.exists() || actual.data().estado !== 'esperando_bolsita') throw new ErrorPagado('Este pedido cambió; revisa la lista.');
+      tx.update(ref, {
+        estado: 'pago_disponible', bolsitaConfirmadaEn: en, actualizadoEn: en,
+        historial: [...((actual.data().historial as PasoHistorial[]) ?? []), paso('pago_disponible', perfil, en, 'Todas las piezas fueron confirmadas en bolsita')]
+      });
+      avisoPersona(tx, db, pedido, `¡Todas tus piezas ya están confirmadas en bolsita! Puedes pagar ${pesos(pedido.total)} ahora.`, ahora);
     });
     return null;
   } catch (e) {

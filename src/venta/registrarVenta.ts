@@ -51,6 +51,7 @@ export interface LineaVendida {
   esServicio: boolean;
   tipoServicio?: TipoServicio;
   garantia?: LineaGarantia;
+  noComisionable?: boolean;
 }
 
 export interface VentaRegistrada {
@@ -108,7 +109,8 @@ export function lineasVendidas(carrito: LineaCarrito[], cliente: ClienteVenta, p
       ...(promo > 0 ? { descuentoPromocion: promo } : {}),
       esServicio: l.esServicio,
       ...(l.esServicio ? { tipoServicio: l.tipoServicio ?? 'articulo' } : {}),
-      ...(l.garantia ? { garantia: l.garantia, descuentoAplicado: 0 } : {})
+      ...(l.garantia ? { garantia: l.garantia, descuentoAplicado: 0 } : {}),
+      ...(l.noComisionable ? { noComisionable: true } : {})
     };
   });
 }

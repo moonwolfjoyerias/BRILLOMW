@@ -66,6 +66,12 @@ export interface Producto {
   /** Ids de las fotos guardadas aparte por la página (productosFotos); [] = sin fotos. */
   fotosIds?: string[];
   imagen: string;
+  /** Servicio (reparaciones de Aronium): se cobra en la caja sin existencia. */
+  servicio?: boolean;
+  /** No cuenta para comisiones ni compras del Plan MW (grupo "NO COMISIONABLE" de Aronium). */
+  noComisionable?: boolean;
+  /** Código con el que viene en Aronium, si no es idéntico al de BRILLO (se confirmó que es el mismo). */
+  codigoAronium?: string;
 }
 
 const texto = (v: unknown): string => (typeof v === 'string' ? v : v == null ? '' : String(v));
@@ -137,7 +143,10 @@ export function normalizarProducto(id: string, crudo: Record<string, unknown>): 
     ...(crudo.stockMinimo != null && crudo.stockMinimo !== '' ? { stockMinimo: Math.max(0, Math.floor(numero(crudo.stockMinimo))) } : {}),
     galeria,
     ...(Array.isArray(crudo.fotosIds) ? { fotosIds: (crudo.fotosIds as unknown[]).map(String) } : {}),
-    imagen: galeria[0]?.src || ''
+    imagen: galeria[0]?.src || '',
+    ...(crudo.servicio === true ? { servicio: true } : {}),
+    ...(crudo.noComisionable === true ? { noComisionable: true } : {}),
+    ...(typeof crudo.codigoAronium === 'string' && crudo.codigoAronium ? { codigoAronium: crudo.codigoAronium } : {})
   };
 }
 
