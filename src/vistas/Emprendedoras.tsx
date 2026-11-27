@@ -21,6 +21,7 @@ import { comisionesDelMes, mesKey as mesKeyArbol, subarbol } from '../arbol/mode
 import { personasPorMiembro } from '../arbol/planmw';
 import { useApartados } from '../apartados/acciones';
 import { regla, type Ventana } from '../apartados/modelo';
+import { BotonesImportarClientes } from './ImportarClientes';
 import { guardarPersonas, usePersonasAdmin, type CambioPersonas } from '../personas/acciones';
 import { useComprasBrillo } from '../compras/acciones';
 import { quitarFotoPerfil, useFotoPerfil } from '../personas/fotos';
@@ -116,12 +117,19 @@ export function Emprendedoras({ perfil }: { perfil: PerfilUsuario }) {
 
   return (
     <section className="emprendedoras">
-      <div className="encabezado-seccion">
-        <h1>Emprendedoras y Líderes</h1>
-        <p className="muted">Busca, consulta su perfil completo, edita y maneja su saldo a favor. Lo mismo que en la página: lo que se cambie aquí o allá se ve en los dos.</p>
+      <div className="encabezado-seccion con-accion">
+        <div>
+          <h1>Emprendedoras y Líderes</h1>
+          <p className="muted">Busca, consulta su perfil completo, edita y maneja su saldo a favor. Lo mismo que en la página: lo que se cambie aquí o allá se ve en los dos.</p>
+        </div>
+        {perfil.rol === 'admin' && (
+          <div className="acciones-encabezado">
+            <BotonesImportarClientes perfil={perfil} personas={personas} miembros={arbol.estado === 'listo' ? arbol.miembros : null} />
+          </div>
+        )}
       </div>
       <div className="filtros-personas">
-        <input type="search" placeholder="Nombre, usuario o teléfono…" value={f.texto} onChange={e => set('texto', e.target.value)} aria-label="Buscar" />
+        <input type="search" placeholder="Nombre, usuario, código MW o teléfono…" value={f.texto} onChange={e => set('texto', e.target.value)} aria-label="Buscar" />
         <select value={f.tipo} onChange={e => set('tipo', e.target.value)} aria-label="Tipo">
           <option value="">Emprendedoras y líderes</option>
           <option value="emprendedora">Emprendedoras</option>

@@ -21,6 +21,8 @@ export interface Persona {
   recompensaPendiente: boolean;
   /** Código de su tarjeta de cliente: su número de cliente de Aronium (ej. 000188), si ya se ligó. */
   codigoTarjeta: string | null;
+  /** Código MW que tenía en Aronium (solo etiqueta para buscarla; no es su usuario). */
+  etiquetaMW: string;
 }
 
 const texto = (v: unknown) => (typeof v === 'string' ? v : v == null ? '' : String(v));
@@ -37,7 +39,8 @@ export function normalizarPersona(id: string, d: Record<string, unknown>): Perso
     usuario: texto(d.usuario),
     ascensoPendiente: !!d.ascensoPendiente,
     recompensaPendiente: !!d.recompensaPendiente,
-    codigoTarjeta: Array.isArray(d.aroniumClienteIds) && d.aroniumClienteIds.length ? texto(d.aroniumClienteIds[0]) : null
+    codigoTarjeta: Array.isArray(d.aroniumClienteIds) && d.aroniumClienteIds.length ? texto(d.aroniumClienteIds[0]) : null,
+    etiquetaMW: texto(d.etiquetaMW)
   };
 }
 
@@ -64,7 +67,8 @@ export function usuarioDeTarjeta(texto: string): string | null {
 export function personaDeTarjeta(personas: Persona[], texto: string): { persona: Persona } | { error: string } | null {
   const usuario = usuarioDeTarjeta(texto) ?? (/^\s*MW\d{3,}\s*$/i.test(texto) ? texto.trim().toUpperCase() : null);
   if (!usuario) return null;
-  const p = personas.find(x => x.usuario.trim().toUpperCase() === usuario);
+  // Escrito a mano, también vale el código MW que tenía en Aronium (etiqueta).
+  const p = personas.find(x => x.usuario.trim().toUpperCase() === usuario) ?? (usuarioDeTarjeta(texto) ? undefined : personas.find(x => x.etiquetaMW.trim().toUpperCase() === usuario));
   if (!p) return { error: `No hay ninguna emprendedora o líder con el usuario ${usuario}.` };
   if (p.estado === 'baja') return { error: `La cuenta de ${nombreCompleto(p)} (${usuario}) está dada de baja.` };
   return { persona: p };
@@ -78,7 +82,7 @@ export function buscarPersonas(personas: Persona[], q: string, limite = 8): Pers
     .filter(p => p.estado !== 'baja')
     .filter(
       p =>
-        normal(`${p.nombre} ${p.apellidos} ${p.usuario}`).includes(t) ||
+        normal(`${p.nombre} ${p.apellidos} ${p.usuario} ${p.etiquetaMW} ${p.codigoTarjeta ?? ''}`).includes(t) ||
         (dig.length >= 4 && soloDigitos(p.telefono).includes(dig))
     )
     .slice(0, limite);

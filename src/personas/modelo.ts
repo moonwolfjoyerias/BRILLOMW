@@ -161,7 +161,7 @@ export function filtrarPersonas(personas: PersonaAdmin[], f: FiltrosPersonas): P
   const t = f.texto.trim().toLowerCase();
   return personas
     .filter(p => {
-      if (t && !(nombreCompletoPersona(p).toLowerCase().includes(t) || p.usuario.toLowerCase().includes(t) || p.telefono.toLowerCase().includes(t))) return false;
+      if (t && !(nombreCompletoPersona(p).toLowerCase().includes(t) || p.usuario.toLowerCase().includes(t) || p.telefono.toLowerCase().includes(t) || String(p.crudo.etiquetaMW ?? '').toLowerCase().includes(t))) return false;
       if (f.tipo && p.tipo !== f.tipo) return false;
       if (f.estado && p.estado !== f.estado) return false;
       if (f.categoria && p.categoria !== f.categoria) return false;
