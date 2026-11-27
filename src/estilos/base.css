@@ -1371,3 +1371,7 @@ body.modo-piloto .ticket::before { content: '*** PILOTO · SIN VALOR ***'; displ
 .aviso-sin-stock p { margin: 0; }
 .fila-sin-stock { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .fila-sin-stock input { width: 80px; }
+
+/* Caja: descuentos manuales */
+.opciones-descuento { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.btn.enlace { justify-self: start; align-self: flex-start; background: none; border: 0; padding: 2px 0; text-decoration: underline; color: var(--mw-primary, inherit); min-height: 0; }
